@@ -62,14 +62,41 @@ public class FleetTrackDashboard extends JFrame {
         leftColumn.setLayout(new BoxLayout(leftColumn, BoxLayout.Y_AXIS));
         leftColumn.setPreferredSize(new Dimension(320, 650));
 
-        // Vehicle Status Card
+        // ===== VEHICLE STATUS CARD =====
         JPanel vehicleCard = createCardPanel(lightBlue, new Color(91, 141, 239));
         vehicleCard.setLayout(new BoxLayout(vehicleCard, BoxLayout.Y_AXIS));
 
         JLabel vehicleTitle = createSectionTitle("Vehicle Status", new Color(58, 93, 174));
-        JLabel available = createInfoLabel("18 / 20 Available", new Color(34, 139, 34), true);
-        JLabel inUse = createInfoLabel("1 in Use (Job #405)", Color.DARK_GRAY, false);
-        JLabel maintenance = createInfoLabel("1 in Maintenance (Ticket #003)", new Color(178, 34, 34), false);
+
+        int total = manager.getTrucks().size();
+        int availableCount = 0;
+        int outOfServiceCount = 0;
+
+        for (Truck truck : manager.getTrucks()) {
+            if (truck.isAvailable()) {
+                availableCount++;
+            } else {
+                outOfServiceCount++;
+            }
+        }
+
+        JLabel available = createInfoLabel(
+            availableCount + " / " + total + " Available",
+            new Color(34, 139, 34),
+            true
+        );
+
+        JLabel inUse = createInfoLabel(
+            "Active Tasks: " + manager.getTasks().size(),
+            Color.DARK_GRAY,
+            false
+        );
+
+        JLabel maintenance = createInfoLabel(
+            outOfServiceCount + " Out of Service",
+            new Color(178, 34, 34),
+            false
+        );
 
         vehicleCard.add(vehicleTitle);
         vehicleCard.add(Box.createVerticalStrut(10));
@@ -79,13 +106,31 @@ public class FleetTrackDashboard extends JFrame {
         vehicleCard.add(Box.createVerticalStrut(6));
         vehicleCard.add(maintenance);
 
-        // Repair Tickets Card
+        // ===== REPAIR TICKETS CARD =====
         JPanel repairCard = createCardPanel(redTint, new Color(205, 92, 92));
         repairCard.setLayout(new BoxLayout(repairCard, BoxLayout.Y_AXIS));
 
         JLabel repairTitle = createSectionTitle("Open Repair Tickets", new Color(180, 70, 70));
-        JLabel ticket1 = createInfoLabel("#003 - Flat Tire (Red)     Truck 101", new Color(178, 34, 34), true);
-        JLabel ticket2 = createInfoLabel("#004 - Oil Change (Yellow) Truck 202", new Color(184, 134, 11), true);
+
+        int ticketCount = 0;
+        for (Truck truck : manager.getTrucks()) {
+            if (!truck.isAvailable()) {
+                ticketCount++;
+            }
+        }
+
+        JLabel ticket1 = createInfoLabel(
+            "Open Issues: " + ticketCount,
+            new Color(178, 34, 34),
+            true
+        );
+
+        JLabel ticket2 = createInfoLabel(
+            "Active Maintenance Tracking Enabled",
+            new Color(184, 134, 11),
+            false
+        );
+
         JLabel viewAll = createInfoLabel("View All Tickets →", new Color(58, 93, 174), false);
 
         repairCard.add(repairTitle);
@@ -96,7 +141,7 @@ public class FleetTrackDashboard extends JFrame {
         repairCard.add(Box.createVerticalStrut(10));
         repairCard.add(viewAll);
 
-        // Quick Actions
+        // ===== QUICK ACTIONS =====
         JPanel quickActionsPanel = new JPanel();
         quickActionsPanel.setBackground(bgColor);
         quickActionsPanel.setLayout(new BoxLayout(quickActionsPanel, BoxLayout.Y_AXIS));
@@ -105,6 +150,7 @@ public class FleetTrackDashboard extends JFrame {
         JLabel quickTitle = new JLabel("Quick Actions");
         quickTitle.setFont(new Font("SansSerif", Font.BOLD, 18));
         quickTitle.setForeground(new Color(45, 67, 126));
+        quickTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         JButton createJobBtn = new JButton("+ Create New Job");
         styleButton(createJobBtn, blue, Color.WHITE);
@@ -133,15 +179,11 @@ public class FleetTrackDashboard extends JFrame {
         quickActionsPanel.add(quickTitle);
         quickActionsPanel.add(Box.createVerticalStrut(12));
         quickActionsPanel.add(createJobBtn);
-        quickActionsPanel.add(createJobBtn);
         quickActionsPanel.add(Box.createVerticalStrut(15));
-
         quickActionsPanel.add(timesheetBtn);
         quickActionsPanel.add(Box.createVerticalStrut(15));
-
         quickActionsPanel.add(jobSheetBtn);
         quickActionsPanel.add(Box.createVerticalStrut(15));
-
         quickActionsPanel.add(employeesBtn);
         quickActionsPanel.add(Box.createVerticalStrut(20));
 
@@ -156,7 +198,7 @@ public class FleetTrackDashboard extends JFrame {
         rightColumn.setBackground(bgColor);
         rightColumn.setLayout(new BoxLayout(rightColumn, BoxLayout.Y_AXIS));
 
-        // Map Panel
+        // ===== MAP PANEL =====
         JPanel mapCard = createCardPanel(Color.WHITE, new Color(210, 220, 235));
         mapCard.setLayout(new BorderLayout());
         mapCard.setPreferredSize(new Dimension(700, 320));
@@ -185,7 +227,7 @@ public class FleetTrackDashboard extends JFrame {
 
         mapCard.add(mapInner, BorderLayout.CENTER);
 
-        // Active Jobs Panel
+        // ===== ACTIVE JOBS PANEL =====
         JPanel jobsCard = createCardPanel(Color.WHITE, new Color(210, 220, 235));
         jobsCard.setLayout(new BoxLayout(jobsCard, BoxLayout.Y_AXIS));
 
@@ -193,17 +235,23 @@ public class FleetTrackDashboard extends JFrame {
         jobsTitle.setFont(new Font("SansSerif", Font.BOLD, 24));
         jobsTitle.setForeground(new Color(58, 93, 174));
 
-        JLabel job1 = createInfoLabel("Truck 101  →  Job #405  →  Phoenix", Color.DARK_GRAY, false);
-        JLabel job2 = createInfoLabel("Truck 202  →  Job #406  →  Mesa", Color.DARK_GRAY, false);
-        JLabel job3 = createInfoLabel("Truck 303  →  Available", Color.DARK_GRAY, false);
-
         jobsCard.add(jobsTitle);
         jobsCard.add(Box.createVerticalStrut(15));
-        jobsCard.add(job1);
-        jobsCard.add(Box.createVerticalStrut(8));
-        jobsCard.add(job2);
-        jobsCard.add(Box.createVerticalStrut(8));
-        jobsCard.add(job3);
+
+        if (manager.getTasks().isEmpty()) {
+            JLabel noTasks = createInfoLabel("No active tasks available", Color.DARK_GRAY, false);
+            jobsCard.add(noTasks);
+        } else {
+            for (Task task : manager.getTasks()) {
+                JLabel taskLabel = createInfoLabel(
+                    "Task: " + task.getTaskName() + " → " + task.getStatus(),
+                    Color.DARK_GRAY,
+                    false
+                );
+                jobsCard.add(taskLabel);
+                jobsCard.add(Box.createVerticalStrut(8));
+            }
+        }
 
         rightColumn.add(mapCard);
         rightColumn.add(Box.createVerticalStrut(20));
@@ -214,7 +262,7 @@ public class FleetTrackDashboard extends JFrame {
 
         mainPanel.add(contentPanel, BorderLayout.CENTER);
 
-        // SCROLL PANE
+        // ===== SCROLL PANE =====
         JScrollPane scrollPane = new JScrollPane(mainPanel);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
@@ -249,12 +297,12 @@ public class FleetTrackDashboard extends JFrame {
     }
 
     private void styleButton(JButton button, Color bg, Color fg) {
-    button.setBackground(bg);
-    button.setForeground(fg);
-    button.setFocusPainted(false);
-    button.setFont(new Font("SansSerif", Font.BOLD, 15));
-    button.setPreferredSize(new Dimension(240, 45));
-    button.setMaximumSize(new Dimension(240, 45));
-    button.setAlignmentX(Component.CENTER_ALIGNMENT);
-}
+        button.setBackground(bg);
+        button.setForeground(fg);
+        button.setFocusPainted(false);
+        button.setFont(new Font("SansSerif", Font.BOLD, 15));
+        button.setPreferredSize(new Dimension(240, 45));
+        button.setMaximumSize(new Dimension(240, 45));
+        button.setAlignmentX(Component.CENTER_ALIGNMENT);
+    }
 }

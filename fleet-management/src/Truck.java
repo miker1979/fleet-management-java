@@ -13,39 +13,11 @@ public class Truck {
         this.driver = null;
     }
 
-    // GETTERS
-    public int getId() {
-        return id;
-    }
-
-    public boolean isAvailable() {
-        return available;
-    }
-
-    public Driver getDriver() {
-        return driver;
-    }
-
-    // ASSIGN DRIVER
     public void assignDriver(Driver driver) {
         this.driver = driver;
         this.available = false;
-
-        if (driver != null) {
-            driver.setAssigned(true);
-        }
     }
 
-    // REMOVE DRIVER (useful later)
-    public void removeDriver() {
-        if (driver != null) {
-            driver.setAssigned(false);
-        }
-        this.driver = null;
-        this.available = true;
-    }
-
-    // DISPLAY
     public void displayTruck() {
         System.out.println("Truck ID: " + id);
         System.out.println("Model: " + model);
@@ -59,5 +31,25 @@ public class Truck {
         }
 
         System.out.println("----------------------");
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public String getModel() {
+        return model;
+    }
+
+    public int getMileage() {
+        return mileage;
+    }
+
+    public boolean isAvailable() {
+        return available;
+    }
+
+    public void setAvailable(boolean available) {
+        this.available = available;
     }
 }

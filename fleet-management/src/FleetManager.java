@@ -2,120 +2,40 @@ import java.util.ArrayList;
 
 public class FleetManager {
 
-    private ArrayList<Truck> trucks;
-    private ArrayList<Driver> drivers;
-    private ArrayList<Employee> employees;
+    private ArrayList<Employee> employees = new ArrayList<>();
+    private ArrayList<Truck> trucks = new ArrayList<>();
+    private ArrayList<Job> jobs = new ArrayList<>();
+    private ArrayList<Task> tasks = new ArrayList<>();
 
-    public FleetManager() {
-        trucks = new ArrayList<>();
-        drivers = new ArrayList<>();
-        employees = new ArrayList<>();
+    public void addEmployee(Employee emp) {
+        employees.add(emp);
     }
 
-    // =========================
-    // TRUCK METHODS
-    // =========================
     public void addTruck(Truck truck) {
         trucks.add(truck);
     }
 
-    public ArrayList<Truck> getTrucks() {
-        return trucks;
+    public void addJob(Job job) {
+        jobs.add(job);
     }
 
-    public Truck findTruckById(int id) {
-        for (Truck truck : trucks) {
-            if (truck.getId() == id) {
-                return truck;
-            }
-        }
-        return null;
-    }
-
-    public int getTotalTrucks() {
-        return trucks.size();
-    }
-
-    public int getAvailableTrucks() {
-        int count = 0;
-        for (Truck truck : trucks) {
-            if (truck.isAvailable()) {
-                count++;
-            }
-        }
-        return count;
-    }
-
-    public void displayAllTrucks() {
-        if (trucks.isEmpty()) {
-            System.out.println("No trucks in fleet.");
-            return;
-        }
-
-        for (Truck truck : trucks) {
-            truck.displayTruck();
-        }
-    }
-
-    // =========================
-    // DRIVER METHODS
-    // =========================
-    public void addDriver(Driver driver) {
-        drivers.add(driver);
-    }
-
-    public ArrayList<Driver> getDrivers() {
-        return drivers;
-    }
-
-    public Driver findDriverById(int id) {
-        for (Driver driver : drivers) {
-            if (driver.getId() == id) {
-                return driver;
-            }
-        }
-        return null;
-    }
-
-    public void displayAllDrivers() {
-        if (drivers.isEmpty()) {
-            System.out.println("No drivers found.");
-            return;
-        }
-
-        for (Driver driver : drivers) {
-            driver.displayDriver();
-        }
-    }
-
-    // =========================
-    // EMPLOYEE METHODS
-    // =========================
-    public void addEmployee(Employee employee) {
-        employees.add(employee);
+    public void addTask(Task task) {
+        tasks.add(task);
     }
 
     public ArrayList<Employee> getEmployees() {
         return employees;
     }
 
-    public Employee findEmployeeById(int id) {
-        for (Employee employee : employees) {
-            if (employee.getEmployeeId() == id) {
-                return employee;
-            }
-        }
-        return null;
+    public ArrayList<Truck> getTrucks() {
+        return trucks;
     }
 
-    public void displayAllEmployees() {
-        if (employees.isEmpty()) {
-            System.out.println("No employees found.");
-            return;
-        }
+    public ArrayList<Job> getJobs() {
+        return jobs;
+    }
 
-        for (Employee employee : employees) {
-            employee.displayEmployee();
-        }
+    public ArrayList<Task> getTasks() {
+        return tasks;
     }
 }
