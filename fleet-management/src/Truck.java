@@ -4,6 +4,7 @@ public class Truck {
     private int mileage;
     private boolean available;
     private Driver driver;
+    private int currentJobId;
 
     public Truck(int id, String model, int mileage, boolean available) {
         this.id = id;
@@ -11,6 +12,7 @@ public class Truck {
         this.mileage = mileage;
         this.available = available;
         this.driver = null;
+        this.currentJobId = 0;
     }
 
     public void assignDriver(Driver driver) {
@@ -18,11 +20,16 @@ public class Truck {
         this.available = false;
     }
 
+    public void assignToJob(int jobId) {
+        this.currentJobId = jobId;
+    }
+
     public void displayTruck() {
         System.out.println("Truck ID: " + id);
         System.out.println("Model: " + model);
         System.out.println("Mileage: " + mileage);
         System.out.println("Available: " + available);
+        System.out.println("Current Job ID: " + currentJobId);
 
         if (driver != null) {
             System.out.println("Driver: " + driver.getName());
@@ -51,5 +58,9 @@ public class Truck {
 
     public void setAvailable(boolean available) {
         this.available = available;
+    }
+
+    public int getCurrentJobId() {
+        return currentJobId;
     }
 }

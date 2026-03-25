@@ -38,4 +38,13 @@ public class FleetManager {
     public ArrayList<Task> getTasks() {
         return tasks;
     }
+
+    public Employee findEmployeeById(int id) {
+        for (Employee emp : employees) {
+            if (emp.getEmployeeId() == id) {
+                return emp;
+            }
+        }
+        return null;
+    }
 }

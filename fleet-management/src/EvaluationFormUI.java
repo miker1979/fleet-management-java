@@ -1,4 +1,5 @@
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
 public class EvaluationFormUI extends JFrame {
@@ -9,36 +10,37 @@ public class EvaluationFormUI extends JFrame {
         this.manager = manager;
 
         setTitle("Employee Evaluation Form");
-        setSize(650, 750);
+        setSize(700, 800);
         setLocationRelativeTo(null);
-        setLayout(new GridLayout(0, 2, 10, 10));
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
-        // Fields
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+        mainPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
+        mainPanel.setBackground(Color.WHITE);
+
+        // =========================
+        // HEADER
+        // =========================
+        JLabel header = new JLabel("Employee Evaluation");
+        header.setFont(new Font("SansSerif", Font.BOLD, 24));
+        header.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        mainPanel.add(header);
+        mainPanel.add(Box.createVerticalStrut(20));
+
+        // =========================
+        // EMPLOYEE INFO
+        // =========================
         JTextField empNameField = new JTextField();
         empNameField.setEditable(false);
 
         JTextField empIdField = new JTextField();
-        JComboBox<String> typeBox = new JComboBox<>(new String[]{"Monthly", "Quarterly", "Yearly"});
-        JTextField dateField = new JTextField("2026-01-01");
         JTextField evaluatorField = new JTextField();
+        JTextField dateField = new JTextField("2026-01-01");
 
-        // Ratings
-        JComboBox<Integer> rating1 = createRatingBox();
-        JComboBox<Integer> rating2 = createRatingBox();
-        JComboBox<Integer> rating3 = createRatingBox();
-        JComboBox<Integer> rating4 = createRatingBox();
-        JComboBox<Integer> rating5 = createRatingBox();
-        JComboBox<Integer> rating6 = createRatingBox();
+        JComboBox<String> typeBox = new JComboBox<>(new String[]{"Monthly", "Quarterly", "Yearly"});
 
-        // Comments
-        JTextField c1 = new JTextField();
-        JTextField c2 = new JTextField();
-        JTextField c3 = new JTextField();
-        JTextField c4 = new JTextField();
-        JTextField c5 = new JTextField();
-        JTextField c6 = new JTextField();
-
-        // Auto-fill employee name from ID
         empIdField.addActionListener(e -> {
             try {
                 int id = Integer.parseInt(empIdField.getText().trim());
@@ -49,58 +51,52 @@ public class EvaluationFormUI extends JFrame {
                 } else {
                     empNameField.setText("Employee not found");
                 }
-            } catch (NumberFormatException ex) {
+            } catch (Exception ex) {
                 empNameField.setText("Invalid ID");
             }
         });
 
-        // UI Layout
-        add(new JLabel("Employee Name:"));
-        add(empNameField);
+        mainPanel.add(createField("Employee ID", empIdField));
+        mainPanel.add(createField("Employee Name", empNameField));
+        mainPanel.add(createField("Evaluator", evaluatorField));
+        mainPanel.add(createField("Date", dateField));
+        mainPanel.add(createField("Evaluation Type", typeBox));
 
-        add(new JLabel("Employee ID:"));
-        add(empIdField);
+        mainPanel.add(Box.createVerticalStrut(20));
 
-        add(new JLabel("Evaluation Type:"));
-        add(typeBox);
+        // =========================
+        // RATINGS
+        // =========================
+        mainPanel.add(createSectionLabel("Performance Ratings"));
 
-        add(new JLabel("Date:"));
-        add(dateField);
+        JComboBox<Integer> r1 = createRatingBox();
+        JComboBox<Integer> r2 = createRatingBox();
+        JComboBox<Integer> r3 = createRatingBox();
+        JComboBox<Integer> r4 = createRatingBox();
+        JComboBox<Integer> r5 = createRatingBox();
+        JComboBox<Integer> r6 = createRatingBox();
 
-        add(new JLabel("Evaluator:"));
-        add(evaluatorField);
+        JTextField c1 = new JTextField();
+        JTextField c2 = new JTextField();
+        JTextField c3 = new JTextField();
+        JTextField c4 = new JTextField();
+        JTextField c5 = new JTextField();
+        JTextField c6 = new JTextField();
 
-        add(new JLabel("Job Knowledge:"));
-        add(rating1);
-        add(new JLabel("Comment:"));
-        add(c1);
+        mainPanel.add(createRatingRow("Job Knowledge", r1, c1));
+        mainPanel.add(createRatingRow("Work Quality", r2, c2));
+        mainPanel.add(createRatingRow("Attendance", r3, c3));
+        mainPanel.add(createRatingRow("Productivity", r4, c4));
+        mainPanel.add(createRatingRow("Communication", r5, c5));
+        mainPanel.add(createRatingRow("Dependability", r6, c6));
 
-        add(new JLabel("Work Quality:"));
-        add(rating2);
-        add(new JLabel("Comment:"));
-        add(c2);
+        mainPanel.add(Box.createVerticalStrut(20));
 
-        add(new JLabel("Attendance:"));
-        add(rating3);
-        add(new JLabel("Comment:"));
-        add(c3);
-
-        add(new JLabel("Productivity:"));
-        add(rating4);
-        add(new JLabel("Comment:"));
-        add(c4);
-
-        add(new JLabel("Communication:"));
-        add(rating5);
-        add(new JLabel("Comment:"));
-        add(c5);
-
-        add(new JLabel("Dependability:"));
-        add(rating6);
-        add(new JLabel("Comment:"));
-        add(c6);
-
+        // =========================
+        // SAVE BUTTON
+        // =========================
         JButton saveBtn = new JButton("Save Evaluation");
+        saveBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         saveBtn.addActionListener(e -> {
             try {
@@ -113,59 +109,78 @@ public class EvaluationFormUI extends JFrame {
                 }
 
                 Evaluation eval = new Evaluation(
-                        (int) (Math.random() * 10000),
+                        (int)(Math.random() * 10000),
                         empId,
                         (String) typeBox.getSelectedItem(),
                         dateField.getText().trim(),
                         evaluatorField.getText().trim(),
-                        (int) rating1.getSelectedItem(),
-                        (int) rating2.getSelectedItem(),
-                        (int) rating3.getSelectedItem(),
-                        (int) rating4.getSelectedItem(),
-                        (int) rating5.getSelectedItem(),
-                        (int) rating6.getSelectedItem()
+                        (int) r1.getSelectedItem(),
+                        (int) r2.getSelectedItem(),
+                        (int) r3.getSelectedItem(),
+                        (int) r4.getSelectedItem(),
+                        (int) r5.getSelectedItem(),
+                        (int) r6.getSelectedItem()
                 );
 
                 eval.setComments(
-                        c1.getText().trim(),
-                        c2.getText().trim(),
-                        c3.getText().trim(),
-                        c4.getText().trim(),
-                        c5.getText().trim(),
-                        c6.getText().trim()
+                        c1.getText(),
+                        c2.getText(),
+                        c3.getText(),
+                        c4.getText(),
+                        c5.getText(),
+                        c6.getText()
                 );
 
                 emp.addEvaluation(eval);
-                JOptionPane.showMessageDialog(this, "Evaluation Saved!");
 
-                // Optional: clear form after save
-                empIdField.setText("");
-                empNameField.setText("");
-                evaluatorField.setText("");
-                dateField.setText("2026-01-01");
-                c1.setText("");
-                c2.setText("");
-                c3.setText("");
-                c4.setText("");
-                c5.setText("");
-                c6.setText("");
-                rating1.setSelectedIndex(0);
-                rating2.setSelectedIndex(0);
-                rating3.setSelectedIndex(0);
-                rating4.setSelectedIndex(0);
-                rating5.setSelectedIndex(0);
-                rating6.setSelectedIndex(0);
+                JOptionPane.showMessageDialog(this, "Evaluation Saved!");
 
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Error saving evaluation.");
             }
         });
 
-        add(new JLabel(""));
-        add(saveBtn);
+        mainPanel.add(saveBtn);
+
+        JScrollPane scrollPane = new JScrollPane(mainPanel);
+        add(scrollPane);
+    }
+
+    // =========================
+    // HELPERS
+    // =========================
+    private JPanel createField(String label, JComponent field) {
+        JPanel panel = new JPanel(new BorderLayout(5, 5));
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 60));
+
+        JLabel lbl = new JLabel(label);
+        lbl.setFont(new Font("SansSerif", Font.BOLD, 14));
+
+        panel.add(lbl, BorderLayout.NORTH);
+        panel.add(field, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    private JPanel createRatingRow(String label, JComboBox<Integer> rating, JTextField comment) {
+        JPanel panel = new JPanel(new GridLayout(2, 2, 5, 5));
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
+
+        panel.add(new JLabel(label));
+        panel.add(rating);
+        panel.add(new JLabel("Comment"));
+        panel.add(comment);
+
+        return panel;
+    }
+
+    private JLabel createSectionLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("SansSerif", Font.BOLD, 18));
+        return label;
     }
 
     private JComboBox<Integer> createRatingBox() {
-        return new JComboBox<>(new Integer[]{1, 2, 3, 4, 5});
+        return new JComboBox<>(new Integer[]{1,2,3,4,5});
     }
 }

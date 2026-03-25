@@ -34,7 +34,9 @@ public class Employee {
         this.evaluations = new ArrayList<>();
     }
 
-    // Getters
+    // =========================
+    // GETTERS
+    // =========================
     public int getEmployeeId() {
         return employeeId;
     }
@@ -87,7 +89,9 @@ public class Employee {
         return evaluations;
     }
 
-    // Setters
+    // =========================
+    // SETTERS
+    // =========================
     public void setPosition(String position) {
         this.position = position;
     }
@@ -116,7 +120,9 @@ public class Employee {
         this.payRate = payRate;
     }
 
-    // Evaluation methods
+    // =========================
+    // EVALUATION METHODS
+    // =========================
     public void addEvaluation(Evaluation evaluation) {
         evaluations.add(evaluation);
     }

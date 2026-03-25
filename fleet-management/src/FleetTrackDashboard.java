@@ -23,7 +23,6 @@ public class FleetTrackDashboard extends JFrame {
 
         getContentPane().setBackground(bgColor);
 
-        // ===== TOP NAVBAR =====
         JPanel navBar = new JPanel(new BorderLayout());
         navBar.setBackground(blue);
         navBar.setBorder(new EmptyBorder(15, 20, 15, 20));
@@ -41,7 +40,6 @@ public class FleetTrackDashboard extends JFrame {
 
         add(navBar, BorderLayout.NORTH);
 
-        // ===== MAIN CONTENT =====
         JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.setBackground(bgColor);
         mainPanel.setBorder(new EmptyBorder(20, 25, 20, 25));
@@ -56,13 +54,11 @@ public class FleetTrackDashboard extends JFrame {
         JPanel contentPanel = new JPanel(new BorderLayout(20, 0));
         contentPanel.setBackground(bgColor);
 
-        // ===== LEFT COLUMN =====
         JPanel leftColumn = new JPanel();
         leftColumn.setBackground(bgColor);
         leftColumn.setLayout(new BoxLayout(leftColumn, BoxLayout.Y_AXIS));
         leftColumn.setPreferredSize(new Dimension(320, 650));
 
-        // ===== VEHICLE STATUS CARD =====
         JPanel vehicleCard = createCardPanel(lightBlue, new Color(91, 141, 239));
         vehicleCard.setLayout(new BoxLayout(vehicleCard, BoxLayout.Y_AXIS));
 
@@ -81,21 +77,21 @@ public class FleetTrackDashboard extends JFrame {
         }
 
         JLabel available = createInfoLabel(
-            availableCount + " / " + total + " Available",
-            new Color(34, 139, 34),
-            true
+                availableCount + " / " + total + " Available",
+                new Color(34, 139, 34),
+                true
         );
 
         JLabel inUse = createInfoLabel(
-            "Active Tasks: " + manager.getTasks().size(),
-            Color.DARK_GRAY,
-            false
+                "Active Tasks: " + manager.getTasks().size(),
+                Color.DARK_GRAY,
+                false
         );
 
         JLabel maintenance = createInfoLabel(
-            outOfServiceCount + " Out of Service",
-            new Color(178, 34, 34),
-            false
+                outOfServiceCount + " Out of Service",
+                new Color(178, 34, 34),
+                false
         );
 
         vehicleCard.add(vehicleTitle);
@@ -106,7 +102,6 @@ public class FleetTrackDashboard extends JFrame {
         vehicleCard.add(Box.createVerticalStrut(6));
         vehicleCard.add(maintenance);
 
-        // ===== REPAIR TICKETS CARD =====
         JPanel repairCard = createCardPanel(redTint, new Color(205, 92, 92));
         repairCard.setLayout(new BoxLayout(repairCard, BoxLayout.Y_AXIS));
 
@@ -120,15 +115,20 @@ public class FleetTrackDashboard extends JFrame {
         }
 
         JLabel ticket1 = createInfoLabel(
-            "Open Issues: " + ticketCount,
-            new Color(178, 34, 34),
-            true
+                "Open Issues: " + ticketCount,
+                new Color(178, 34, 34),
+                true
         );
 
+        int totalLFInstalled = 0;
+        for (Task task : manager.getTasks()) {
+            totalLFInstalled += task.getLinearFeetInstalled();
+        }
+
         JLabel ticket2 = createInfoLabel(
-            "Active Maintenance Tracking Enabled",
-            new Color(184, 134, 11),
-            false
+                "Today's Barrier Output: " + totalLFInstalled + " LF",
+                new Color(184, 134, 11),
+                false
         );
 
         JLabel viewAll = createInfoLabel("View All Tickets →", new Color(58, 93, 174), false);
@@ -141,7 +141,6 @@ public class FleetTrackDashboard extends JFrame {
         repairCard.add(Box.createVerticalStrut(10));
         repairCard.add(viewAll);
 
-        // ===== QUICK ACTIONS =====
         JPanel quickActionsPanel = new JPanel();
         quickActionsPanel.setBackground(bgColor);
         quickActionsPanel.setLayout(new BoxLayout(quickActionsPanel, BoxLayout.Y_AXIS));
@@ -163,6 +162,8 @@ public class FleetTrackDashboard extends JFrame {
 
         JButton employeesBtn = new JButton("Employees");
         styleButton(employeesBtn, new Color(46, 139, 87), Color.WHITE);
+
+        createJobBtn.addActionListener(e -> new JobScreenUI(manager).setVisible(true));
 
         timesheetBtn.addActionListener(e -> {
             JOptionPane.showMessageDialog(this, "Timesheets screen coming next.");
@@ -193,12 +194,10 @@ public class FleetTrackDashboard extends JFrame {
         leftColumn.add(Box.createVerticalStrut(20));
         leftColumn.add(quickActionsPanel);
 
-        // ===== RIGHT COLUMN =====
         JPanel rightColumn = new JPanel();
         rightColumn.setBackground(bgColor);
         rightColumn.setLayout(new BoxLayout(rightColumn, BoxLayout.Y_AXIS));
 
-        // ===== MAP PANEL =====
         JPanel mapCard = createCardPanel(Color.WHITE, new Color(210, 220, 235));
         mapCard.setLayout(new BorderLayout());
         mapCard.setPreferredSize(new Dimension(700, 320));
@@ -227,7 +226,6 @@ public class FleetTrackDashboard extends JFrame {
 
         mapCard.add(mapInner, BorderLayout.CENTER);
 
-        // ===== ACTIVE JOBS PANEL =====
         JPanel jobsCard = createCardPanel(Color.WHITE, new Color(210, 220, 235));
         jobsCard.setLayout(new BoxLayout(jobsCard, BoxLayout.Y_AXIS));
 
@@ -244,9 +242,9 @@ public class FleetTrackDashboard extends JFrame {
         } else {
             for (Task task : manager.getTasks()) {
                 JLabel taskLabel = createInfoLabel(
-                    "Task: " + task.getTaskName() + " → " + task.getStatus(),
-                    Color.DARK_GRAY,
-                    false
+                        "Task: " + task.getTaskName() + " → " + task.getStatus(),
+                        Color.DARK_GRAY,
+                        false
                 );
                 jobsCard.add(taskLabel);
                 jobsCard.add(Box.createVerticalStrut(8));
@@ -262,7 +260,6 @@ public class FleetTrackDashboard extends JFrame {
 
         mainPanel.add(contentPanel, BorderLayout.CENTER);
 
-        // ===== SCROLL PANE =====
         JScrollPane scrollPane = new JScrollPane(mainPanel);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
