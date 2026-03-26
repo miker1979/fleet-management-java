@@ -6,156 +6,146 @@ public class JobScreenUI extends JFrame {
 
     private FleetManager manager;
 
+    private JTextField contractorField;
+    private JTextField locationField;
+    private JTextField taskNameField;
+    private JComboBox<String> statusCombo;
+    private JTextField linearFeetField;
+    private JComboBox<Truck> truckCombo;
+
     public JobScreenUI(FleetManager manager) {
         this.manager = manager;
 
-        setTitle("Job Management");
-        setSize(750, 800);
+        setTitle("Create New Job");
+        setSize(500, 450);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
-        JPanel mainPanel = new JPanel();
-        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
-        mainPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
-        mainPanel.setBackground(Color.WHITE);
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        mainPanel.setBackground(new Color(245, 247, 250));
 
-        JLabel header = new JLabel("Job Management Screen");
-        header.setFont(new Font("SansSerif", Font.BOLD, 24));
-        header.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JLabel titleLabel = new JLabel("Create New Job");
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
+        titleLabel.setForeground(new Color(58, 93, 174));
+        mainPanel.add(titleLabel, BorderLayout.NORTH);
 
-        mainPanel.add(header);
-        mainPanel.add(Box.createVerticalStrut(20));
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setBackground(Color.WHITE);
+        formPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        JTextField jobIdField = new JTextField();
-        JTextField jobNameField = new JTextField();
-        JTextField contractingCompanyField = new JTextField();
-        JTextField locationField = new JTextField();
-        JTextField startDateField = new JTextField("2026-01-01");
-        JTextField completionDateField = new JTextField("2028-12-31");
-        JTextField projectManagerField = new JTextField();
-        JTextField dotProjectField = new JTextField();
-        JTextField totalLFField = new JTextField();
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.WEST;
 
-        JComboBox<String> statusBox = new JComboBox<>(new String[]{
-                "Planned", "In Progress", "On Hold", "Completed", "Cancelled"
+        contractorField = new JTextField(20);
+        locationField = new JTextField(20);
+        taskNameField = new JTextField(20);
+        linearFeetField = new JTextField(20);
+
+        statusCombo = new JComboBox<>(new String[]{
+                "Scheduled",
+                "In Progress",
+                "Delayed",
+                "Completed"
         });
 
-        JComboBox<String> barrierTypeBox = new JComboBox<>(new String[]{
-                "AZDOT F-Shape",
-                "Temporary Concrete Barrier",
-                "Water Barrier",
-                "Guardrail",
-                "Crash Cushion"
-        });
+        truckCombo = new JComboBox<>();
+        loadAvailableTrucks();
 
-        JTextArea notesArea = new JTextArea(5, 20);
-        notesArea.setLineWrap(true);
-        notesArea.setWrapStyleWord(true);
+        int row = 0;
 
-        mainPanel.add(createField("Job ID", jobIdField));
-        mainPanel.add(createField("Job Name", jobNameField));
-        mainPanel.add(createField("Contracting Company", contractingCompanyField));
-        mainPanel.add(createField("Location", locationField));
-        mainPanel.add(createField("Start Date", startDateField));
-        mainPanel.add(createField("Estimated Completion Date", completionDateField));
-        mainPanel.add(createField("Project Manager", projectManagerField));
-        mainPanel.add(createField("DOT Project Number", dotProjectField));
-        mainPanel.add(createField("Barrier Type", barrierTypeBox));
-        mainPanel.add(createField("Total Linear Feet", totalLFField));
-        mainPanel.add(createField("Status", statusBox));
+        addFormRow(formPanel, gbc, row++, "Contractor:", contractorField);
+        addFormRow(formPanel, gbc, row++, "Location:", locationField);
+        addFormRow(formPanel, gbc, row++, "Task Name:", taskNameField);
+        addFormRow(formPanel, gbc, row++, "Status:", statusCombo);
+        addFormRow(formPanel, gbc, row++, "Linear Feet Installed:", linearFeetField);
+        addFormRow(formPanel, gbc, row++, "Assign Truck:", truckCombo);
 
-        JPanel notesPanel = new JPanel(new BorderLayout(5, 5));
-        notesPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 140));
-        notesPanel.setBackground(Color.WHITE);
+        mainPanel.add(formPanel, BorderLayout.CENTER);
 
-        JLabel notesLabel = new JLabel("Notes");
-        notesLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
-        notesPanel.add(notesLabel, BorderLayout.NORTH);
-        notesPanel.add(new JScrollPane(notesArea), BorderLayout.CENTER);
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttonPanel.setBackground(new Color(245, 247, 250));
 
-        mainPanel.add(notesPanel);
-        mainPanel.add(Box.createVerticalStrut(20));
+        JButton saveButton = new JButton("Save Job");
+        JButton cancelButton = new JButton("Cancel");
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10));
-        buttonPanel.setBackground(Color.WHITE);
+        saveButton.setBackground(new Color(58, 93, 174));
+        saveButton.setForeground(Color.WHITE);
+        saveButton.setFocusPainted(false);
 
-        JButton saveBtn = new JButton("Save Job");
-        JButton clearBtn = new JButton("Clear Form");
-        JButton closeBtn = new JButton("Close");
+        cancelButton.setFocusPainted(false);
 
-        saveBtn.setPreferredSize(new Dimension(140, 40));
-        clearBtn.setPreferredSize(new Dimension(140, 40));
-        closeBtn.setPreferredSize(new Dimension(140, 40));
+        saveButton.addActionListener(e -> saveJob());
+        cancelButton.addActionListener(e -> dispose());
 
-        saveBtn.addActionListener(e -> {
-            try {
-                int jobId = Integer.parseInt(jobIdField.getText().trim());
-                int totalLF = Integer.parseInt(totalLFField.getText().trim());
+        buttonPanel.add(cancelButton);
+        buttonPanel.add(saveButton);
 
-                Job job = new Job(
-                        jobId,
-                        jobNameField.getText().trim(),
-                        contractingCompanyField.getText().trim(),
-                        locationField.getText().trim(),
-                        startDateField.getText().trim(),
-                        completionDateField.getText().trim(),
-                        (String) statusBox.getSelectedItem(),
-                        projectManagerField.getText().trim(),
-                        dotProjectField.getText().trim(),
-                        (String) barrierTypeBox.getSelectedItem(),
-                        totalLF,
-                        notesArea.getText().trim()
-                );
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
 
-                manager.addJob(job);
-                JOptionPane.showMessageDialog(this, "Job saved successfully!");
-                job.displayJob();
-
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "Job ID and Total Linear Feet must be numbers.");
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Error saving job.");
-            }
-        });
-
-        clearBtn.addActionListener(e -> {
-            jobIdField.setText("");
-            jobNameField.setText("");
-            contractingCompanyField.setText("");
-            locationField.setText("");
-            startDateField.setText("2026-01-01");
-            completionDateField.setText("2028-12-31");
-            projectManagerField.setText("");
-            dotProjectField.setText("");
-            totalLFField.setText("");
-            statusBox.setSelectedIndex(0);
-            barrierTypeBox.setSelectedIndex(0);
-            notesArea.setText("");
-        });
-
-        closeBtn.addActionListener(e -> dispose());
-
-        buttonPanel.add(saveBtn);
-        buttonPanel.add(clearBtn);
-        buttonPanel.add(closeBtn);
-
-        mainPanel.add(buttonPanel);
-
-        JScrollPane scrollPane = new JScrollPane(mainPanel);
-        add(scrollPane);
+        add(mainPanel);
     }
 
-    private JPanel createField(String label, JComponent field) {
-        JPanel panel = new JPanel(new BorderLayout(5, 5));
-        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 65));
-        panel.setBackground(Color.WHITE);
+    private void addFormRow(JPanel panel, GridBagConstraints gbc, int row, String labelText, JComponent field) {
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.weightx = 0;
+        panel.add(new JLabel(labelText), gbc);
 
-        JLabel lbl = new JLabel(label);
-        lbl.setFont(new Font("SansSerif", Font.BOLD, 14));
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        panel.add(field, gbc);
+    }
 
-        panel.add(lbl, BorderLayout.NORTH);
-        panel.add(field, BorderLayout.CENTER);
+    private void loadAvailableTrucks() {
+        truckCombo.removeAllItems();
 
-        return panel;
+        for (Truck truck : manager.getTrucks()) {
+            if (truck.isAvailable()) {
+                truckCombo.addItem(truck);
+            }
+        }
+    }
+
+    private void saveJob() {
+
+        String contractor = contractorField.getText().trim();
+        String location = locationField.getText().trim();
+        String taskName = taskNameField.getText().trim();
+        String status = (String) statusCombo.getSelectedItem();
+        String linearFeetText = linearFeetField.getText().trim();
+        Truck selectedTruck = (Truck) truckCombo.getSelectedItem();
+
+        if (contractor.isEmpty() || location.isEmpty() || taskName.isEmpty() || linearFeetText.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please fill in all fields.");
+            return;
+        }
+
+        if (selectedTruck == null) {
+            JOptionPane.showMessageDialog(this, "Please assign an available truck.");
+            return;
+        }
+
+        int linearFeetInstalled;
+        try {
+            linearFeetInstalled = Integer.parseInt(linearFeetText);
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Linear Feet Installed must be a number.");
+            return;
+        }
+
+        // CREATE TASK
+        Task newTask = new Task(taskName, status, linearFeetInstalled, contractor, location, selectedTruck);
+        manager.addTask(newTask);
+
+        // ASSIGN TRUCK TO JOB (IMPORTANT FIX)
+        selectedTruck.assignToJob(1); // placeholder job ID for now
+
+        JOptionPane.showMessageDialog(this, "Job created successfully.");
+
+        // OPTIONAL: refresh available trucks if reopened
+        dispose();
     }
 }

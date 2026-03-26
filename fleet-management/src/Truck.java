@@ -22,6 +22,7 @@ public class Truck {
 
     public void assignToJob(int jobId) {
         this.currentJobId = jobId;
+        this.available = false;
     }
 
     public void displayTruck() {
@@ -62,5 +63,14 @@ public class Truck {
 
     public int getCurrentJobId() {
         return currentJobId;
+    }
+
+    public Driver getDriver() {
+        return driver;
+    }
+
+    @Override
+    public String toString() {
+        return "Truck " + id + " - " + model;
     }
 }

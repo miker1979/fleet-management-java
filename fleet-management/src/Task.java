@@ -36,6 +36,26 @@ public class Task {
         this.workShift = workShift;
     }
 
+    // Overloaded constructor for JobScreenUI
+    public Task(String taskName, String status, int linearFeetInstalled,
+                String contractor, String location, Truck assignedTruck) {
+
+        this.taskId = 0;
+        this.jobId = 0;
+        this.taskName = taskName;
+        this.description = "Contractor: " + contractor + " | Location: " + location;
+        this.assignedEmployee = "Unassigned";
+        this.assignedTruck = assignedTruck.toString();
+        this.priority = "Normal";
+        this.startDate = "TBD";
+        this.dueDate = "TBD";
+        this.status = status;
+        this.notes = "";
+        this.barrierType = "Unknown";
+        this.linearFeetInstalled = linearFeetInstalled;
+        this.workShift = "Day";
+    }
+
     public void displayTask() {
         System.out.println("Task ID: " + taskId);
         System.out.println("Job ID: " + jobId);
@@ -66,20 +86,48 @@ public class Task {
         return taskName;
     }
 
+    public String getDescription() {
+        return description;
+    }
+
+    public String getAssignedEmployee() {
+        return assignedEmployee;
+    }
+
     public String getAssignedTruck() {
         return assignedTruck;
+    }
+
+    public String getPriority() {
+        return priority;
+    }
+
+    public String getStartDate() {
+        return startDate;
+    }
+
+    public String getDueDate() {
+        return dueDate;
     }
 
     public String getStatus() {
         return status;
     }
 
-    public int getLinearFeetInstalled() {
-        return linearFeetInstalled;
+    public String getNotes() {
+        return notes;
     }
 
     public String getBarrierType() {
         return barrierType;
+    }
+
+    public int getLinearFeetInstalled() {
+        return linearFeetInstalled;
+    }
+
+    public String getWorkShift() {
+        return workShift;
     }
 
     public void setStatus(String status) {
