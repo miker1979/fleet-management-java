@@ -37,7 +37,6 @@ public class JobScreenUI extends JFrame {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(8, 8, 8, 8);
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.anchor = GridBagConstraints.WEST;
 
         contractorField = new JTextField(20);
         locationField = new JTextField(20);
@@ -56,12 +55,12 @@ public class JobScreenUI extends JFrame {
 
         int row = 0;
 
-        addFormRow(formPanel, gbc, row++, "Contractor:", contractorField);
-        addFormRow(formPanel, gbc, row++, "Location:", locationField);
-        addFormRow(formPanel, gbc, row++, "Task Name:", taskNameField);
-        addFormRow(formPanel, gbc, row++, "Status:", statusCombo);
-        addFormRow(formPanel, gbc, row++, "Linear Feet Installed:", linearFeetField);
-        addFormRow(formPanel, gbc, row++, "Assign Truck:", truckCombo);
+        addRow(formPanel, gbc, row++, "Contractor:", contractorField);
+        addRow(formPanel, gbc, row++, "Location:", locationField);
+        addRow(formPanel, gbc, row++, "Task Name:", taskNameField);
+        addRow(formPanel, gbc, row++, "Status:", statusCombo);
+        addRow(formPanel, gbc, row++, "Linear Feet:", linearFeetField);
+        addRow(formPanel, gbc, row++, "Assign Truck:", truckCombo);
 
         mainPanel.add(formPanel, BorderLayout.CENTER);
 
@@ -73,9 +72,6 @@ public class JobScreenUI extends JFrame {
 
         saveButton.setBackground(new Color(58, 93, 174));
         saveButton.setForeground(Color.WHITE);
-        saveButton.setFocusPainted(false);
-
-        cancelButton.setFocusPainted(false);
 
         saveButton.addActionListener(e -> saveJob());
         cancelButton.addActionListener(e -> dispose());
@@ -88,23 +84,23 @@ public class JobScreenUI extends JFrame {
         add(mainPanel);
     }
 
-    private void addFormRow(JPanel panel, GridBagConstraints gbc, int row, String labelText, JComponent field) {
+    private void addRow(JPanel panel, GridBagConstraints gbc, int row, String label, JComponent field) {
         gbc.gridx = 0;
         gbc.gridy = row;
         gbc.weightx = 0;
-        panel.add(new JLabel(labelText), gbc);
+        panel.add(new JLabel(label), gbc);
 
         gbc.gridx = 1;
-        gbc.weightx = 1.0;
+        gbc.weightx = 1;
         panel.add(field, gbc);
     }
 
     private void loadAvailableTrucks() {
         truckCombo.removeAllItems();
 
-        for (Truck truck : manager.getTrucks()) {
-            if (truck.isAvailable()) {
-                truckCombo.addItem(truck);
+        for (Truck t : manager.getTrucks()) {
+            if (t.isAvailable()) {
+                truckCombo.addItem(t);
             }
         }
     }
@@ -116,36 +112,51 @@ public class JobScreenUI extends JFrame {
         String taskName = taskNameField.getText().trim();
         String status = (String) statusCombo.getSelectedItem();
         String linearFeetText = linearFeetField.getText().trim();
-        Truck selectedTruck = (Truck) truckCombo.getSelectedItem();
+        Truck truck = (Truck) truckCombo.getSelectedItem();
 
         if (contractor.isEmpty() || location.isEmpty() || taskName.isEmpty() || linearFeetText.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Please fill in all fields.");
+            JOptionPane.showMessageDialog(this, "Fill in all fields");
             return;
         }
 
-        if (selectedTruck == null) {
-            JOptionPane.showMessageDialog(this, "Please assign an available truck.");
+        if (truck == null) {
+            JOptionPane.showMessageDialog(this, "Select a truck");
             return;
         }
 
-        int linearFeetInstalled;
+        int linearFeet;
         try {
-            linearFeetInstalled = Integer.parseInt(linearFeetText);
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Linear Feet Installed must be a number.");
+            linearFeet = Integer.parseInt(linearFeetText);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Linear feet must be a number");
             return;
         }
 
-        // CREATE TASK
-        Task newTask = new Task(taskName, status, linearFeetInstalled, contractor, location, selectedTruck);
-        manager.addTask(newTask);
+        // SIMPLE WORKING TASK (matches your system)
+        Task task = new Task(
+                manager.getTasks().size() + 1,
+                1,
+                taskName,
+                contractor + " - " + location,
+                "Unassigned",
+                truck.getModel(),
+                "Normal",
+                "Today",
+                "Tomorrow",
+                status,
+                "",
+                "Standard",
+                linearFeet,
+                "Day"
+        );
 
-        // ASSIGN TRUCK TO JOB (IMPORTANT FIX)
-        selectedTruck.assignToJob(1); // placeholder job ID for now
+        manager.addTask(task);
 
-        JOptionPane.showMessageDialog(this, "Job created successfully.");
+        // mark truck unavailable
+        truck.setAvailable(false);
 
-        // OPTIONAL: refresh available trucks if reopened
+        JOptionPane.showMessageDialog(this, "Job Created");
+
         dispose();
     }
 }

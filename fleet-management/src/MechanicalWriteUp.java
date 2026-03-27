@@ -52,19 +52,99 @@ public class MechanicalWriteUp {
         System.out.println("---------------------------");
     }
 
+    public int getWriteUpId() {
+        return writeUpId;
+    }
+
     public int getTruckId() {
         return truckId;
+    }
+
+    public String getDateReported() {
+        return dateReported;
+    }
+
+    public String getReportedBy() {
+        return reportedBy;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public String getIssueType() {
+        return category;
+    }
+
+    public String getSeverity() {
+        return severity;
+    }
+
+    public String getPriority() {
+        return severity;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public String getProblemDescription() {
+        return description;
+    }
+
+    public boolean isSafeToDrive() {
+        return safeToDrive;
     }
 
     public boolean isOutOfService() {
         return outOfService;
     }
 
+    public String getMechanicName() {
+        return mechanicName;
+    }
+
+    public String getAssignedMechanic() {
+        return mechanicName;
+    }
+
+    public String getRepairNotes() {
+        return repairNotes;
+    }
+
     public String getStatus() {
         return status;
     }
 
+    public String getRepairStatus() {
+        return status;
+    }
+
+    public double getCost() {
+        return cost;
+    }
+
+    public double getEstimatedCost() {
+        return cost;
+    }
+
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public void setRepairNotes(String repairNotes) {
+        this.repairNotes = repairNotes;
+    }
+
+    public void setMechanicName(String mechanicName) {
+        this.mechanicName = mechanicName;
+    }
+
+    public void setOutOfService(boolean outOfService) {
+        this.outOfService = outOfService;
+    }
+
+    public void setCost(double cost) {
+        this.cost = cost;
     }
 }
