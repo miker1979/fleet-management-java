@@ -8,6 +8,7 @@ public class FleetManager {
     private ArrayList<Task> tasks;
     private ArrayList<MechanicalWriteUp> mechanicalWriteUps;
     private ArrayList<Evaluation> evaluations;
+    private ArrayList<TimeOffRequest> timeOffRequests;
 
     public FleetManager() {
         employees = new ArrayList<>();
@@ -16,6 +17,7 @@ public class FleetManager {
         tasks = new ArrayList<>();
         mechanicalWriteUps = new ArrayList<>();
         evaluations = new ArrayList<>();
+        timeOffRequests = new ArrayList<>();
     }
 
     // ===== EMPLOYEES =====
@@ -96,5 +98,18 @@ public class FleetManager {
 
     public int getNextEvaluationId() {
         return 1000 + evaluations.size() + 1;
+    }
+
+    // ===== TIME OFF REQUESTS =====
+    public void addTimeOffRequest(TimeOffRequest request) {
+        timeOffRequests.add(request);
+    }
+
+    public ArrayList<TimeOffRequest> getTimeOffRequests() {
+        return timeOffRequests;
+    }
+
+    public int getNextTimeOffRequestId() {
+        return 8000 + timeOffRequests.size() + 1;
     }
 }

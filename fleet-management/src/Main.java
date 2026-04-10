@@ -21,6 +21,18 @@ public class Main {
         );
         manager.addEmployee(emp);
 
+        TimeOffRequest request1 = new TimeOffRequest(
+            8001,
+            1,
+            "Mike Robinson",
+            "2026-04-01",
+            "2026-04-03",
+            "Vacation",
+            "Family trip",
+            "Pending"
+        );
+        manager.addTimeOffRequest(request1);
+
         Truck truck1 = new Truck(
             101,
             "Freightliner Cascadia",
@@ -48,6 +60,7 @@ public class Main {
 
         Task task1 = new Task(
             1001,
+            1,
             1,
             "Set Traffic Control Barriers",
             "Install 1200 LF of concrete barrier along EB lanes",
@@ -79,6 +92,7 @@ public class Main {
             "In Repair",
             850.00
         );
+        manager.addMechanicalWriteUp(writeUp1);
 
         if (writeUp1.getTruckId() == truck1.getId() && writeUp1.isOutOfService()) {
             truck1.setAvailable(false);
@@ -89,5 +103,19 @@ public class Main {
         SwingUtilities.invokeLater(() -> {
             new FleetTrackDashboard(manager).setVisible(true);
         });
+
+        // ============================================================
+        // DISPATCH SIMULATION THREAD
+        // This will wait 10 seconds, then cancel the task automatically
+        // ============================================================
+        new Thread(() -> {
+            try {
+                Thread.sleep(10000); // Wait 10 seconds after the app starts
+                task1.setStatus("Canceled");
+                System.out.println(">>> DISPATCH SYSTEM: Task 1001 has been CANCELED in the background.");
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 }

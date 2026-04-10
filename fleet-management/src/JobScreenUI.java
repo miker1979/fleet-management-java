@@ -133,22 +133,23 @@ public class JobScreenUI extends JFrame {
         }
 
         // SIMPLE WORKING TASK (matches your system)
-        Task task = new Task(
-                manager.getTasks().size() + 1,
-                1,
-                taskName,
-                contractor + " - " + location,
-                "Unassigned",
-                truck.getModel(),
-                "Normal",
-                "Today",
-                "Tomorrow",
-                status,
-                "",
-                "Standard",
-                linearFeet,
-                "Day"
-        );
+Task task = new Task(
+    manager.getTasks().size() + 1, // taskId
+    1,                             // jobId (Defaulting to 1)
+    0,                             // employeeId (THE FIX: 0 represents 'Unassigned')
+    taskName,                      // taskName
+    contractor + " - " + location, // description
+    "Unassigned",                  // assignedEmployee (String name)
+    truck.getModel(),              // assignedTruck
+    "Normal",                      // priority
+    "Today",                       // startDate
+    "Tomorrow",                    // dueDate
+    status,                        // status
+    "",                            // notes
+    "Standard",                    // barrierType
+    linearFeet,                    // linearFeetInstalled
+    "Day"                          // workShift
+);
 
         manager.addTask(task);
 

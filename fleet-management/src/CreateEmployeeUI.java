@@ -4,16 +4,15 @@ import java.awt.*;
 public class CreateEmployeeUI extends JFrame {
 
     private FleetManager manager;
-    private EmployeeScreenUI employeeScreen;
 
-    public CreateEmployeeUI(FleetManager manager, EmployeeScreenUI employeeScreen) {
+    public CreateEmployeeUI(FleetManager manager) {
         this.manager = manager;
-        this.employeeScreen = employeeScreen;
 
         setTitle("Create Employee");
         setSize(550, 550);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setLayout(new BorderLayout(10, 10));
 
         JPanel formPanel = new JPanel(new GridLayout(0, 2, 10, 10));
 
@@ -92,14 +91,9 @@ public class CreateEmployeeUI extends JFrame {
                         payRate
                 );
 
-                this.manager.addEmployee(employee);
+                manager.addEmployee(employee);
 
                 JOptionPane.showMessageDialog(this, "Employee created successfully!");
-
-                if (this.employeeScreen != null) {
-                    this.employeeScreen.refreshEmployeeList();
-                }
-
                 dispose();
 
             } catch (Exception ex) {

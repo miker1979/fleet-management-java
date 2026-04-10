@@ -122,14 +122,12 @@ public class FleetTrackDashboard extends JFrame {
 
         Font btnFont = new Font("Arial", Font.BOLD, 12);
 
-        // LEFT COLUMN
         JButton btn1 = new JButton("+ Create New Job");
         JButton btn2 = new JButton("Review Timesheets");
         JButton btn3 = new JButton("Job Sheets");
-        JButton btn4 = new JButton("Employees");
+        JButton btn4 = new JButton("Employee Portal");
 
-        // RIGHT COLUMN
-        JButton btn5 = new JButton("Employees");
+        JButton btn5 = new JButton("Time Off Manager");
         JButton btn6 = new JButton("View Tasks");
         JButton btn7 = new JButton("Maintenance");
         JButton btn8 = new JButton("Reports");
@@ -155,8 +153,19 @@ public class FleetTrackDashboard extends JFrame {
 
         // ===== BUTTON ACTIONS =====
         btn1.addActionListener(e -> new JobScreenUI(manager).setVisible(true));
-        btn4.addActionListener(e -> new EmployeeScreenUI(manager).setVisible(true));
-        btn5.addActionListener(e -> new EmployeeScreenUI(manager).setVisible(true));
+
+        btn4.addActionListener(e -> {
+            if (manager.getEmployees().isEmpty()) {
+                JOptionPane.showMessageDialog(this, "No employees found.");
+                return;
+            }
+
+            Employee emp = manager.getEmployees().get(0);
+            new EmployeeHomepageUI(manager, emp).setVisible(true);
+        });
+
+        btn5.addActionListener(e -> new ManagerTimeOffDashboardUI(manager).setVisible(true));
+
         btn7.addActionListener(e -> new MechanicDashboardUI(manager).setVisible(true));
 
         left.add(vehicleCard);

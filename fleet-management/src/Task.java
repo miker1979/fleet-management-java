@@ -2,6 +2,7 @@ public class Task {
 
     private int taskId;
     private int jobId;
+    private int employeeId; // Added for ID-based filtering
     private String taskName;
     private String description;
     private String assignedEmployee;
@@ -15,13 +16,14 @@ public class Task {
     private int linearFeetInstalled;
     private String workShift;
 
-    public Task(int taskId, int jobId, String taskName, String description,
+    public Task(int taskId, int jobId, int employeeId, String taskName, String description,
                 String assignedEmployee, String assignedTruck, String priority,
                 String startDate, String dueDate, String status, String notes,
                 String barrierType, int linearFeetInstalled, String workShift) {
 
         this.taskId = taskId;
         this.jobId = jobId;
+        this.employeeId = employeeId; // Assigned here
         this.taskName = taskName;
         this.description = description;
         this.assignedEmployee = assignedEmployee;
@@ -42,6 +44,7 @@ public class Task {
 
         this.taskId = 0;
         this.jobId = 0;
+        this.employeeId = 0; // Default to 0 for unassigned
         this.taskName = taskName;
         this.description = "Contractor: " + contractor + " | Location: " + location;
         this.assignedEmployee = "Unassigned";
@@ -59,6 +62,7 @@ public class Task {
     public void displayTask() {
         System.out.println("Task ID: " + taskId);
         System.out.println("Job ID: " + jobId);
+        System.out.println("Employee ID: " + employeeId);
         System.out.println("Task Name: " + taskName);
         System.out.println("Description: " + description);
         System.out.println("Assigned Employee: " + assignedEmployee);
@@ -80,6 +84,11 @@ public class Task {
 
     public int getJobId() {
         return jobId;
+    }
+
+    // Added getter to fix UI error
+    public int getEmployeeId() {
+        return employeeId;
     }
 
     public String getTaskName() {
