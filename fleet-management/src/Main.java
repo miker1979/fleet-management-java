@@ -4,12 +4,10 @@ public class Main {
     public static void main(String[] args) {
         FleetManager manager = new FleetManager();
 
-        // Populate Fleet
         manager.addTruck(new Truck("T-101", "Freightliner"));
         manager.addTruck(new Truck("T-202", "Attenuator"));
         manager.addTruck(new Truck("T-303", "Service Truck"));
 
-        // Mike Robinson Profile
         Employee mike = new Employee(
                 1,
                 "Mike",
@@ -23,11 +21,24 @@ public class Main {
                 true,
                 35.0
         );
-
-        // Add employee to manager
+        mike.setAssignedTruckId("T-101");
         manager.addEmployee(mike);
 
-        // Initial Task
+        Employee charlie = new Employee(
+                2,
+                "Charlie",
+                "Smith",
+                "Mechanic",
+                "Maintenance",
+                "Phoenix",
+                "555-5678",
+                "charlie@email.com",
+                "2026-01-10",
+                true,
+                32.0
+        );
+        manager.addEmployee(charlie);
+
         manager.addTask(new Task(
                 1001,
                 "2026-04-10",
@@ -40,7 +51,12 @@ public class Main {
         ));
 
         SwingUtilities.invokeLater(() -> {
-            String[] options = {"Driver Portal", "Owner Portal", "Open Both"};
+            String[] options = {
+                    "Driver Portal",
+                    "Owner Portal",
+                    "Mechanic Portal",
+                    "Open All"
+            };
 
             int choice = JOptionPane.showOptionDialog(
                     null,
@@ -53,12 +69,16 @@ public class Main {
                     options[0]
             );
 
-            if (choice == 0 || choice == 2) {
+            if (choice == 0 || choice == 3) {
                 new EmployeeHomepageUI(manager, mike).setVisible(true);
             }
 
-            if (choice == 1 || choice == 2) {
+            if (choice == 1 || choice == 3) {
                 new OwnerPortal(manager).setVisible(true);
+            }
+
+            if (choice == 2 || choice == 3) {
+                new MechanicDashboardUI(manager, charlie).setVisible(true);
             }
         });
     }

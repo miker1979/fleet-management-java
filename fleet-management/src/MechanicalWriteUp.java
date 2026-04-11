@@ -11,13 +11,13 @@ public class MechanicalWriteUp {
     private String assignedMechanic;
     private String repairNotes;
     private String repairStatus;
-    private double estimatedCost;
 
     public MechanicalWriteUp(int writeUpId, String truckId, String dateReported,
                              String reportedBy, String issueType, String priority,
                              String problemDescription, boolean safeToDrive,
                              boolean outOfService, String assignedMechanic,
-                             String repairNotes, String repairStatus, double estimatedCost) {
+                             String repairNotes, String repairStatus) {
+
         this.writeUpId = writeUpId;
         this.truckId = truckId;
         this.dateReported = dateReported;
@@ -30,59 +30,25 @@ public class MechanicalWriteUp {
         this.assignedMechanic = assignedMechanic;
         this.repairNotes = repairNotes;
         this.repairStatus = repairStatus;
-        this.estimatedCost = estimatedCost;
     }
 
-    public int getWriteUpId() {
-        return writeUpId;
-    }
+    // ===== GETTERS =====
+    public int getWriteUpId() { return writeUpId; }
+    public String getTruckId() { return truckId; }
+    public String getDateReported() { return dateReported; }
+    public String getReportedBy() { return reportedBy; }
+    public String getIssueType() { return issueType; }
+    public String getPriority() { return priority; }
+    public String getProblemDescription() { return problemDescription; }
+    public boolean isSafeToDrive() { return safeToDrive; }
+    public boolean isOutOfService() { return outOfService; }
+    public String getAssignedMechanic() { return assignedMechanic; }
+    public String getRepairNotes() { return repairNotes; }
+    public String getRepairStatus() { return repairStatus; }
 
-    public String getTruckId() {
-        return truckId;
-    }
-
-    public String getDateReported() {
-        return dateReported;
-    }
-
-    public String getReportedBy() {
-        return reportedBy;
-    }
-
-    public String getIssueType() {
-        return issueType;
-    }
-
-    public String getPriority() {
-        return priority;
-    }
-
-    public String getProblemDescription() {
-        return problemDescription;
-    }
-
-    public boolean isSafeToDrive() {
-        return safeToDrive;
-    }
-
-    public boolean isOutOfService() {
-        return outOfService;
-    }
-
-    public String getAssignedMechanic() {
-        return assignedMechanic;
-    }
-
-    public String getRepairNotes() {
-        return repairNotes;
-    }
-
-    public String getRepairStatus() {
-        return repairStatus;
-    }
-
-    public double getEstimatedCost() {
-        return estimatedCost;
+    // ===== SETTERS (IMPORTANT FOR MECHANIC WORKFLOW) =====
+    public void setAssignedMechanic(String mechanicName) {
+        this.assignedMechanic = mechanicName;
     }
 
     public void setRepairStatus(String repairStatus) {
@@ -91,5 +57,13 @@ public class MechanicalWriteUp {
 
     public void setRepairNotes(String repairNotes) {
         this.repairNotes = repairNotes;
+    }
+
+    public void setSafeToDrive(boolean safeToDrive) {
+        this.safeToDrive = safeToDrive;
+    }
+
+    public void setOutOfService(boolean outOfService) {
+        this.outOfService = outOfService;
     }
 }

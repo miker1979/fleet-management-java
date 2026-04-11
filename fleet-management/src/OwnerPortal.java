@@ -1,7 +1,6 @@
 import javax.swing.*;
 import javax.swing.table.*;
 import java.awt.*;
-import java.awt.event.*;
 
 public class OwnerPortal extends JFrame {
     private FleetManager manager;
@@ -12,22 +11,21 @@ public class OwnerPortal extends JFrame {
 
     public OwnerPortal(FleetManager manager) {
         this.manager = manager;
+
         setTitle("FleetTrack Pro - Owner Portal");
-        setSize(1400, 850); // Larger size to accommodate the map
+        setSize(1400, 850);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         getContentPane().setBackground(new Color(15, 15, 15));
         setLayout(new BorderLayout(15, 15));
 
-        // 1. LEFT SIDEBAR (Status & Quick Actions)
         add(createSidebar(), BorderLayout.WEST);
 
-        // 2. CENTER PANEL (Operations Board & Map)
-        JPanel centerPanel = new JPanel(new GridLayout(2, 1, 10, 10)); // Splits top/bottom
+        JPanel centerPanel = new JPanel(new GridLayout(2, 1, 10, 10));
         centerPanel.setOpaque(false);
 
-        // TOP: The Live Operations Board
         JPanel boardPanel = new JPanel(new BorderLayout());
         boardPanel.setOpaque(false);
+
         JLabel header = new JLabel(" LIVE OPERATIONS BOARD", SwingConstants.LEFT);
         header.setFont(new Font("SansSerif", Font.BOLD, 28));
         header.setForeground(new Color(0, 255, 255));
@@ -37,17 +35,16 @@ public class OwnerPortal extends JFrame {
         boardPanel.add(new JScrollPane(jobBoard), BorderLayout.CENTER);
         centerPanel.add(boardPanel);
 
-        // BOTTOM: Map Placeholder (From your image_5e40a7 mockup)
         JPanel mapPlaceholder = new JPanel(new BorderLayout());
         mapPlaceholder.setBackground(Color.WHITE);
         mapPlaceholder.setBorder(BorderFactory.createTitledBorder("Live Fleet Map View"));
-        JLabel mapText = new JLabel("[Placeholder for Interactive Map - Java API will place data here]", SwingConstants.CENTER);
-        mapPlaceholder.add(mapText, BorderLayout.CENTER);
-        centerPanel.add(mapPlaceholder);
 
+        JLabel mapText = new JLabel("[Map Placeholder]", SwingConstants.CENTER);
+        mapPlaceholder.add(mapText, BorderLayout.CENTER);
+
+        centerPanel.add(mapPlaceholder);
         add(centerPanel, BorderLayout.CENTER);
 
-        // 3. BOTTOM PANEL (Control Buttons)
         add(createBottomPanel(), BorderLayout.SOUTH);
 
         refreshData();
@@ -60,7 +57,6 @@ public class OwnerPortal extends JFrame {
         sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
         sidebar.setBorder(BorderFactory.createEmptyBorder(20, 15, 20, 15));
 
-        // Vehicle Status (Matching your mockup)
         JPanel statusBox = createStatusBox("Vehicle Status", new Color(0, 150, 255));
         availableTrucksLabel = new JLabel("Scanning...");
         availableTrucksLabel.setForeground(new Color(0, 255, 100));
@@ -68,7 +64,6 @@ public class OwnerPortal extends JFrame {
         sidebar.add(statusBox);
         sidebar.add(Box.createRigidArea(new Dimension(0, 20)));
 
-        // Maintenance Box
         JPanel repairBox = createStatusBox("Open Repair Tickets", Color.ORANGE);
         maintenanceLabel = new JLabel("All Equipment Ready");
         maintenanceLabel.setForeground(Color.WHITE);
@@ -76,8 +71,38 @@ public class OwnerPortal extends JFrame {
         sidebar.add(repairBox);
         sidebar.add(Box.createRigidArea(new Dimension(0, 30)));
 
-        // Quick Actions Buttons
-        String[] actions = {"Time Off Manager", "Review Timesheets", "Job Sheets", "Maintenance", "Reports"};
+        // 🔥 OWNER CONTROLS
+        JButton createEmployeeBtn = createSideButton("Create Employee");
+        JButton createEquipmentBtn = createSideButton("Create Equipment"); // NEW
+        JButton rosterBtn = createSideButton("Company Roster");
+
+        createEmployeeBtn.addActionListener(e ->
+                new CreateEmployeeUI(manager).setVisible(true)
+        );
+
+        createEquipmentBtn.addActionListener(e -> // NEW
+                new CreateEquipmentUI(manager).setVisible(true)
+        );
+
+        rosterBtn.addActionListener(e ->
+                new CompanyRosterUI(manager).setVisible(true)
+        );
+
+        sidebar.add(createEmployeeBtn);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
+        sidebar.add(createEquipmentBtn); // NEW
+        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
+        sidebar.add(rosterBtn);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 20)));
+
+        String[] actions = {
+                "Time Off Manager",
+                "Review Timesheets",
+                "Job Sheets",
+                "Maintenance",
+                "Reports"
+        };
+
         for (String action : actions) {
             sidebar.add(createSideButton(action));
             sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
@@ -91,8 +116,13 @@ public class OwnerPortal extends JFrame {
         box.setLayout(new BoxLayout(box, BoxLayout.Y_AXIS));
         box.setBackground(new Color(35, 35, 35));
         box.setBorder(BorderFactory.createTitledBorder(
-            BorderFactory.createLineBorder(accent), title, 0, 0, 
-            new Font("SansSerif", Font.BOLD, 12), accent));
+                BorderFactory.createLineBorder(accent),
+                title,
+                0,
+                0,
+                new Font("SansSerif", Font.BOLD, 12),
+                accent
+        ));
         box.setMaximumSize(new Dimension(280, 120));
         return box;
     }
@@ -107,9 +137,14 @@ public class OwnerPortal extends JFrame {
     }
 
     private void setupTable() {
-        String[] columns = {"ID", "Date", "Job Type", "Contractor", "Location", "Foreman", "Status"};
+        String[] columns = {
+                "ID", "Date", "Job Type",
+                "Contractor", "Location", "Foreman", "Status"
+        };
+
         model = new DefaultTableModel(columns, 0);
         jobBoard = new JTable(model);
+
         jobBoard.setBackground(new Color(30, 30, 30));
         jobBoard.setForeground(Color.WHITE);
         jobBoard.setRowHeight(40);
@@ -120,17 +155,16 @@ public class OwnerPortal extends JFrame {
     private JPanel createBottomPanel() {
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 25, 15));
         btnPanel.setBackground(new Color(15, 15, 15));
-        
+
         JButton addBtn = createStyledButton("+ CREATE NEW JOB", new Color(0, 255, 150));
-        JButton editBtn = createStyledButton("EDIT STATUS", new Color(0, 150, 255));
-        JButton deleteBtn = createStyledButton("DELETE JOB", new Color(255, 50, 50));
         JButton syncBtn = createStyledButton("SYNC SYSTEM", Color.LIGHT_GRAY);
 
         addBtn.addActionListener(e -> new JobScreenUI(manager).setVisible(true));
         syncBtn.addActionListener(e -> refreshData());
 
-        btnPanel.add(addBtn); btnPanel.add(editBtn); 
-        btnPanel.add(deleteBtn); btnPanel.add(syncBtn);
+        btnPanel.add(addBtn);
+        btnPanel.add(syncBtn);
+
         return btnPanel;
     }
 
@@ -146,14 +180,19 @@ public class OwnerPortal extends JFrame {
 
     public void refreshData() {
         model.setRowCount(0);
+
         for (Task t : manager.getTasks()) {
             model.addRow(new Object[]{
-                t.getTaskId(), t.getStartDate(), t.getJobType(), 
-                t.getContractor(), t.getLocation(), t.getForeman(), t.getStatus()
+                    t.getTaskId(),
+                    t.getStartDate(),
+                    t.getJobType(),
+                    t.getContractor(),
+                    t.getLocation(),
+                    t.getForeman(),
+                    t.getStatus()
             });
         }
-        
-        // Update Truck Stats
+
         int total = manager.getTrucks().size();
         int down = (int) manager.getTrucks().stream().filter(Truck::isDown).count();
         availableTrucksLabel.setText((total - down) + " / " + total + " Available");

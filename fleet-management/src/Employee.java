@@ -13,6 +13,7 @@ public class Employee {
     private String hireDate;
     private boolean active;
     private double payRate;
+    private String assignedTruckId;
 
     private ArrayList<Evaluation> evaluations;
 
@@ -31,6 +32,7 @@ public class Employee {
         this.hireDate = hireDate;
         this.active = active;
         this.payRate = payRate;
+        this.assignedTruckId = "";
         this.evaluations = new ArrayList<>();
     }
 
@@ -85,6 +87,10 @@ public class Employee {
         return payRate;
     }
 
+    public String getAssignedTruckId() {
+        return assignedTruckId;
+    }
+
     public ArrayList<Evaluation> getEvaluations() {
         return evaluations;
     }
@@ -118,6 +124,10 @@ public class Employee {
 
     public void setPayRate(double payRate) {
         this.payRate = payRate;
+    }
+
+    public void setAssignedTruckId(String assignedTruckId) {
+        this.assignedTruckId = assignedTruckId;
     }
 
     // =========================
@@ -163,6 +173,7 @@ public class Employee {
         System.out.println("Hire Date: " + hireDate);
         System.out.println("Status: " + (active ? "Active" : "Inactive"));
         System.out.println("Pay Rate: $" + payRate);
+        System.out.println("Assigned Truck: " + (assignedTruckId == null || assignedTruckId.isEmpty() ? "None" : assignedTruckId));
         System.out.println("Average Evaluation Score: " + getAverageEvaluationScore());
         System.out.println("-----------------------------");
     }
