@@ -64,7 +64,6 @@ public class CompanyRosterUI extends JFrame {
         truckTable = new JTable(truckModel);
         truckTable.setRowHeight(28);
 
-        // 🔥 APPLY COLOR RENDERER
         truckTable.setDefaultRenderer(Object.class, new TruckStatusRenderer());
 
         truckPanel.add(new JScrollPane(truckTable), BorderLayout.CENTER);
@@ -127,13 +126,25 @@ public class CompanyRosterUI extends JFrame {
     }
 
     private String findAssignedEmployeeForTruck(String truckId) {
+        StringBuilder names = new StringBuilder();
+
         for (Employee employee : manager.getEmployees()) {
             if (employee.getAssignedTruckId() != null &&
                     employee.getAssignedTruckId().equalsIgnoreCase(truckId)) {
-                return employee.getFullName();
+
+                if (names.length() > 0) {
+                    names.append(", ");
+                }
+
+                names.append(employee.getFullName());
             }
         }
-        return "Unassigned";
+
+        if (names.length() == 0) {
+            return "Unassigned";
+        }
+
+        return names.toString();
     }
 
     private void openSelectedEmployeePortal() {
@@ -167,7 +178,6 @@ public class CompanyRosterUI extends JFrame {
         return null;
     }
 
-    // 🔥 COLOR RENDERER CLASS
     class TruckStatusRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(
@@ -178,8 +188,11 @@ public class CompanyRosterUI extends JFrame {
                     table, value, isSelected, hasFocus, row, column);
 
             String status = table.getValueAt(row, 2).toString();
+            String assigned = table.getValueAt(row, 4).toString();
 
-            if (status.contains("Down")) {
+            if (assigned.contains(",")) {
+                c.setBackground(new Color(255, 200, 120)); // ORANGE
+            } else if (status.contains("Down")) {
                 c.setBackground(new Color(255, 120, 120)); // RED
             } else {
                 c.setBackground(new Color(170, 255, 170)); // GREEN

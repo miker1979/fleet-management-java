@@ -110,13 +110,16 @@ public class CreateEmployeeUI extends JFrame {
         payRateField.addFocusListener(new java.awt.event.FocusAdapter() {
             @Override
             public void focusLost(java.awt.event.FocusEvent e) {
-                String text = payRateField.getText().trim().replace("$", "").replace(",", "");
-                if (!text.isEmpty()) {
-                    try {
-                        BigDecimal amount = new BigDecimal(text).setScale(2, RoundingMode.HALF_UP);
-                        payRateField.setText(amount.toPlainString());
-                    } catch (NumberFormatException ignored) {
+                try {
+                    String text = payRateField.getText().trim().replace("$", "").replace(",", "");
+
+                    if (!text.isEmpty()) {
+                        double value = Double.parseDouble(text);
+                        payRateField.setText(String.format("%.2f", value));
                     }
+
+                } catch (Exception ex) {
+                    payRateField.setText("");
                 }
             }
         });

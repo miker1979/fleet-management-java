@@ -1,6 +1,8 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 public class EmployeeHomepageUI extends JFrame {
@@ -11,62 +13,108 @@ public class EmployeeHomepageUI extends JFrame {
     private DefaultTableModel tableModel;
     private Timer autoRefreshTimer;
     private JTextArea repairStatusArea;
+    private LocalDate selectedDate = LocalDate.now();
+    private JButton selectedButton;
 
     public EmployeeHomepageUI(FleetManager manager, Employee employee) {
         this.manager = manager;
         this.employee = employee;
 
-        setTitle("Foreman Portal - " + employee.getFullName());
+        setTitle("Employee Portal - " + employee.getFullName());
         setSize(1100, 650);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setLayout(new BorderLayout(10, 10));
+        setLayout(new BorderLayout(5, 5));
         getContentPane().setBackground(new Color(240, 242, 245));
 
         JPanel header = new JPanel(new GridLayout(2, 1));
         header.setBackground(new Color(45, 74, 140));
-        header.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
+        header.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
 
-        JLabel welcomeMsg = new JLabel("Foreman: " + employee.getFullName());
-        welcomeMsg.setFont(new Font("SansSerif", Font.BOLD, 24));
-        welcomeMsg.setForeground(Color.WHITE);
+        JLabel nameLabel = new JLabel(employee.getFullName());
+        nameLabel.setFont(new Font("SansSerif", Font.BOLD, 20));
+        nameLabel.setForeground(Color.WHITE);
 
-        JLabel statsMsg = new JLabel(
-                "Assigned Truck: " + getAssignedTruckDisplay() + " | Phone: " + employee.getPhoneNumber()
+        JLabel infoLabel = new JLabel(
+                "Role: " + employee.getPosition() +
+                " | Truck: " + getAssignedTruckDisplay() +
+                " | " + LocalDate.now()
         );
-        statsMsg.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        statsMsg.setForeground(new Color(200, 210, 230));
+        infoLabel.setForeground(new Color(200, 210, 230));
+        infoLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
 
-        header.add(welcomeMsg);
-        header.add(statsMsg);
+        header.add(nameLabel);
+        header.add(infoLabel);
         add(header, BorderLayout.NORTH);
 
-        JPanel centerPanel = new JPanel(new GridLayout(1, 2, 10, 10));
-        centerPanel.setBackground(new Color(240, 242, 245));
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBackground(new Color(240, 242, 245));
 
-        String[] columns = {"Date", "Job Type", "Contractor", "Location", "Status", "Trucks"};
+        JPanel calendarStrip = new JPanel(new GridLayout(1, 7, 5, 5));
+        calendarStrip.setBackground(new Color(240, 242, 245));
+        calendarStrip.setBorder(BorderFactory.createEmptyBorder(10, 8, 10, 8));
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEE MM/dd");
+
+        for (int i = 0; i < 7; i++) {
+            LocalDate day = LocalDate.now().plusDays(i);
+
+            JButton dayBtn = new JButton(formatter.format(day));
+            dayBtn.setFocusPainted(false);
+            dayBtn.setFont(new Font("SansSerif", Font.BOLD, 14));
+            dayBtn.setBorder(BorderFactory.createLineBorder(new Color(140, 160, 180)));
+            dayBtn.setBackground(new Color(245, 245, 245));
+            dayBtn.setForeground(Color.BLACK);
+
+            if (day.equals(selectedDate)) {
+                dayBtn.setBackground(new Color(70, 130, 180));
+                dayBtn.setForeground(Color.WHITE);
+                selectedButton = dayBtn;
+            }
+
+            dayBtn.addActionListener(e -> {
+                selectedDate = day;
+
+                if (selectedButton != null) {
+                    selectedButton.setBackground(new Color(245, 245, 245));
+                    selectedButton.setForeground(Color.BLACK);
+                }
+
+                dayBtn.setBackground(new Color(70, 130, 180));
+                dayBtn.setForeground(Color.WHITE);
+                selectedButton = dayBtn;
+
+                refreshTableData();
+            });
+
+            calendarStrip.add(dayBtn);
+        }
+
+        mainPanel.add(calendarStrip, BorderLayout.NORTH);
+
+        String[] columns = {"Date", "Job Type", "Contractor", "Location", "Status", "Truck"};
         tableModel = new DefaultTableModel(columns, 0);
         scheduleTable = new JTable(tableModel);
 
         setupTableAesthetics();
         refreshTableData();
 
-        JScrollPane scrollPane = new JScrollPane(scheduleTable);
-        scrollPane.setBorder(BorderFactory.createTitledBorder("My Active Dispatch (Auto-Refreshing)"));
-        centerPanel.add(scrollPane);
+        JScrollPane tableScroll = new JScrollPane(scheduleTable);
+        tableScroll.setBorder(BorderFactory.createTitledBorder("Daily Schedule"));
+        mainPanel.add(tableScroll, BorderLayout.CENTER);
 
-        repairStatusArea = new JTextArea();
+        repairStatusArea = new JTextArea(5, 20);
         repairStatusArea.setEditable(false);
         repairStatusArea.setLineWrap(true);
         repairStatusArea.setWrapStyleWord(true);
-        repairStatusArea.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        repairStatusArea.setFont(new Font("SansSerif", Font.PLAIN, 13));
         refreshRepairStatus();
 
-        JScrollPane repairScrollPane = new JScrollPane(repairStatusArea);
-        repairScrollPane.setBorder(BorderFactory.createTitledBorder("My Truck Repair Status"));
-        centerPanel.add(repairScrollPane);
+        JScrollPane repairScroll = new JScrollPane(repairStatusArea);
+        repairScroll.setBorder(BorderFactory.createTitledBorder("Truck Status"));
+        mainPanel.add(repairScroll, BorderLayout.SOUTH);
 
-        add(centerPanel, BorderLayout.CENTER);
+        add(mainPanel, BorderLayout.CENTER);
 
         JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
 
@@ -111,7 +159,7 @@ public class EmployeeHomepageUI extends JFrame {
     }
 
     private void setupTableAesthetics() {
-        scheduleTable.setRowHeight(40);
+        scheduleTable.setRowHeight(45);
         scheduleTable.setFont(new Font("SansSerif", Font.PLAIN, 14));
         scheduleTable.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 14));
         scheduleTable.getTableHeader().setBackground(new Color(230, 230, 230));
@@ -119,13 +167,14 @@ public class EmployeeHomepageUI extends JFrame {
     }
 
     private void refreshTableData() {
-        int selectedRow = scheduleTable.getSelectedRow();
         tableModel.setRowCount(0);
 
         List<Task> allTasks = manager.getTasks();
 
         for (Task t : allTasks) {
-            if (t.getForeman().equalsIgnoreCase(employee.getFullName())) {
+            if (t.getForeman().equalsIgnoreCase(employee.getFullName())
+                    && t.getStartDate().equalsIgnoreCase(selectedDate.toString())) {
+
                 Object[] row = {
                         t.getStartDate(),
                         t.getJobType(),
@@ -136,10 +185,6 @@ public class EmployeeHomepageUI extends JFrame {
                 };
                 tableModel.addRow(row);
             }
-        }
-
-        if (selectedRow != -1 && selectedRow < tableModel.getRowCount()) {
-            scheduleTable.setRowSelectionInterval(selectedRow, selectedRow);
         }
     }
 
@@ -160,7 +205,7 @@ public class EmployeeHomepageUI extends JFrame {
         }
 
         if (latest == null) {
-            repairStatusArea.setText("No active or recent write-up found for truck " + assignedTruckId + ".");
+            repairStatusArea.setText("Truck " + assignedTruckId + " is clear. No active issues.");
             return;
         }
 
@@ -182,7 +227,7 @@ public class EmployeeHomepageUI extends JFrame {
                     && t.getStatus().equalsIgnoreCase("Canceled")) {
 
                 JOptionPane.showMessageDialog(this,
-                        "ATTENTION: Job at " + t.getLocation() + " for " + t.getContractor() + " has been CANCELED.",
+                        "Job at " + t.getLocation() + " has been CANCELED.",
                         "Dispatch Update",
                         JOptionPane.WARNING_MESSAGE);
 

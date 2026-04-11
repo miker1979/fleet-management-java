@@ -71,16 +71,15 @@ public class OwnerPortal extends JFrame {
         sidebar.add(repairBox);
         sidebar.add(Box.createRigidArea(new Dimension(0, 30)));
 
-        // 🔥 OWNER CONTROLS
         JButton createEmployeeBtn = createSideButton("Create Employee");
-        JButton createEquipmentBtn = createSideButton("Create Equipment"); // NEW
+        JButton createEquipmentBtn = createSideButton("Create Equipment");
         JButton rosterBtn = createSideButton("Company Roster");
 
         createEmployeeBtn.addActionListener(e ->
                 new CreateEmployeeUI(manager).setVisible(true)
         );
 
-        createEquipmentBtn.addActionListener(e -> // NEW
+        createEquipmentBtn.addActionListener(e ->
                 new CreateEquipmentUI(manager).setVisible(true)
         );
 
@@ -90,7 +89,7 @@ public class OwnerPortal extends JFrame {
 
         sidebar.add(createEmployeeBtn);
         sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
-        sidebar.add(createEquipmentBtn); // NEW
+        sidebar.add(createEquipmentBtn);
         sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
         sidebar.add(rosterBtn);
         sidebar.add(Box.createRigidArea(new Dimension(0, 20)));
@@ -138,8 +137,8 @@ public class OwnerPortal extends JFrame {
 
     private void setupTable() {
         String[] columns = {
-                "ID", "Date", "Job Type",
-                "Contractor", "Location", "Foreman", "Status"
+                "Job #", "Date", "Job Type",
+                "Contractor", "Location", "Foreman", "Assigned Equipment", "Status"
         };
 
         model = new DefaultTableModel(columns, 0);
@@ -147,9 +146,14 @@ public class OwnerPortal extends JFrame {
 
         jobBoard.setBackground(new Color(30, 30, 30));
         jobBoard.setForeground(Color.WHITE);
-        jobBoard.setRowHeight(40);
-        jobBoard.getTableHeader().setBackground(new Color(45, 45, 45));
-        jobBoard.getTableHeader().setForeground(new Color(0, 255, 255));
+        jobBoard.setRowHeight(45);
+
+        jobBoard.setFont(new Font("SansSerif", Font.PLAIN, 15));
+
+        JTableHeader header = jobBoard.getTableHeader();
+        header.setBackground(new Color(45, 45, 45));
+        header.setForeground(new Color(0, 255, 255));
+        header.setFont(new Font("SansSerif", Font.BOLD, 16));
     }
 
     private JPanel createBottomPanel() {
@@ -189,6 +193,7 @@ public class OwnerPortal extends JFrame {
                     t.getContractor(),
                     t.getLocation(),
                     t.getForeman(),
+                    t.getAssignedTruck(),
                     t.getStatus()
             });
         }
