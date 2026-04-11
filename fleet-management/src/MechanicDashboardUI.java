@@ -1,12 +1,10 @@
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.util.ArrayList;
 
 public class MechanicDashboardUI extends JFrame {
 
     private FleetManager manager;
-
     private DefaultListModel<String> repairListModel;
     private JList<String> repairList;
     private JTextArea detailArea;
@@ -32,7 +30,6 @@ public class MechanicDashboardUI extends JFrame {
         JPanel centerPanel = new JPanel(new GridLayout(1, 2, 10, 10));
         centerPanel.setBackground(new Color(245, 247, 250));
 
-        // LEFT SIDE - WRITE-UP LIST
         JPanel listPanel = new JPanel(new BorderLayout(5, 5));
         listPanel.setBackground(Color.WHITE);
         listPanel.setBorder(BorderFactory.createTitledBorder("Mechanical Write-Ups"));
@@ -41,6 +38,12 @@ public class MechanicDashboardUI extends JFrame {
         repairList = new JList<>(repairListModel);
         repairList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         repairList.setFont(new Font("Monospaced", Font.PLAIN, 13));
+
+        detailArea = new JTextArea();
+        detailArea.setEditable(false);
+        detailArea.setLineWrap(true);
+        detailArea.setWrapStyleWord(true);
+        detailArea.setFont(new Font("Monospaced", Font.PLAIN, 13));
 
         refreshRepairList();
 
@@ -53,16 +56,9 @@ public class MechanicDashboardUI extends JFrame {
         JScrollPane listScrollPane = new JScrollPane(repairList);
         listPanel.add(listScrollPane, BorderLayout.CENTER);
 
-        // RIGHT SIDE - DETAILS
         JPanel detailPanel = new JPanel(new BorderLayout(5, 5));
         detailPanel.setBackground(Color.WHITE);
         detailPanel.setBorder(BorderFactory.createTitledBorder("Write-Up Details"));
-
-        detailArea = new JTextArea();
-        detailArea.setEditable(false);
-        detailArea.setLineWrap(true);
-        detailArea.setWrapStyleWord(true);
-        detailArea.setFont(new Font("Monospaced", Font.PLAIN, 13));
 
         JScrollPane detailScrollPane = new JScrollPane(detailArea);
         detailPanel.add(detailScrollPane, BorderLayout.CENTER);
@@ -72,7 +68,6 @@ public class MechanicDashboardUI extends JFrame {
 
         mainPanel.add(centerPanel, BorderLayout.CENTER);
 
-        // BUTTONS
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttonPanel.setBackground(new Color(245, 247, 250));
 
@@ -95,14 +90,13 @@ public class MechanicDashboardUI extends JFrame {
         buttonPanel.add(closeButton);
 
         mainPanel.add(buttonPanel, BorderLayout.SOUTH);
-
         add(mainPanel);
     }
 
     public void refreshRepairList() {
         repairListModel.clear();
 
-        ArrayList<MechanicalWriteUp> writeUps = manager.getMechanicalWriteUps();
+        java.util.List<MechanicalWriteUp> writeUps = manager.getMechanicalWriteUps();
 
         if (writeUps.isEmpty()) {
             repairListModel.addElement("No mechanical write-ups found.");
@@ -111,48 +105,32 @@ public class MechanicDashboardUI extends JFrame {
         }
 
         for (MechanicalWriteUp writeUp : writeUps) {
-            String line =
-                    "ID " + writeUp.getWriteUpId() +
-                    " | Truck " + writeUp.getTruckId() +
-                    " | " + writeUp.getIssueType() +
-                    " | " + writeUp.getPriority() +
-                    " | " + writeUp.getRepairStatus();
-
+            String line = "ID " + writeUp.getWriteUpId()
+                    + " | Truck " + writeUp.getTruckId()
+                    + " | " + writeUp.getIssueType()
+                    + " | " + writeUp.getPriority()
+                    + " | " + writeUp.getRepairStatus();
             repairListModel.addElement(line);
         }
 
-        if (!writeUps.isEmpty()) {
-            repairList.setSelectedIndex(0);
-        }
+        repairList.setSelectedIndex(0);
     }
 
     private void showSelectedWriteUpDetails() {
         int index = repairList.getSelectedIndex();
+        java.util.List<MechanicalWriteUp> writeUps = manager.getMechanicalWriteUps();
 
-        if (index < 0) {
+        if (index < 0 || writeUps.isEmpty() || index >= writeUps.size()) {
             detailArea.setText("");
             return;
         }
 
-        if (manager.getMechanicalWriteUps().isEmpty()) {
-            detailArea.setText("");
-            return;
-        }
-
-        if (index >= manager.getMechanicalWriteUps().size()) {
-            detailArea.setText("");
-            return;
-        }
-
-        MechanicalWriteUp writeUp = manager.getMechanicalWriteUps().get(index);
+        MechanicalWriteUp writeUp = writeUps.get(index);
         Truck truck = manager.findTruckById(writeUp.getTruckId());
 
-        String truckText;
-        if (truck != null) {
-            truckText = "Truck " + truck.getId() + " - " + truck.getModel();
-        } else {
-            truckText = "Truck ID " + writeUp.getTruckId();
-        }
+        String truckText = (truck != null)
+                ? "Truck " + truck.getTruckID() + " - " + truck.getModel()
+                : "Truck ID " + writeUp.getTruckId();
 
         detailArea.setText(
                 "Write-Up ID: " + writeUp.getWriteUpId() + "\n" +
@@ -178,26 +156,26 @@ public class MechanicDashboardUI extends JFrame {
 
     private void updateSelectedWriteUpStatus(String newStatus) {
         int index = repairList.getSelectedIndex();
+        java.util.List<MechanicalWriteUp> writeUps = manager.getMechanicalWriteUps();
 
-        if (index < 0 || index >= manager.getMechanicalWriteUps().size()) {
+        if (index < 0 || index >= writeUps.size()) {
             JOptionPane.showMessageDialog(this, "Please select a write-up first.");
             return;
         }
 
-        MechanicalWriteUp writeUp = manager.getMechanicalWriteUps().get(index);
-        writeUp.setStatus(newStatus);
+        MechanicalWriteUp writeUp = writeUps.get(index);
+        writeUp.setRepairStatus(newStatus);
 
         if ("Completed".equalsIgnoreCase(newStatus)) {
             Truck truck = manager.findTruckById(writeUp.getTruckId());
             if (truck != null) {
-                truck.setAvailable(true);
+                truck.setDown(false, "Ready");
             }
         }
 
         refreshRepairList();
         repairList.setSelectedIndex(index);
         showSelectedWriteUpDetails();
-
         JOptionPane.showMessageDialog(this, "Write-up status updated to " + newStatus + ".");
     }
 }

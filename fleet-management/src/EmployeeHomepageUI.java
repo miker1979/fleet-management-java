@@ -9,63 +9,65 @@ public class EmployeeHomepageUI extends JFrame {
     private Employee employee;
     private JTable scheduleTable;
     private DefaultTableModel tableModel;
-    private Timer autoRefreshTimer; // The "Heartbeat"
+    private Timer autoRefreshTimer;
 
     public EmployeeHomepageUI(FleetManager manager, Employee employee) {
         this.manager = manager;
         this.employee = employee;
 
-        setTitle("Employee Portal - " + employee.getFullName());
+        setTitle("Foreman Portal - " + employee.getFullName());
         setSize(950, 650);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout(10, 10));
+        getContentPane().setBackground(new Color(240, 242, 245));
 
-        // ===== HEADER =====
+        // ===== HEADER: DRIVER/FOREMAN INFO =====
         JPanel header = new JPanel(new GridLayout(2, 1));
-        header.setBackground(new Color(45, 74, 140));
+        header.setBackground(new Color(45, 74, 140)); // Deep Blue
         header.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
 
-        JLabel welcomeMsg = new JLabel("Welcome, " + employee.getFullName());
-        welcomeMsg.setFont(new Font("Arial", Font.BOLD, 24));
+        JLabel welcomeMsg = new JLabel("Foreman: " + employee.getFullName());
+        welcomeMsg.setFont(new Font("SansSerif", Font.BOLD, 24));
         welcomeMsg.setForeground(Color.WHITE);
 
-        JLabel statsMsg = new JLabel("Position: " + employee.getPosition() + " | Dept: " + employee.getDepartment());
-        statsMsg.setFont(new Font("Arial", Font.PLAIN, 14));
+        JLabel statsMsg = new JLabel("Assigned Area: I-10 Logistics | Phone: " + employee.getPhoneNumber());
+        statsMsg.setFont(new Font("SansSerif", Font.PLAIN, 14));
         statsMsg.setForeground(new Color(200, 210, 230));
 
         header.add(welcomeMsg);
         header.add(statsMsg);
         add(header, BorderLayout.NORTH);
 
-        // ===== CENTER: THE CALENDAR/SCHEDULE TABLE =====
-        String[] columns = {"Date", "Task Name", "Priority", "Status", "Notes"};
+        // ===== CENTER: THE BOARD VIEW =====
+        // UPDATED: Added Contractor column to match the new Task structure
+        String[] columns = {"Date", "Job Type", "Contractor", "Location", "Status", "Trucks"};
         tableModel = new DefaultTableModel(columns, 0); 
         scheduleTable = new JTable(tableModel);
         
-        scheduleTable.setRowHeight(30);
-        scheduleTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 14));
-        scheduleTable.setFont(new Font("Arial", Font.PLAIN, 13));
-        
+        setupTableAesthetics();
         refreshTableData(); 
 
         JScrollPane scrollPane = new JScrollPane(scheduleTable);
-        scrollPane.setBorder(BorderFactory.createTitledBorder("Live Assigned Schedule (Auto-Updating)"));
+        scrollPane.setBorder(BorderFactory.createTitledBorder("My Active Dispatch (Auto-Refreshing)"));
         add(scrollPane, BorderLayout.CENTER);
 
         // ===== BOTTOM: ACTIONS =====
         JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
-        JButton closeBtn = new JButton("Close Portal");
+        JButton refreshBtn = new JButton("Manual Sync");
+        JButton closeBtn = new JButton("Log Out");
+
+        refreshBtn.addActionListener(e -> refreshTableData());
         closeBtn.addActionListener(e -> {
-            autoRefreshTimer.stop(); // Stop the heartbeat when window closes
+            autoRefreshTimer.stop(); 
             dispose();
         });
 
+        footer.add(refreshBtn);
         footer.add(closeBtn);
         add(footer, BorderLayout.SOUTH);
 
-        // ===== THE "REAL-TIME" HEARTBEAT =====
-        // Checks for updates every 3 seconds (3000 milliseconds)
+        // ===== REAL-TIME SYNC =====
         autoRefreshTimer = new Timer(3000, e -> {
             checkForUrgentNotifications();
             refreshTableData();
@@ -73,38 +75,53 @@ public class EmployeeHomepageUI extends JFrame {
         autoRefreshTimer.start();
     }
 
+    private void setupTableAesthetics() {
+        scheduleTable.setRowHeight(40); // Taller rows for readability in the field
+        scheduleTable.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        scheduleTable.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 14));
+        scheduleTable.getTableHeader().setBackground(new Color(230, 230, 230));
+        scheduleTable.setSelectionBackground(new Color(173, 216, 230));
+    }
+
     private void refreshTableData() {
+        // Prevent table from flickering if data hasn't changed (Optional)
+        int selectedRow = scheduleTable.getSelectedRow();
         tableModel.setRowCount(0); 
+        
         List<Task> allTasks = manager.getTasks();
         
         for (Task t : allTasks) {
-            if (t.getEmployeeId() == employee.getEmployeeId()) {
+            // Updated to check Foreman name since we are using names for dispatch now
+            if (t.getForeman().equalsIgnoreCase(employee.getFullName())) {
                 Object[] row = {
                     t.getStartDate(),
-                    t.getTaskName(),
-                    t.getPriority(),
+                    t.getJobType(),
+                    t.getContractor(), // NEW: Pulice, Sundt, etc.
+                    t.getLocation(),
                     t.getStatus(),
-                    t.getNotes()
+                    t.getAssignedTruck() // Shows the equipment list
                 };
                 tableModel.addRow(row);
             }
         }
+        
+        // Restore selection if applicable
+        if (selectedRow != -1 && selectedRow < tableModel.getRowCount()) {
+            scheduleTable.setRowSelectionInterval(selectedRow, selectedRow);
+        }
     }
 
-    /**
-     * Logic to trigger a popup if a job status is changed to "Canceled"
-     */
     private void checkForUrgentNotifications() {
         for (Task t : manager.getTasks()) {
-            if (t.getEmployeeId() == employee.getEmployeeId() && t.getStatus().equalsIgnoreCase("Canceled")) {
-                // In a real app, you'd flag this so the popup only shows once
+            // Notify Foreman if dispatch cancels a job
+            if (t.getForeman().equalsIgnoreCase(employee.getFullName()) && t.getStatus().equalsIgnoreCase("Canceled")) {
+                
                 JOptionPane.showMessageDialog(this, 
-                    "ALERT: The task '" + t.getTaskName() + "' has been CANCELED by dispatch.", 
-                    "Urgent Schedule Change", 
+                    "ATTENTION: Job at " + t.getLocation() + " for " + t.getContractor() + " has been CANCELED.", 
+                    "Dispatch Update", 
                     JOptionPane.WARNING_MESSAGE);
                 
-                // Temporary fix: Change status to 'Acknowledged' so the popup doesn't loop
-                t.setStatus("Canceled (Viewed)"); 
+                t.setStatus("Canceled (Acknowledged)"); 
             }
         }
     }

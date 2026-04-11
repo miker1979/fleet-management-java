@@ -1,163 +1,56 @@
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
 public class JobScreenUI extends JFrame {
-
     private FleetManager manager;
-
-    private JTextField contractorField;
-    private JTextField locationField;
-    private JTextField taskNameField;
-    private JComboBox<String> statusCombo;
-    private JTextField linearFeetField;
-    private JComboBox<Truck> truckCombo;
+    private JComboBox<String> typeCombo, contractorCombo, foremanCombo, statusCombo;
+    private JTextField locationField, truckField;
 
     public JobScreenUI(FleetManager manager) {
         this.manager = manager;
-
-        setTitle("Create New Job");
-        setSize(500, 450);
+        setTitle("Dispatch New Night Shift");
+        setSize(400, 500);
+        setLayout(new GridLayout(8, 2, 10, 10));
         setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
-        mainPanel.setBackground(new Color(245, 247, 250));
+        // Dropdown Data
+        String[] types = {"Barrier Install", "Barrier Removal", "Relocation", "Crash Absorber"};
+        String[] contractors = {"Pulice", "Sundt", "Kiewit", "Howe Precast", "ADOT"};
+        String[] foremen = {"Mike Robinson", "Foreman Joe", "Foreman Steve"};
+        String[] statuses = {"Scheduled", "Waiting for Closure", "In Progress", "Completed"};
 
-        JLabel titleLabel = new JLabel("Create New Job");
-        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
-        titleLabel.setForeground(new Color(58, 93, 174));
-        mainPanel.add(titleLabel, BorderLayout.NORTH);
+        typeCombo = new JComboBox<>(types);
+        contractorCombo = new JComboBox<>(contractors);
+        foremanCombo = new JComboBox<>(foremen);
+        statusCombo = new JComboBox<>(statuses);
+        locationField = new JTextField();
+        truckField = new JTextField("Truck 101, Truck 202"); // Multiple trucks allowed
 
-        JPanel formPanel = new JPanel(new GridBagLayout());
-        formPanel.setBackground(Color.WHITE);
-        formPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        add(new JLabel(" Job Type:")); add(typeCombo);
+        add(new JLabel(" Contractor:")); add(contractorCombo);
+        add(new JLabel(" Location:")); add(locationField);
+        add(new JLabel(" Foreman:")); add(foremanCombo);
+        add(new JLabel(" Assigned Trucks:")); add(truckField);
+        add(new JLabel(" Initial Status:")); add(statusCombo);
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(8, 8, 8, 8);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-
-        contractorField = new JTextField(20);
-        locationField = new JTextField(20);
-        taskNameField = new JTextField(20);
-        linearFeetField = new JTextField(20);
-
-        statusCombo = new JComboBox<>(new String[]{
-                "Scheduled",
-                "In Progress",
-                "Delayed",
-                "Completed"
-        });
-
-        truckCombo = new JComboBox<>();
-        loadAvailableTrucks();
-
-        int row = 0;
-
-        addRow(formPanel, gbc, row++, "Contractor:", contractorField);
-        addRow(formPanel, gbc, row++, "Location:", locationField);
-        addRow(formPanel, gbc, row++, "Task Name:", taskNameField);
-        addRow(formPanel, gbc, row++, "Status:", statusCombo);
-        addRow(formPanel, gbc, row++, "Linear Feet:", linearFeetField);
-        addRow(formPanel, gbc, row++, "Assign Truck:", truckCombo);
-
-        mainPanel.add(formPanel, BorderLayout.CENTER);
-
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.setBackground(new Color(245, 247, 250));
-
-        JButton saveButton = new JButton("Save Job");
-        JButton cancelButton = new JButton("Cancel");
-
-        saveButton.setBackground(new Color(58, 93, 174));
-        saveButton.setForeground(Color.WHITE);
-
-        saveButton.addActionListener(e -> saveJob());
-        cancelButton.addActionListener(e -> dispose());
-
-        buttonPanel.add(cancelButton);
-        buttonPanel.add(saveButton);
-
-        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
-
-        add(mainPanel);
+        JButton saveBtn = new JButton("DISPATCH JOB");
+        saveBtn.addActionListener(e -> saveAction());
+        add(new JLabel("")); add(saveBtn);
     }
 
-    private void addRow(JPanel panel, GridBagConstraints gbc, int row, String label, JComponent field) {
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        gbc.weightx = 0;
-        panel.add(new JLabel(label), gbc);
-
-        gbc.gridx = 1;
-        gbc.weightx = 1;
-        panel.add(field, gbc);
-    }
-
-    private void loadAvailableTrucks() {
-        truckCombo.removeAllItems();
-
-        for (Truck t : manager.getTrucks()) {
-            if (t.isAvailable()) {
-                truckCombo.addItem(t);
-            }
-        }
-    }
-
-    private void saveJob() {
-
-        String contractor = contractorField.getText().trim();
-        String location = locationField.getText().trim();
-        String taskName = taskNameField.getText().trim();
-        String status = (String) statusCombo.getSelectedItem();
-        String linearFeetText = linearFeetField.getText().trim();
-        Truck truck = (Truck) truckCombo.getSelectedItem();
-
-        if (contractor.isEmpty() || location.isEmpty() || taskName.isEmpty() || linearFeetText.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Fill in all fields");
-            return;
-        }
-
-        if (truck == null) {
-            JOptionPane.showMessageDialog(this, "Select a truck");
-            return;
-        }
-
-        int linearFeet;
-        try {
-            linearFeet = Integer.parseInt(linearFeetText);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Linear feet must be a number");
-            return;
-        }
-
-        // SIMPLE WORKING TASK (matches your system)
-Task task = new Task(
-    manager.getTasks().size() + 1, // taskId
-    1,                             // jobId (Defaulting to 1)
-    0,                             // employeeId (THE FIX: 0 represents 'Unassigned')
-    taskName,                      // taskName
-    contractor + " - " + location, // description
-    "Unassigned",                  // assignedEmployee (String name)
-    truck.getModel(),              // assignedTruck
-    "Normal",                      // priority
-    "Today",                       // startDate
-    "Tomorrow",                    // dueDate
-    status,                        // status
-    "",                            // notes
-    "Standard",                    // barrierType
-    linearFeet,                    // linearFeetInstalled
-    "Day"                          // workShift
-);
-
-        manager.addTask(task);
-
-        // mark truck unavailable
-        truck.setAvailable(false);
-
-        JOptionPane.showMessageDialog(this, "Job Created");
-
+    private void saveAction() {
+        Task newTask = new Task(
+            manager.getTasks().size() + 1001,
+            "2026-04-10", // You can add a date picker later
+            (String)typeCombo.getSelectedItem(),
+            (String)contractorCombo.getSelectedItem(),
+            locationField.getText(),
+            (String)foremanCombo.getSelectedItem(),
+            truckField.getText(),
+            (String)statusCombo.getSelectedItem()
+        );
+        manager.addTask(newTask);
+        JOptionPane.showMessageDialog(this, "Job Dispatched to Board");
         dispose();
     }
 }

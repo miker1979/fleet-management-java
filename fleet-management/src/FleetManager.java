@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.List;
 
 public class FleetManager {
 
@@ -25,7 +26,7 @@ public class FleetManager {
         employees.add(employee);
     }
 
-    public ArrayList<Employee> getEmployees() {
+    public List<Employee> getEmployees() {
         return employees;
     }
 
@@ -43,13 +44,13 @@ public class FleetManager {
         trucks.add(truck);
     }
 
-    public ArrayList<Truck> getTrucks() {
+    public List<Truck> getTrucks() {
         return trucks;
     }
 
-    public Truck findTruckById(int truckId) {
+    public Truck findTruckById(String truckId) {
         for (Truck truck : trucks) {
-            if (truck.getId() == truckId) {
+            if (truck.getTruckID().equalsIgnoreCase(truckId)) {
                 return truck;
             }
         }
@@ -61,7 +62,7 @@ public class FleetManager {
         jobs.add(job);
     }
 
-    public ArrayList<Job> getJobs() {
+    public List<Job> getJobs() {
         return jobs;
     }
 
@@ -70,7 +71,7 @@ public class FleetManager {
         tasks.add(task);
     }
 
-    public ArrayList<Task> getTasks() {
+    public List<Task> getTasks() {
         return tasks;
     }
 
@@ -79,7 +80,7 @@ public class FleetManager {
         mechanicalWriteUps.add(writeUp);
     }
 
-    public ArrayList<MechanicalWriteUp> getMechanicalWriteUps() {
+    public List<MechanicalWriteUp> getMechanicalWriteUps() {
         return mechanicalWriteUps;
     }
 
@@ -92,7 +93,7 @@ public class FleetManager {
         evaluations.add(evaluation);
     }
 
-    public ArrayList<Evaluation> getEvaluations() {
+    public List<Evaluation> getEvaluations() {
         return evaluations;
     }
 
@@ -105,7 +106,7 @@ public class FleetManager {
         timeOffRequests.add(request);
     }
 
-    public ArrayList<TimeOffRequest> getTimeOffRequests() {
+    public List<TimeOffRequest> getTimeOffRequests() {
         return timeOffRequests;
     }
 

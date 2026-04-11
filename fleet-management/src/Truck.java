@@ -1,76 +1,34 @@
 public class Truck {
-    private int id;
+    private String truckID;
     private String model;
-    private int mileage;
-    private boolean available;
-    private Driver driver;
-    private int currentJobId;
+    private boolean isDown; 
+    private String currentIssue;
 
-    public Truck(int id, String model, int mileage, boolean available) {
-        this.id = id;
+    public Truck(String truckID, String model) {
+        this.truckID = truckID;
         this.model = model;
-        this.mileage = mileage;
-        this.available = available;
-        this.driver = null;
-        this.currentJobId = 0;
+        this.isDown = false;
+        this.currentIssue = "Ready";
     }
 
-    public void assignDriver(Driver driver) {
-        this.driver = driver;
-        this.available = false;
+    // Standard Getters
+    public String getTruckID() { return truckID; }
+    public String getModel() { return model; }
+    public boolean isDown() { return isDown; }
+    public String getCurrentIssue() { return currentIssue; }
+
+    // Helper method to resolve common "cannot find symbol" errors in FleetManager
+    public String getId() { return truckID; }
+
+    // Setters for Maintenance Logic
+    public void setDown(boolean down, String issue) {
+        this.isDown = down;
+        this.currentIssue = issue;
     }
 
-    public void assignToJob(int jobId) {
-        this.currentJobId = jobId;
-        this.available = false;
-    }
-
-    public void displayTruck() {
-        System.out.println("Truck ID: " + id);
-        System.out.println("Model: " + model);
-        System.out.println("Mileage: " + mileage);
-        System.out.println("Available: " + available);
-        System.out.println("Current Job ID: " + currentJobId);
-
-        if (driver != null) {
-            System.out.println("Driver: " + driver.getName());
-        } else {
-            System.out.println("Driver: None");
-        }
-
-        System.out.println("----------------------");
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public String getModel() {
-        return model;
-    }
-
-    public int getMileage() {
-        return mileage;
-    }
-
-    public boolean isAvailable() {
-        return available;
-    }
-
-    public void setAvailable(boolean available) {
-        this.available = available;
-    }
-
-    public int getCurrentJobId() {
-        return currentJobId;
-    }
-
-    public Driver getDriver() {
-        return driver;
-    }
-
+    // This makes the truck appear correctly in JComboBoxes or Lists
     @Override
-    public String toString() {
-        return "Truck " + id + " - " + model;
+    public String toString() { 
+        return truckID + " (" + model + ")"; 
     }
 }

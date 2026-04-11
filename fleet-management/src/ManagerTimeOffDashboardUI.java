@@ -6,7 +6,6 @@ import java.util.ArrayList;
 public class ManagerTimeOffDashboardUI extends JFrame {
 
     private FleetManager manager;
-
     private DefaultListModel<String> requestListModel;
     private JList<String> requestList;
     private JTextArea detailArea;
@@ -92,14 +91,14 @@ public class ManagerTimeOffDashboardUI extends JFrame {
         buttonPanel.add(closeButton);
 
         mainPanel.add(buttonPanel, BorderLayout.SOUTH);
-
         add(mainPanel);
     }
 
     public void refreshRequestList() {
         requestListModel.clear();
 
-        ArrayList<TimeOffRequest> requests = manager.getTimeOffRequests();
+        // FIXED: Using java.util.List to avoid AWT conflict and type mismatch
+        java.util.List<TimeOffRequest> requests = manager.getTimeOffRequests();
 
         if (requests.isEmpty()) {
             requestListModel.addElement("No time off requests found.");
@@ -108,13 +107,11 @@ public class ManagerTimeOffDashboardUI extends JFrame {
         }
 
         for (TimeOffRequest request : requests) {
-            String line =
-                    "ID " + request.getRequestId() +
-                    " | " + request.getEmployeeName() +
-                    " | " + request.getStartDate() +
-                    " to " + request.getEndDate() +
-                    " | " + request.getStatus();
-
+            String line = "ID " + request.getRequestId() +
+                          " | " + request.getEmployeeName() +
+                          " | " + request.getStartDate() +
+                          " to " + request.getEndDate() +
+                          " | " + request.getStatus();
             requestListModel.addElement(line);
         }
 
@@ -125,23 +122,14 @@ public class ManagerTimeOffDashboardUI extends JFrame {
 
     private void showSelectedRequestDetails() {
         int index = requestList.getSelectedIndex();
+        java.util.List<TimeOffRequest> requests = manager.getTimeOffRequests();
 
-        if (index < 0) {
+        if (index < 0 || requests.isEmpty() || index >= requests.size()) {
             detailArea.setText("");
             return;
         }
 
-        if (manager.getTimeOffRequests().isEmpty()) {
-            detailArea.setText("");
-            return;
-        }
-
-        if (index >= manager.getTimeOffRequests().size()) {
-            detailArea.setText("");
-            return;
-        }
-
-        TimeOffRequest request = manager.getTimeOffRequests().get(index);
+        TimeOffRequest request = requests.get(index);
 
         detailArea.setText(
                 "Request ID: " + request.getRequestId() + "\n" +
@@ -157,19 +145,19 @@ public class ManagerTimeOffDashboardUI extends JFrame {
 
     private void updateSelectedRequestStatus(String newStatus) {
         int index = requestList.getSelectedIndex();
+        java.util.List<TimeOffRequest> requests = manager.getTimeOffRequests();
 
-        if (index < 0 || index >= manager.getTimeOffRequests().size()) {
+        if (index < 0 || index >= requests.size()) {
             JOptionPane.showMessageDialog(this, "Please select a request first.");
             return;
         }
 
-        TimeOffRequest request = manager.getTimeOffRequests().get(index);
+        TimeOffRequest request = requests.get(index);
         request.setStatus(newStatus);
 
         refreshRequestList();
         requestList.setSelectedIndex(index);
         showSelectedRequestDetails();
-
         JOptionPane.showMessageDialog(this, "Request " + request.getRequestId() + " marked as " + newStatus + ".");
     }
 }
