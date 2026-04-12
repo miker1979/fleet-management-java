@@ -1,208 +1,196 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
 
 public class CompanyRosterUI extends JFrame {
 
     private FleetManager manager;
-
     private JTable employeeTable;
-    private JTable truckTable;
-
-    private DefaultTableModel employeeModel;
-    private DefaultTableModel truckModel;
+    private DefaultTableModel tableModel;
 
     public CompanyRosterUI(FleetManager manager) {
         this.manager = manager;
 
         setTitle("Company Roster");
-        setSize(1150, 700);
+        setSize(1200, 650);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout(10, 10));
 
         JLabel titleLabel = new JLabel("Company Roster", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 28));
-        titleLabel.setBorder(BorderFactory.createEmptyBorder(15, 10, 5, 10));
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
         add(titleLabel, BorderLayout.NORTH);
 
-        JPanel centerPanel = new JPanel(new GridLayout(2, 1, 10, 10));
-        centerPanel.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
-
-        // ===== EMPLOYEE SECTION =====
-        JPanel employeePanel = new JPanel(new BorderLayout());
-        employeePanel.setBorder(BorderFactory.createTitledBorder("Employees"));
-
-        String[] employeeColumns = {
-                "Employee ID", "Name", "Position", "Department",
-                "Phone", "Email", "Assigned Truck", "Status"
+        String[] columns = {
+                "ID",
+                "Name",
+                "Position",
+                "Department",
+                "Phone",
+                "Email",
+                "Status",
+                "Assigned Truck"
         };
 
-        employeeModel = new DefaultTableModel(employeeColumns, 0) {
-            public boolean isCellEditable(int row, int column) { return false; }
+        tableModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
         };
 
-        employeeTable = new JTable(employeeModel);
-        employeeTable.setRowHeight(28);
+        employeeTable = new JTable(tableModel);
+        employeeTable.setRowHeight(32);
+        employeeTable.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        employeeTable.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 14));
         employeeTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-        employeePanel.add(new JScrollPane(employeeTable), BorderLayout.CENTER);
+        JScrollPane scrollPane = new JScrollPane(employeeTable);
+        add(scrollPane, BorderLayout.CENTER);
 
-        // ===== TRUCK SECTION =====
-        JPanel truckPanel = new JPanel(new BorderLayout());
-        truckPanel.setBorder(BorderFactory.createTitledBorder("Fleet"));
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 10));
 
-        String[] truckColumns = {
-                "Truck ID", "Model", "Status", "Current Issue", "Assigned Employee"
-        };
-
-        truckModel = new DefaultTableModel(truckColumns, 0) {
-            public boolean isCellEditable(int row, int column) { return false; }
-        };
-
-        truckTable = new JTable(truckModel);
-        truckTable.setRowHeight(28);
-
-        truckTable.setDefaultRenderer(Object.class, new TruckStatusRenderer());
-
-        truckPanel.add(new JScrollPane(truckTable), BorderLayout.CENTER);
-
-        centerPanel.add(employeePanel);
-        centerPanel.add(truckPanel);
-
-        add(centerPanel, BorderLayout.CENTER);
-
-        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
-
-        JButton openPortalBtn = new JButton("Open Portal");
         JButton refreshBtn = new JButton("Refresh");
+        JButton editBtn = new JButton("Edit Employee");
+        JButton deleteBtn = new JButton("Delete Employee");
+        JButton openPortalBtn = new JButton("Open Portal");
         JButton closeBtn = new JButton("Close");
 
+        refreshBtn.addActionListener(e -> refreshData());
+
+        editBtn.addActionListener(e -> editSelectedEmployee());
+
+        deleteBtn.addActionListener(e -> deleteSelectedEmployee());
+
         openPortalBtn.addActionListener(e -> openSelectedEmployeePortal());
-        refreshBtn.addActionListener(e -> refreshRoster());
+
         closeBtn.addActionListener(e -> dispose());
 
-        bottomPanel.add(openPortalBtn);
-        bottomPanel.add(refreshBtn);
-        bottomPanel.add(closeBtn);
+        buttonPanel.add(refreshBtn);
+        buttonPanel.add(editBtn);
+        buttonPanel.add(deleteBtn);
+        buttonPanel.add(openPortalBtn);
+        buttonPanel.add(closeBtn);
 
-        add(bottomPanel, BorderLayout.SOUTH);
+        add(buttonPanel, BorderLayout.SOUTH);
 
-        refreshRoster();
+        refreshData();
     }
 
-    private void refreshRoster() {
-        employeeModel.setRowCount(0);
-        truckModel.setRowCount(0);
+    public void refreshData() {
+        tableModel.setRowCount(0);
 
         for (Employee employee : manager.getEmployees()) {
+            String status = employee.isActive() ? "Active" : "Inactive";
             String assignedTruck = employee.getAssignedTruckId();
-            if (assignedTruck == null || assignedTruck.isEmpty()) assignedTruck = "None";
 
-            employeeModel.addRow(new Object[]{
+            if (assignedTruck == null || assignedTruck.trim().isEmpty()) {
+                assignedTruck = "None";
+            }
+
+            tableModel.addRow(new Object[]{
                     employee.getEmployeeId(),
                     employee.getFullName(),
                     employee.getPosition(),
                     employee.getDepartment(),
                     employee.getPhoneNumber(),
                     employee.getEmail(),
-                    assignedTruck,
-                    employee.isActive() ? "Active" : "Inactive"
-            });
-        }
-
-        for (Truck truck : manager.getTrucks()) {
-            String assignedEmployee = findAssignedEmployeeForTruck(truck.getTruckID());
-
-            truckModel.addRow(new Object[]{
-                    truck.getTruckID(),
-                    truck.getModel(),
-                    truck.isDown() ? "Down / Maintenance" : "Available",
-                    truck.getCurrentIssue(),
-                    assignedEmployee
+                    status,
+                    assignedTruck
             });
         }
     }
 
-    private String findAssignedEmployeeForTruck(String truckId) {
-        StringBuilder names = new StringBuilder();
-
-        for (Employee employee : manager.getEmployees()) {
-            if (employee.getAssignedTruckId() != null &&
-                    employee.getAssignedTruckId().equalsIgnoreCase(truckId)) {
-
-                if (names.length() > 0) {
-                    names.append(", ");
-                }
-
-                names.append(employee.getFullName());
-            }
-        }
-
-        if (names.length() == 0) {
-            return "Unassigned";
-        }
-
-        return names.toString();
-    }
-
-    private void openSelectedEmployeePortal() {
+    private Employee getSelectedEmployee() {
         int selectedRow = employeeTable.getSelectedRow();
 
-        if (selectedRow < 0) {
-            JOptionPane.showMessageDialog(this, "Select an employee first.");
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "Please select an employee first.");
+            return null;
+        }
+
+        int employeeId = (int) tableModel.getValueAt(selectedRow, 0);
+        return manager.findEmployeeById(employeeId);
+    }
+
+    private void editSelectedEmployee() {
+        Employee employee = getSelectedEmployee();
+        if (employee == null) {
             return;
         }
 
-        int employeeId = Integer.parseInt(employeeTable.getValueAt(selectedRow, 0).toString());
-        Employee emp = findEmployeeById(employeeId);
+        EditEmployeeUI editUI = new EditEmployeeUI(manager, employee);
+        editUI.setVisible(true);
 
-        if (emp == null || !emp.isActive()) return;
-
-        String role = emp.getPosition();
-
-        if (role.equalsIgnoreCase("Driver") || role.equalsIgnoreCase("Foreman")) {
-            new EmployeeHomepageUI(manager, emp).setVisible(true);
-        } else if (role.equalsIgnoreCase("Mechanic")) {
-            new MechanicDashboardUI(manager, emp).setVisible(true);
-        } else if (role.equalsIgnoreCase("Owner")) {
-            new OwnerPortal(manager).setVisible(true);
-        }
+        editUI.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosed(java.awt.event.WindowEvent e) {
+                refreshData();
+            }
+        });
     }
 
-    private Employee findEmployeeById(int id) {
-        for (Employee e : manager.getEmployees()) {
-            if (e.getEmployeeId() == id) return e;
+    private void deleteSelectedEmployee() {
+        Employee employee = getSelectedEmployee();
+        if (employee == null) {
+            return;
         }
-        return null;
+
+        if (isEmployeeAssignedToActiveTask(employee)) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "This employee is tied to an active task and cannot be deleted right now."
+            );
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "Delete " + employee.getFullName() + "?",
+                "Confirm Delete",
+                JOptionPane.YES_NO_OPTION
+        );
+
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        if (employee.getAssignedTruckId() != null && !employee.getAssignedTruckId().trim().isEmpty()) {
+            employee.setAssignedTruckId("");
+        }
+
+        manager.getEmployees().remove(employee);
+        refreshData();
+
+        JOptionPane.showMessageDialog(this, "Employee deleted successfully.");
     }
 
-    class TruckStatusRenderer extends DefaultTableCellRenderer {
-        @Override
-        public Component getTableCellRendererComponent(
-                JTable table, Object value, boolean isSelected,
-                boolean hasFocus, int row, int column) {
-
-            Component c = super.getTableCellRendererComponent(
-                    table, value, isSelected, hasFocus, row, column);
-
-            String status = table.getValueAt(row, 2).toString();
-            String assigned = table.getValueAt(row, 4).toString();
-
-            if (assigned.contains(",")) {
-                c.setBackground(new Color(255, 200, 120)); // ORANGE
-            } else if (status.contains("Down")) {
-                c.setBackground(new Color(255, 120, 120)); // RED
-            } else {
-                c.setBackground(new Color(170, 255, 170)); // GREEN
+    private boolean isEmployeeAssignedToActiveTask(Employee employee) {
+        for (Task task : manager.getTasks()) {
+            if (task.getForeman() != null
+                    && task.getForeman().equalsIgnoreCase(employee.getFullName())
+                    && task.getStatus() != null
+                    && !task.getStatus().equalsIgnoreCase("Completed")
+                    && !task.getStatus().equalsIgnoreCase("Canceled")) {
+                return true;
             }
-
-            if (isSelected) {
-                c.setBackground(new Color(100, 150, 255));
-            }
-
-            return c;
         }
+        return false;
+    }
+
+    private void openSelectedEmployeePortal() {
+        Employee employee = getSelectedEmployee();
+        if (employee == null) {
+            return;
+        }
+
+        String position = employee.getPosition() == null ? "" : employee.getPosition().trim().toLowerCase();
+
+        if (position.equals("mechanic")) {
+            new MechanicDashboardUI(manager, employee).setVisible(true);
+            return;
+        }
+
+        new EmployeeHomepageUI(manager, employee).setVisible(true);
     }
 }

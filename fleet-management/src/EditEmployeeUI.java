@@ -1,16 +1,16 @@
 import javax.swing.*;
 import java.awt.*;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 
-public class CreateEmployeeUI extends JFrame {
+public class EditEmployeeUI extends JFrame {
 
     private FleetManager manager;
+    private Employee employee;
 
-    public CreateEmployeeUI(FleetManager manager) {
+    public EditEmployeeUI(FleetManager manager, Employee employee) {
         this.manager = manager;
+        this.employee = employee;
 
-        setTitle("Create Employee");
+        setTitle("Edit Employee");
         setSize(720, 900);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -25,9 +25,8 @@ public class CreateEmployeeUI extends JFrame {
         // =========================
         // CORE FIELDS
         // =========================
-        JTextField idField = new JTextField();
-        JTextField firstNameField = new JTextField();
-        JTextField lastNameField = new JTextField();
+        JTextField idField = new JTextField(String.valueOf(employee.getEmployeeId()));
+        idField.setEditable(false);
 
         JComboBox<String> positionCombo = new JComboBox<>(new String[]{
                 "Driver",
@@ -40,6 +39,10 @@ public class CreateEmployeeUI extends JFrame {
                 "Safety",
                 "Office"
         });
+        positionCombo.setSelectedItem(employee.getPosition());
+
+        JTextField firstNameField = new JTextField(employee.getFirstName());
+        JTextField lastNameField = new JTextField(employee.getLastName());
 
         JComboBox<String> departmentCombo = new JComboBox<>(new String[]{
                 "Transportation",
@@ -48,54 +51,53 @@ public class CreateEmployeeUI extends JFrame {
                 "Admin",
                 "Safety"
         });
+        departmentCombo.setSelectedItem(employee.getDepartment());
 
-        JTextField addressField = new JTextField();
-        JTextField phoneField = new JTextField();
-        JTextField emailField = new JTextField();
-        JTextField hireDateField = new JTextField("2026-01-01");
-        JTextField payRateField = new JTextField();
+        JTextField addressField = new JTextField(employee.getAddress());
+        JTextField phoneField = new JTextField(employee.getPhoneNumber());
+        JTextField emailField = new JTextField(employee.getEmail());
+        JTextField hireDateField = new JTextField(employee.getHireDate());
+        JTextField payRateField = new JTextField(String.format("%.2f", employee.getPayRate()));
 
-        JComboBox<String> payTypeCombo = new JComboBox<>(new String[]{
-                "Hourly",
-                "Salary Per Year",
-                "Salary Per Month",
-                "Salary Per Week"
-        });
-
-        JCheckBox activeBox = new JCheckBox("Active", true);
+        JCheckBox activeBox = new JCheckBox("Active", employee.isActive());
 
         JComboBox<String> assignedTruckCombo = new JComboBox<>();
         assignedTruckCombo.addItem("None");
         for (Truck truck : manager.getTrucks()) {
             assignedTruckCombo.addItem(truck.getTruckID());
         }
+        if (employee.getAssignedTruckId() != null && !employee.getAssignedTruckId().isEmpty()) {
+            assignedTruckCombo.setSelectedItem(employee.getAssignedTruckId());
+        } else {
+            assignedTruckCombo.setSelectedItem("None");
+        }
 
         // =========================
         // DRIVER SECTION
         // =========================
-        JTextField licenseNumberField = new JTextField();
-        JTextField licenseClassField = new JTextField();
-        JTextField licenseExpField = new JTextField();
-        JTextField endorsementsField = new JTextField();
-        JTextField dotExpField = new JTextField();
+        JTextField licenseNumberField = new JTextField(employee.getDriverLicenseNumber());
+        JTextField licenseClassField = new JTextField(employee.getLicenseClass());
+        JTextField licenseExpField = new JTextField(employee.getLicenseExpirationDate());
+        JTextField endorsementsField = new JTextField(employee.getEndorsements());
+        JTextField dotExpField = new JTextField(employee.getDotPhysicalExpirationDate());
 
         // =========================
-        // FORKLIFT CERT
+        // FORKLIFT SECTION
         // =========================
-        JCheckBox forkliftBox = new JCheckBox("Forklift Certified");
-        JTextField forkliftExpField = new JTextField();
+        JCheckBox forkliftBox = new JCheckBox("Forklift Certified", employee.isForkliftCertified());
+        JTextField forkliftExpField = new JTextField(employee.getForkliftCertificationExpirationDate());
 
         // =========================
         // EMERGENCY CONTACT
         // =========================
-        JTextField emergencyNameField = new JTextField();
-        JTextField emergencyPhoneField = new JTextField();
-        JTextField emergencyRelationField = new JTextField();
+        JTextField emergencyNameField = new JTextField(employee.getEmergencyContactName());
+        JTextField emergencyPhoneField = new JTextField(employee.getEmergencyContactPhone());
+        JTextField emergencyRelationField = new JTextField(employee.getEmergencyContactRelationship());
 
         Component[] fields = {
-                idField, firstNameField, lastNameField, positionCombo,
+                idField, positionCombo, firstNameField, lastNameField,
                 departmentCombo, addressField, phoneField, emailField,
-                hireDateField, payRateField, payTypeCombo, assignedTruckCombo,
+                hireDateField, payRateField, assignedTruckCombo,
                 licenseNumberField, licenseClassField, licenseExpField,
                 endorsementsField, dotExpField,
                 forkliftExpField,
@@ -106,11 +108,11 @@ public class CreateEmployeeUI extends JFrame {
             c.setFont(fieldFont);
         }
 
-        forkliftBox.setFont(fieldFont);
         activeBox.setFont(fieldFont);
+        forkliftBox.setFont(fieldFont);
 
         // =========================
-        // FORM BUILD
+        // BUILD FORM
         // =========================
         addField(formPanel, "Employee ID:", idField, labelFont);
         addField(formPanel, "Employee Type:", positionCombo, labelFont);
@@ -121,11 +123,9 @@ public class CreateEmployeeUI extends JFrame {
         addField(formPanel, "Phone Number:", phoneField, labelFont);
         addField(formPanel, "Email:", emailField, labelFont);
         addField(formPanel, "Hire Date:", hireDateField, labelFont);
-        addField(formPanel, "Pay Amount:", payRateField, labelFont);
-        addField(formPanel, "Pay Type:", payTypeCombo, labelFont);
+        addField(formPanel, "Pay Rate:", payRateField, labelFont);
         addField(formPanel, "Assigned Truck:", assignedTruckCombo, labelFont);
 
-        // DRIVER
         addSectionHeader(formPanel, "Driver Compliance");
         addField(formPanel, "License Number:", licenseNumberField, labelFont);
         addField(formPanel, "License Class:", licenseClassField, labelFont);
@@ -133,13 +133,11 @@ public class CreateEmployeeUI extends JFrame {
         addField(formPanel, "Endorsements:", endorsementsField, labelFont);
         addField(formPanel, "DOT Physical Exp:", dotExpField, labelFont);
 
-        // FORKLIFT
         addSectionHeader(formPanel, "Equipment Certification");
         formPanel.add(new JLabel(""));
         formPanel.add(forkliftBox);
         addField(formPanel, "Forklift Expiration:", forkliftExpField, labelFont);
 
-        // EMERGENCY
         addSectionHeader(formPanel, "Emergency Contact");
         addField(formPanel, "Contact Name:", emergencyNameField, labelFont);
         addField(formPanel, "Contact Phone:", emergencyPhoneField, labelFont);
@@ -153,56 +151,49 @@ public class CreateEmployeeUI extends JFrame {
         // =========================
         // BUTTONS
         // =========================
-        JButton saveBtn = new JButton("Save Employee");
+        JButton saveBtn = new JButton("Save Changes");
         JButton cancelBtn = new JButton("Cancel");
+
+        saveBtn.setFont(labelFont);
+        cancelBtn.setFont(labelFont);
 
         saveBtn.addActionListener(e -> {
             try {
-                int id = Integer.parseInt(idField.getText().trim());
+                employee.setPosition((String) positionCombo.getSelectedItem());
+                employee.setDepartment((String) departmentCombo.getSelectedItem());
+                employee.setAddress(addressField.getText().trim());
+                employee.setPhoneNumber(phoneField.getText().trim());
+                employee.setEmail(emailField.getText().trim());
+                employee.setActive(activeBox.isSelected());
+                employee.setPayRate(Double.parseDouble(payRateField.getText().trim()));
 
-                Employee employee = new Employee(
-                        id,
-                        firstNameField.getText().trim(),
-                        lastNameField.getText().trim(),
-                        (String) positionCombo.getSelectedItem(),
-                        (String) departmentCombo.getSelectedItem(),
-                        addressField.getText().trim(),
-                        phoneField.getText().trim(),
-                        emailField.getText().trim(),
-                        hireDateField.getText().trim(),
-                        activeBox.isSelected(),
-                        Double.parseDouble(payRateField.getText().trim())
-                );
-
-                // Assign truck
-                String truck = (String) assignedTruckCombo.getSelectedItem();
-                if (truck != null && !truck.equals("None")) {
-                    employee.setAssignedTruckId(truck);
+                String assignedTruck = (String) assignedTruckCombo.getSelectedItem();
+                if (assignedTruck != null && !assignedTruck.equalsIgnoreCase("None")) {
+                    employee.setAssignedTruckId(assignedTruck);
+                } else {
+                    employee.setAssignedTruckId("");
                 }
 
-                // Driver info
-                employee.setDriverLicenseNumber(licenseNumberField.getText());
-                employee.setLicenseClass(licenseClassField.getText());
-                employee.setLicenseExpirationDate(licenseExpField.getText());
-                employee.setEndorsements(endorsementsField.getText());
-                employee.setDotPhysicalExpirationDate(dotExpField.getText());
+                employee.setDriverLicenseNumber(licenseNumberField.getText().trim());
+                employee.setLicenseClass(licenseClassField.getText().trim());
+                employee.setLicenseExpirationDate(licenseExpField.getText().trim());
+                employee.setEndorsements(endorsementsField.getText().trim());
+                employee.setDotPhysicalExpirationDate(dotExpField.getText().trim());
 
-                // Forklift
                 employee.setForkliftCertified(forkliftBox.isSelected());
-                employee.setForkliftCertificationExpirationDate(forkliftExpField.getText());
+                employee.setForkliftCertificationExpirationDate(forkliftExpField.getText().trim());
 
-                // Emergency
-                employee.setEmergencyContactName(emergencyNameField.getText());
-                employee.setEmergencyContactPhone(emergencyPhoneField.getText());
-                employee.setEmergencyContactRelationship(emergencyRelationField.getText());
+                employee.setEmergencyContactName(emergencyNameField.getText().trim());
+                employee.setEmergencyContactPhone(emergencyPhoneField.getText().trim());
+                employee.setEmergencyContactRelationship(emergencyRelationField.getText().trim());
 
-                manager.addEmployee(employee);
-
-                JOptionPane.showMessageDialog(this, "Employee created successfully.");
+                JOptionPane.showMessageDialog(this, "Employee updated successfully.");
                 dispose();
 
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Pay rate must be a valid number.");
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
+                JOptionPane.showMessageDialog(this, "Error updating employee: " + ex.getMessage());
             }
         });
 
@@ -212,7 +203,7 @@ public class CreateEmployeeUI extends JFrame {
         bottomPanel.add(saveBtn);
         bottomPanel.add(cancelBtn);
 
-        add(formPanel, BorderLayout.CENTER);
+        add(new JScrollPane(formPanel), BorderLayout.CENTER);
         add(bottomPanel, BorderLayout.SOUTH);
     }
 

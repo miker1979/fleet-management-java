@@ -15,6 +15,22 @@ public class Employee {
     private double payRate;
     private String assignedTruckId;
 
+    // Emergency Contact
+    private String emergencyContactName;
+    private String emergencyContactPhone;
+    private String emergencyContactRelationship;
+
+    // Driver Compliance
+    private String driverLicenseNumber;
+    private String licenseClass;
+    private String licenseExpirationDate;
+    private String endorsements;
+    private String dotPhysicalExpirationDate;
+
+    // Equipment / Certification
+    private boolean forkliftCertified;
+    private String forkliftCertificationExpirationDate;
+
     private ArrayList<Evaluation> evaluations;
 
     public Employee(int employeeId, String firstName, String lastName, String position,
@@ -33,6 +49,20 @@ public class Employee {
         this.active = active;
         this.payRate = payRate;
         this.assignedTruckId = "";
+
+        this.emergencyContactName = "";
+        this.emergencyContactPhone = "";
+        this.emergencyContactRelationship = "";
+
+        this.driverLicenseNumber = "";
+        this.licenseClass = "";
+        this.licenseExpirationDate = "";
+        this.endorsements = "";
+        this.dotPhysicalExpirationDate = "";
+
+        this.forkliftCertified = false;
+        this.forkliftCertificationExpirationDate = "";
+
         this.evaluations = new ArrayList<>();
     }
 
@@ -91,6 +121,46 @@ public class Employee {
         return assignedTruckId;
     }
 
+    public String getEmergencyContactName() {
+        return emergencyContactName;
+    }
+
+    public String getEmergencyContactPhone() {
+        return emergencyContactPhone;
+    }
+
+    public String getEmergencyContactRelationship() {
+        return emergencyContactRelationship;
+    }
+
+    public String getDriverLicenseNumber() {
+        return driverLicenseNumber;
+    }
+
+    public String getLicenseClass() {
+        return licenseClass;
+    }
+
+    public String getLicenseExpirationDate() {
+        return licenseExpirationDate;
+    }
+
+    public String getEndorsements() {
+        return endorsements;
+    }
+
+    public String getDotPhysicalExpirationDate() {
+        return dotPhysicalExpirationDate;
+    }
+
+    public boolean isForkliftCertified() {
+        return forkliftCertified;
+    }
+
+    public String getForkliftCertificationExpirationDate() {
+        return forkliftCertificationExpirationDate;
+    }
+
     public ArrayList<Evaluation> getEvaluations() {
         return evaluations;
     }
@@ -129,6 +199,58 @@ public class Employee {
     public void setAssignedTruckId(String assignedTruckId) {
         this.assignedTruckId = assignedTruckId;
     }
+
+    public void setEmergencyContactName(String emergencyContactName) {
+        this.emergencyContactName = emergencyContactName;
+    }
+
+    public void setEmergencyContactPhone(String emergencyContactPhone) {
+        this.emergencyContactPhone = emergencyContactPhone;
+    }
+
+    public void setEmergencyContactRelationship(String emergencyContactRelationship) {
+        this.emergencyContactRelationship = emergencyContactRelationship;
+    }
+
+    public void setDriverLicenseNumber(String driverLicenseNumber) {
+        this.driverLicenseNumber = driverLicenseNumber;
+    }
+
+    public void setLicenseClass(String licenseClass) {
+        this.licenseClass = licenseClass;
+    }
+
+    public void setLicenseExpirationDate(String licenseExpirationDate) {
+        this.licenseExpirationDate = licenseExpirationDate;
+    }
+
+    public void setEndorsements(String endorsements) {
+        this.endorsements = endorsements;
+    }
+
+    public void setDotPhysicalExpirationDate(String dotPhysicalExpirationDate) {
+        this.dotPhysicalExpirationDate = dotPhysicalExpirationDate;
+    }
+
+    public void setForkliftCertified(boolean forkliftCertified) {
+        this.forkliftCertified = forkliftCertified;
+    }
+
+    public void setForkliftCertificationExpirationDate(String forkliftCertificationExpirationDate) {
+        this.forkliftCertificationExpirationDate = forkliftCertificationExpirationDate;
+    }
+
+    public void setFirstName(String firstName) {
+    this.firstName = firstName;
+}
+
+public void setLastName(String lastName) {
+    this.lastName = lastName;
+}
+
+public void setHireDate(String hireDate) {
+    this.hireDate = hireDate;
+}
 
     // =========================
     // EVALUATION METHODS
@@ -174,6 +296,29 @@ public class Employee {
         System.out.println("Status: " + (active ? "Active" : "Inactive"));
         System.out.println("Pay Rate: $" + payRate);
         System.out.println("Assigned Truck: " + (assignedTruckId == null || assignedTruckId.isEmpty() ? "None" : assignedTruckId));
+
+        System.out.println("Emergency Contact: " +
+                (emergencyContactName == null || emergencyContactName.isEmpty() ? "None" : emergencyContactName));
+        System.out.println("Emergency Contact Phone: " +
+                (emergencyContactPhone == null || emergencyContactPhone.isEmpty() ? "None" : emergencyContactPhone));
+        System.out.println("Emergency Contact Relationship: " +
+                (emergencyContactRelationship == null || emergencyContactRelationship.isEmpty() ? "None" : emergencyContactRelationship));
+
+        System.out.println("Driver License Number: " +
+                (driverLicenseNumber == null || driverLicenseNumber.isEmpty() ? "N/A" : driverLicenseNumber));
+        System.out.println("License Class: " +
+                (licenseClass == null || licenseClass.isEmpty() ? "N/A" : licenseClass));
+        System.out.println("License Expiration: " +
+                (licenseExpirationDate == null || licenseExpirationDate.isEmpty() ? "N/A" : licenseExpirationDate));
+        System.out.println("Endorsements: " +
+                (endorsements == null || endorsements.isEmpty() ? "N/A" : endorsements));
+        System.out.println("DOT Physical Expiration: " +
+                (dotPhysicalExpirationDate == null || dotPhysicalExpirationDate.isEmpty() ? "N/A" : dotPhysicalExpirationDate));
+
+        System.out.println("Forklift Certified: " + (forkliftCertified ? "Yes" : "No"));
+        System.out.println("Forklift Certification Expiration: " +
+                (forkliftCertificationExpirationDate == null || forkliftCertificationExpirationDate.isEmpty() ? "N/A" : forkliftCertificationExpirationDate));
+
         System.out.println("Average Evaluation Score: " + getAverageEvaluationScore());
         System.out.println("-----------------------------");
     }

@@ -39,10 +39,26 @@ public class Main {
         );
         manager.addEmployee(charlie);
 
+        manager.addJob(new Job(
+                1001,
+                "I-10 Broadway Barrier Project",
+                "Pulice",
+                "I-10 / Broadway",
+                "2026-04-01",
+                "2028-12-31",
+                "Active",
+                "Mike Robinson",
+                "ADOT-2026-1001",
+                "F-Shape",
+                12000,
+                "Long-term barrier installation project."
+        ));
+
         manager.addTask(new Task(
                 1001,
+                1001,
                 "2026-04-10",
-                "0600:00",
+                "06:00",
                 "Barrier Install",
                 "Pulice",
                 "I-10 / Broadway",

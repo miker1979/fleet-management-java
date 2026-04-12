@@ -78,6 +78,7 @@ public class OwnerPortal extends JFrame {
 
         JButton createEmployeeBtn = createSideButton("Create Employee");
         JButton createEquipmentBtn = createSideButton("Create Equipment");
+        JButton assignTruckBtn = createSideButton("Assign Truck");
         JButton rosterBtn = createSideButton("Company Roster");
         JButton timeOffBtn = createSideButton("Time Off Manager");
         JButton timesheetBtn = createSideButton("Review Timesheets");
@@ -91,6 +92,10 @@ public class OwnerPortal extends JFrame {
 
         createEquipmentBtn.addActionListener(e ->
                 new CreateEquipmentUI(manager).setVisible(true)
+        );
+
+        assignTruckBtn.addActionListener(e ->
+                new AssignTruckUI(manager).setVisible(true)
         );
 
         rosterBtn.addActionListener(e ->
@@ -120,6 +125,8 @@ public class OwnerPortal extends JFrame {
         sidebar.add(createEmployeeBtn);
         sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
         sidebar.add(createEquipmentBtn);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
+        sidebar.add(assignTruckBtn);
         sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
         sidebar.add(rosterBtn);
         sidebar.add(Box.createRigidArea(new Dimension(0, 20)));
@@ -165,7 +172,7 @@ public class OwnerPortal extends JFrame {
 
     private void setupTable() {
         String[] columns = {
-                "Job #", "Date", "Time", "Job Type",
+                "Task #", "Job #", "Date", "Time", "Task Type",
                 "Contractor", "Location", "Foreman", "Assigned Equipment", "Status"
         };
 
@@ -187,7 +194,7 @@ public class OwnerPortal extends JFrame {
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 25, 15));
         btnPanel.setBackground(new Color(15, 15, 15));
 
-        JButton addBtn = createStyledButton("+ CREATE NEW JOB", new Color(0, 255, 150));
+        JButton addBtn = createStyledButton("+ DISPATCH TASK", new Color(0, 255, 150));
         JButton syncBtn = createStyledButton("SYNC SYSTEM", Color.LIGHT_GRAY);
 
         addBtn.addActionListener(e -> new JobScreenUI(manager).setVisible(true));
@@ -221,6 +228,7 @@ public class OwnerPortal extends JFrame {
         for (Task t : sortedTasks) {
             model.addRow(new Object[]{
                     t.getTaskId(),
+                    t.getJobId(),
                     t.getStartDate(),
                     t.getStartTime(),
                     t.getJobType(),
@@ -251,12 +259,6 @@ public class OwnerPortal extends JFrame {
 
             if (raw == null || raw.isEmpty()) {
                 return LocalTime.MAX;
-            }
-
-            if (raw.matches("\\d{4}:\\d{2}")) {
-                String hh = raw.substring(0, 2);
-                String mm = raw.substring(5, 7);
-                return LocalTime.parse(hh + ":" + mm);
             }
 
             return LocalTime.parse(raw);
