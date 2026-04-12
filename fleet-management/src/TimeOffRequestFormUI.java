@@ -1,10 +1,13 @@
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.time.LocalDate;
 
 public class TimeOffRequestFormUI extends JFrame {
 
     private FleetManager manager;
+    private Employee employee;
+    private LocalDate preselectedDate;
 
     private JTextField employeeIdField;
     private JTextField employeeNameField;
@@ -14,7 +17,17 @@ public class TimeOffRequestFormUI extends JFrame {
     private JTextArea reasonArea;
 
     public TimeOffRequestFormUI(FleetManager manager) {
+        this(manager, null, null);
+    }
+
+    public TimeOffRequestFormUI(FleetManager manager, Employee employee) {
+        this(manager, employee, null);
+    }
+
+    public TimeOffRequestFormUI(FleetManager manager, Employee employee, LocalDate preselectedDate) {
         this.manager = manager;
+        this.employee = employee;
+        this.preselectedDate = preselectedDate;
 
         setTitle("Time Off Request");
         setSize(600, 500);
@@ -44,8 +57,9 @@ public class TimeOffRequestFormUI extends JFrame {
         employeeNameField = new JTextField(20);
         employeeNameField.setEditable(false);
 
-        startDateField = new JTextField("2026-03-26", 20);
-        endDateField = new JTextField("2026-03-27", 20);
+        String defaultDate = preselectedDate != null ? preselectedDate.toString() : LocalDate.now().toString();
+        startDateField = new JTextField(defaultDate, 20);
+        endDateField = new JTextField(defaultDate, 20);
 
         requestTypeCombo = new JComboBox<>(new String[]{
                 "Vacation",
@@ -63,8 +77,8 @@ public class TimeOffRequestFormUI extends JFrame {
         int row = 0;
         addRow(formPanel, gbc, row++, "Employee ID:", employeeIdField);
         addRow(formPanel, gbc, row++, "Employee Name:", employeeNameField);
-        addRow(formPanel, gbc, row++, "Start Date:", startDateField);
-        addRow(formPanel, gbc, row++, "End Date:", endDateField);
+        addRow(formPanel, gbc, row++, "Start Date (YYYY-MM-DD):", startDateField);
+        addRow(formPanel, gbc, row++, "End Date (YYYY-MM-DD):", endDateField);
         addRow(formPanel, gbc, row++, "Request Type:", requestTypeCombo);
         addRow(formPanel, gbc, row++, "Reason:", new JScrollPane(reasonArea));
 
@@ -90,6 +104,8 @@ public class TimeOffRequestFormUI extends JFrame {
         mainPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         add(mainPanel);
+
+        prefillEmployeeFields();
     }
 
     private void addRow(JPanel panel, GridBagConstraints gbc, int row, String labelText, Component field) {
@@ -103,13 +119,26 @@ public class TimeOffRequestFormUI extends JFrame {
         panel.add(field, gbc);
     }
 
+    private void prefillEmployeeFields() {
+        if (employee != null) {
+            employeeIdField.setText(String.valueOf(employee.getEmployeeId()));
+            employeeNameField.setText(employee.getFullName());
+
+            employeeIdField.setEditable(false);
+            employeeNameField.setEditable(false);
+        } else {
+            employeeIdField.setEditable(true);
+            employeeNameField.setEditable(false);
+        }
+    }
+
     private void fillEmployeeName() {
         try {
             int employeeId = Integer.parseInt(employeeIdField.getText().trim());
-            Employee employee = manager.findEmployeeById(employeeId);
+            Employee foundEmployee = manager.findEmployeeById(employeeId);
 
-            if (employee != null) {
-                employeeNameField.setText(employee.getFullName());
+            if (foundEmployee != null) {
+                employeeNameField.setText(foundEmployee.getFullName());
             } else {
                 employeeNameField.setText("Employee not found");
             }
@@ -134,6 +163,22 @@ public class TimeOffRequestFormUI extends JFrame {
 
         if (employeeName.equals("Employee not found") || employeeName.equals("Invalid ID")) {
             JOptionPane.showMessageDialog(this, "Please enter a valid employee ID.");
+            return;
+        }
+
+        LocalDate startLocalDate;
+        LocalDate endLocalDate;
+
+        try {
+            startLocalDate = LocalDate.parse(startDate);
+            endLocalDate = LocalDate.parse(endDate);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Dates must be in YYYY-MM-DD format.");
+            return;
+        }
+
+        if (endLocalDate.isBefore(startLocalDate)) {
+            JOptionPane.showMessageDialog(this, "End date cannot be before start date.");
             return;
         }
 

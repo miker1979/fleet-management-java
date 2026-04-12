@@ -1,6 +1,11 @@
 import javax.swing.*;
 import javax.swing.table.*;
 import java.awt.*;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 public class OwnerPortal extends JFrame {
     private FleetManager manager;
@@ -74,6 +79,11 @@ public class OwnerPortal extends JFrame {
         JButton createEmployeeBtn = createSideButton("Create Employee");
         JButton createEquipmentBtn = createSideButton("Create Equipment");
         JButton rosterBtn = createSideButton("Company Roster");
+        JButton timeOffBtn = createSideButton("Time Off Manager");
+        JButton timesheetBtn = createSideButton("Review Timesheets");
+        JButton jobSheetsBtn = createSideButton("Job Sheets");
+        JButton maintenanceBtn = createSideButton("Maintenance");
+        JButton reportsBtn = createSideButton("Reports");
 
         createEmployeeBtn.addActionListener(e ->
                 new CreateEmployeeUI(manager).setVisible(true)
@@ -87,6 +97,26 @@ public class OwnerPortal extends JFrame {
                 new CompanyRosterUI(manager).setVisible(true)
         );
 
+        timeOffBtn.addActionListener(e ->
+                new ManagerTimeOffDashboardUI(manager).setVisible(true)
+        );
+
+        timesheetBtn.addActionListener(e ->
+                JOptionPane.showMessageDialog(this, "Timesheets coming soon")
+        );
+
+        jobSheetsBtn.addActionListener(e ->
+                JOptionPane.showMessageDialog(this, "Job Sheets coming soon")
+        );
+
+        maintenanceBtn.addActionListener(e ->
+                JOptionPane.showMessageDialog(this, "Maintenance dashboard coming soon")
+        );
+
+        reportsBtn.addActionListener(e ->
+                JOptionPane.showMessageDialog(this, "Reports coming soon")
+        );
+
         sidebar.add(createEmployeeBtn);
         sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
         sidebar.add(createEquipmentBtn);
@@ -94,18 +124,16 @@ public class OwnerPortal extends JFrame {
         sidebar.add(rosterBtn);
         sidebar.add(Box.createRigidArea(new Dimension(0, 20)));
 
-        String[] actions = {
-                "Time Off Manager",
-                "Review Timesheets",
-                "Job Sheets",
-                "Maintenance",
-                "Reports"
-        };
-
-        for (String action : actions) {
-            sidebar.add(createSideButton(action));
-            sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
-        }
+        sidebar.add(timeOffBtn);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
+        sidebar.add(timesheetBtn);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
+        sidebar.add(jobSheetsBtn);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
+        sidebar.add(maintenanceBtn);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
+        sidebar.add(reportsBtn);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
 
         return sidebar;
     }
@@ -137,7 +165,7 @@ public class OwnerPortal extends JFrame {
 
     private void setupTable() {
         String[] columns = {
-                "Job #", "Date", "Job Type",
+                "Job #", "Date", "Time", "Job Type",
                 "Contractor", "Location", "Foreman", "Assigned Equipment", "Status"
         };
 
@@ -147,7 +175,6 @@ public class OwnerPortal extends JFrame {
         jobBoard.setBackground(new Color(30, 30, 30));
         jobBoard.setForeground(Color.WHITE);
         jobBoard.setRowHeight(45);
-
         jobBoard.setFont(new Font("SansSerif", Font.PLAIN, 15));
 
         JTableHeader header = jobBoard.getTableHeader();
@@ -185,10 +212,17 @@ public class OwnerPortal extends JFrame {
     public void refreshData() {
         model.setRowCount(0);
 
-        for (Task t : manager.getTasks()) {
+        List<Task> sortedTasks = new ArrayList<>(manager.getTasks());
+        sortedTasks.sort(
+                Comparator.comparing(this::parseTaskDate)
+                        .thenComparing(this::parseTaskTime)
+        );
+
+        for (Task t : sortedTasks) {
             model.addRow(new Object[]{
                     t.getTaskId(),
                     t.getStartDate(),
+                    t.getStartTime(),
                     t.getJobType(),
                     t.getContractor(),
                     t.getLocation(),
@@ -201,5 +235,33 @@ public class OwnerPortal extends JFrame {
         int total = manager.getTrucks().size();
         int down = (int) manager.getTrucks().stream().filter(Truck::isDown).count();
         availableTrucksLabel.setText((total - down) + " / " + total + " Available");
+    }
+
+    private LocalDate parseTaskDate(Task task) {
+        try {
+            return LocalDate.parse(task.getStartDate());
+        } catch (Exception e) {
+            return LocalDate.MAX;
+        }
+    }
+
+    private LocalTime parseTaskTime(Task task) {
+        try {
+            String raw = task.getStartTime();
+
+            if (raw == null || raw.isEmpty()) {
+                return LocalTime.MAX;
+            }
+
+            if (raw.matches("\\d{4}:\\d{2}")) {
+                String hh = raw.substring(0, 2);
+                String mm = raw.substring(5, 7);
+                return LocalTime.parse(hh + ":" + mm);
+            }
+
+            return LocalTime.parse(raw);
+        } catch (Exception e) {
+            return LocalTime.MAX;
+        }
     }
 }

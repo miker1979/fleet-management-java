@@ -1,20 +1,21 @@
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.util.ArrayList;
+import java.util.List;
 
 public class ManagerTimeOffDashboardUI extends JFrame {
 
     private FleetManager manager;
-    private DefaultListModel<String> requestListModel;
-    private JList<String> requestList;
+    private JTable requestTable;
+    private DefaultTableModel tableModel;
     private JTextArea detailArea;
 
     public ManagerTimeOffDashboardUI(FleetManager manager) {
         this.manager = manager;
 
         setTitle("Manager Time Off Dashboard");
-        setSize(900, 550);
+        setSize(1000, 600);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
@@ -28,52 +29,42 @@ public class ManagerTimeOffDashboardUI extends JFrame {
         titleLabel.setForeground(new Color(60, 90, 160));
         mainPanel.add(titleLabel, BorderLayout.NORTH);
 
-        JPanel centerPanel = new JPanel(new GridLayout(1, 2, 10, 10));
-        centerPanel.setBackground(new Color(245, 247, 250));
+        // ===== TABLE =====
+        String[] columns = {
+                "ID", "Employee", "Start", "End", "Type", "Status"
+        };
 
-        // LEFT SIDE - REQUEST LIST
-        JPanel listPanel = new JPanel(new BorderLayout(5, 5));
-        listPanel.setBackground(Color.WHITE);
-        listPanel.setBorder(BorderFactory.createTitledBorder("Submitted Requests"));
-
-        requestListModel = new DefaultListModel<>();
-        requestList = new JList<>(requestListModel);
-        requestList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        requestList.setFont(new Font("Monospaced", Font.PLAIN, 13));
-
-        refreshRequestList();
-
-        requestList.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                showSelectedRequestDetails();
+        tableModel = new DefaultTableModel(columns, 0) {
+            public boolean isCellEditable(int row, int column) {
+                return false;
             }
-        });
+        };
 
-        JScrollPane listScrollPane = new JScrollPane(requestList);
-        listPanel.add(listScrollPane, BorderLayout.CENTER);
+        requestTable = new JTable(tableModel);
+        requestTable.setRowHeight(40);
+        requestTable.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        requestTable.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 14));
+        requestTable.setSelectionBackground(new Color(173, 216, 230));
 
-        // RIGHT SIDE - DETAILS
-        JPanel detailPanel = new JPanel(new BorderLayout(5, 5));
-        detailPanel.setBackground(Color.WHITE);
-        detailPanel.setBorder(BorderFactory.createTitledBorder("Request Details"));
+        JScrollPane tableScroll = new JScrollPane(requestTable);
+        tableScroll.setBorder(BorderFactory.createTitledBorder("Submitted Requests"));
 
-        detailArea = new JTextArea();
+        mainPanel.add(tableScroll, BorderLayout.CENTER);
+
+        // ===== DETAILS =====
+        detailArea = new JTextArea(6, 20);
         detailArea.setEditable(false);
         detailArea.setLineWrap(true);
         detailArea.setWrapStyleWord(true);
-        detailArea.setFont(new Font("Monospaced", Font.PLAIN, 13));
+        detailArea.setFont(new Font("SansSerif", Font.PLAIN, 13));
 
-        JScrollPane detailScrollPane = new JScrollPane(detailArea);
-        detailPanel.add(detailScrollPane, BorderLayout.CENTER);
+        JScrollPane detailScroll = new JScrollPane(detailArea);
+        detailScroll.setBorder(BorderFactory.createTitledBorder("Request Details"));
 
-        centerPanel.add(listPanel);
-        centerPanel.add(detailPanel);
+        mainPanel.add(detailScroll, BorderLayout.SOUTH);
 
-        mainPanel.add(centerPanel, BorderLayout.CENTER);
-
-        // BUTTONS
+        // ===== BUTTONS =====
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.setBackground(new Color(245, 247, 250));
 
         JButton approveButton = new JButton("Approve");
         JButton denyButton = new JButton("Deny");
@@ -82,7 +73,7 @@ public class ManagerTimeOffDashboardUI extends JFrame {
 
         approveButton.addActionListener(e -> updateSelectedRequestStatus("Approved"));
         denyButton.addActionListener(e -> updateSelectedRequestStatus("Denied"));
-        refreshButton.addActionListener(e -> refreshRequestList());
+        refreshButton.addActionListener(e -> refreshTable());
         closeButton.addActionListener(e -> dispose());
 
         buttonPanel.add(approveButton);
@@ -91,45 +82,54 @@ public class ManagerTimeOffDashboardUI extends JFrame {
         buttonPanel.add(closeButton);
 
         mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+
         add(mainPanel);
+
+        refreshTable();
+
+        requestTable.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                showSelectedRequestDetails();
+            }
+        });
     }
 
-    public void refreshRequestList() {
-        requestListModel.clear();
+    private void refreshTable() {
+        tableModel.setRowCount(0);
 
-        // FIXED: Using java.util.List to avoid AWT conflict and type mismatch
-        java.util.List<TimeOffRequest> requests = manager.getTimeOffRequests();
+        List<TimeOffRequest> requests = manager.getTimeOffRequests();
 
         if (requests.isEmpty()) {
-            requestListModel.addElement("No time off requests found.");
-            detailArea.setText("");
+            detailArea.setText("No time off requests found.");
             return;
         }
 
         for (TimeOffRequest request : requests) {
-            String line = "ID " + request.getRequestId() +
-                          " | " + request.getEmployeeName() +
-                          " | " + request.getStartDate() +
-                          " to " + request.getEndDate() +
-                          " | " + request.getStatus();
-            requestListModel.addElement(line);
+            Object[] row = {
+                    request.getRequestId(),
+                    request.getEmployeeName(),
+                    request.getStartDate(),
+                    request.getEndDate(),
+                    request.getRequestType(),
+                    request.getStatus()
+            };
+
+            tableModel.addRow(row);
         }
 
-        if (!requests.isEmpty()) {
-            requestList.setSelectedIndex(0);
-        }
+        requestTable.setRowSelectionInterval(0, 0);
     }
 
     private void showSelectedRequestDetails() {
-        int index = requestList.getSelectedIndex();
-        java.util.List<TimeOffRequest> requests = manager.getTimeOffRequests();
+        int row = requestTable.getSelectedRow();
+        List<TimeOffRequest> requests = manager.getTimeOffRequests();
 
-        if (index < 0 || requests.isEmpty() || index >= requests.size()) {
+        if (row < 0 || row >= requests.size()) {
             detailArea.setText("");
             return;
         }
 
-        TimeOffRequest request = requests.get(index);
+        TimeOffRequest request = requests.get(row);
 
         detailArea.setText(
                 "Request ID: " + request.getRequestId() + "\n" +
@@ -144,20 +144,22 @@ public class ManagerTimeOffDashboardUI extends JFrame {
     }
 
     private void updateSelectedRequestStatus(String newStatus) {
-        int index = requestList.getSelectedIndex();
-        java.util.List<TimeOffRequest> requests = manager.getTimeOffRequests();
+        int row = requestTable.getSelectedRow();
+        List<TimeOffRequest> requests = manager.getTimeOffRequests();
 
-        if (index < 0 || index >= requests.size()) {
+        if (row < 0 || row >= requests.size()) {
             JOptionPane.showMessageDialog(this, "Please select a request first.");
             return;
         }
 
-        TimeOffRequest request = requests.get(index);
+        TimeOffRequest request = requests.get(row);
         request.setStatus(newStatus);
 
-        refreshRequestList();
-        requestList.setSelectedIndex(index);
+        refreshTable();
+        requestTable.setRowSelectionInterval(row, row);
         showSelectedRequestDetails();
-        JOptionPane.showMessageDialog(this, "Request " + request.getRequestId() + " marked as " + newStatus + ".");
+
+        JOptionPane.showMessageDialog(this,
+                "Request " + request.getRequestId() + " marked as " + newStatus + ".");
     }
 }

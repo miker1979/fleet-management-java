@@ -42,6 +42,7 @@ public class Main {
         manager.addTask(new Task(
                 1001,
                 "2026-04-10",
+                "0600:00",
                 "Barrier Install",
                 "Pulice",
                 "I-10 / Broadway",
