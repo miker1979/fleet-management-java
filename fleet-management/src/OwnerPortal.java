@@ -8,6 +8,7 @@ import java.util.Comparator;
 import java.util.List;
 
 public class OwnerPortal extends JFrame {
+
     private FleetManager manager;
     private JTable jobBoard;
     private DefaultTableModel model;
@@ -19,7 +20,8 @@ public class OwnerPortal extends JFrame {
 
         setTitle("FleetTrack Pro - Owner Portal");
         setSize(1400, 850);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         getContentPane().setBackground(new Color(15, 15, 15));
         setLayout(new BorderLayout(15, 15));
 
@@ -52,6 +54,13 @@ public class OwnerPortal extends JFrame {
 
         add(createBottomPanel(), BorderLayout.SOUTH);
 
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowActivated(java.awt.event.WindowEvent e) {
+                refreshData();
+            }
+        });
+
         refreshData();
     }
 
@@ -81,46 +90,12 @@ public class OwnerPortal extends JFrame {
         JButton assignTruckBtn = createSideButton("Assign Truck");
         JButton rosterBtn = createSideButton("Company Roster");
         JButton timeOffBtn = createSideButton("Time Off Manager");
-        JButton timesheetBtn = createSideButton("Review Timesheets");
-        JButton jobSheetsBtn = createSideButton("Job Sheets");
-        JButton maintenanceBtn = createSideButton("Maintenance");
-        JButton reportsBtn = createSideButton("Reports");
 
-        createEmployeeBtn.addActionListener(e ->
-                new CreateEmployeeUI(manager).setVisible(true)
-        );
-
-        createEquipmentBtn.addActionListener(e ->
-                new CreateEquipmentUI(manager).setVisible(true)
-        );
-
-        assignTruckBtn.addActionListener(e ->
-                new AssignTruckUI(manager).setVisible(true)
-        );
-
-        rosterBtn.addActionListener(e ->
-                new CompanyRosterUI(manager).setVisible(true)
-        );
-
-        timeOffBtn.addActionListener(e ->
-                new ManagerTimeOffDashboardUI(manager).setVisible(true)
-        );
-
-        timesheetBtn.addActionListener(e ->
-                JOptionPane.showMessageDialog(this, "Timesheets coming soon")
-        );
-
-        jobSheetsBtn.addActionListener(e ->
-                JOptionPane.showMessageDialog(this, "Job Sheets coming soon")
-        );
-
-        maintenanceBtn.addActionListener(e ->
-                JOptionPane.showMessageDialog(this, "Maintenance dashboard coming soon")
-        );
-
-        reportsBtn.addActionListener(e ->
-                JOptionPane.showMessageDialog(this, "Reports coming soon")
-        );
+        createEmployeeBtn.addActionListener(e -> openChildWindow(new CreateEmployeeUI(manager)));
+        createEquipmentBtn.addActionListener(e -> openChildWindow(new CreateEquipmentUI(manager)));
+        assignTruckBtn.addActionListener(e -> openChildWindow(new AssignTruckUI(manager)));
+        rosterBtn.addActionListener(e -> openChildWindow(new CompanyRosterUI(manager)));
+        timeOffBtn.addActionListener(e -> openChildWindow(new ManagerTimeOffDashboardUI(manager)));
 
         sidebar.add(createEmployeeBtn);
         sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
@@ -130,19 +105,20 @@ public class OwnerPortal extends JFrame {
         sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
         sidebar.add(rosterBtn);
         sidebar.add(Box.createRigidArea(new Dimension(0, 20)));
-
         sidebar.add(timeOffBtn);
-        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
-        sidebar.add(timesheetBtn);
-        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
-        sidebar.add(jobSheetsBtn);
-        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
-        sidebar.add(maintenanceBtn);
-        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
-        sidebar.add(reportsBtn);
-        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
 
         return sidebar;
+    }
+
+    private void openChildWindow(JFrame window) {
+        window.setVisible(true);
+
+        window.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosed(java.awt.event.WindowEvent e) {
+                refreshData();
+            }
+        });
     }
 
     private JPanel createStatusBox(String title, Color accent) {
@@ -195,13 +171,17 @@ public class OwnerPortal extends JFrame {
         btnPanel.setBackground(new Color(15, 15, 15));
 
         JButton addBtn = createStyledButton("+ DISPATCH TASK", new Color(0, 255, 150));
-        JButton syncBtn = createStyledButton("SYNC SYSTEM", Color.LIGHT_GRAY);
+        JButton logoutBtn = createStyledButton("LOG OUT", new Color(255, 80, 80));
 
-        addBtn.addActionListener(e -> new JobScreenUI(manager).setVisible(true));
-        syncBtn.addActionListener(e -> refreshData());
+        addBtn.addActionListener(e -> openChildWindow(new JobScreenUI(manager)));
+
+        logoutBtn.addActionListener(e -> {
+            dispose();
+            Main.showLoginScreen();
+        });
 
         btnPanel.add(addBtn);
-        btnPanel.add(syncBtn);
+        btnPanel.add(logoutBtn);
 
         return btnPanel;
     }
@@ -243,6 +223,25 @@ public class OwnerPortal extends JFrame {
         int total = manager.getTrucks().size();
         int down = (int) manager.getTrucks().stream().filter(Truck::isDown).count();
         availableTrucksLabel.setText((total - down) + " / " + total + " Available");
+
+        int openTickets = 0;
+        if (manager.getMechanicalWriteUps() != null) {
+            for (MechanicalWriteUp writeUp : manager.getMechanicalWriteUps()) {
+                String status = writeUp.getRepairStatus();
+                if (status == null ||
+                        (!status.equalsIgnoreCase("Completed")
+                                && !status.equalsIgnoreCase("Closed")
+                                && !status.equalsIgnoreCase("Resolved"))) {
+                    openTickets++;
+                }
+            }
+        }
+
+        if (openTickets == 0) {
+            maintenanceLabel.setText("All Equipment Ready");
+        } else {
+            maintenanceLabel.setText(openTickets + " Open Repair Ticket(s)");
+        }
     }
 
     private LocalDate parseTaskDate(Task task) {
@@ -255,13 +254,7 @@ public class OwnerPortal extends JFrame {
 
     private LocalTime parseTaskTime(Task task) {
         try {
-            String raw = task.getStartTime();
-
-            if (raw == null || raw.isEmpty()) {
-                return LocalTime.MAX;
-            }
-
-            return LocalTime.parse(raw);
+            return LocalTime.parse(task.getStartTime());
         } catch (Exception e) {
             return LocalTime.MAX;
         }

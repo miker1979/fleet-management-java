@@ -1,25 +1,34 @@
 public class MechanicalWriteUp {
+
     private int writeUpId;
-    private String truckId;
+
+    // Asset Info
+    private String assetId;
+    private String assetType;   // Truck, Pickup, Forklift, Equipment
+
+    // Report Info
     private String dateReported;
     private String reportedBy;
     private String issueType;
     private String priority;
     private String problemDescription;
+
+    // Safety / Repair Status
     private boolean safeToDrive;
     private boolean outOfService;
     private String assignedMechanic;
     private String repairNotes;
     private String repairStatus;
 
-    public MechanicalWriteUp(int writeUpId, String truckId, String dateReported,
+    public MechanicalWriteUp(int writeUpId, String assetId, String assetType, String dateReported,
                              String reportedBy, String issueType, String priority,
                              String problemDescription, boolean safeToDrive,
                              boolean outOfService, String assignedMechanic,
                              String repairNotes, String repairStatus) {
 
         this.writeUpId = writeUpId;
-        this.truckId = truckId;
+        this.assetId = assetId;
+        this.assetType = assetType;
         this.dateReported = dateReported;
         this.reportedBy = reportedBy;
         this.issueType = issueType;
@@ -33,20 +42,65 @@ public class MechanicalWriteUp {
     }
 
     // ===== GETTERS =====
-    public int getWriteUpId() { return writeUpId; }
-    public String getTruckId() { return truckId; }
-    public String getDateReported() { return dateReported; }
-    public String getReportedBy() { return reportedBy; }
-    public String getIssueType() { return issueType; }
-    public String getPriority() { return priority; }
-    public String getProblemDescription() { return problemDescription; }
-    public boolean isSafeToDrive() { return safeToDrive; }
-    public boolean isOutOfService() { return outOfService; }
-    public String getAssignedMechanic() { return assignedMechanic; }
-    public String getRepairNotes() { return repairNotes; }
-    public String getRepairStatus() { return repairStatus; }
+    public int getWriteUpId() {
+        return writeUpId;
+    }
 
-    // ===== SETTERS (IMPORTANT FOR MECHANIC WORKFLOW) =====
+    public String getAssetId() {
+        return assetId;
+    }
+
+    public String getAssetType() {
+        return assetType;
+    }
+
+    public String getDateReported() {
+        return dateReported;
+    }
+
+    public String getReportedBy() {
+        return reportedBy;
+    }
+
+    public String getIssueType() {
+        return issueType;
+    }
+
+    public String getPriority() {
+        return priority;
+    }
+
+    public String getProblemDescription() {
+        return problemDescription;
+    }
+
+    public boolean isSafeToDrive() {
+        return safeToDrive;
+    }
+
+    public boolean isOutOfService() {
+        return outOfService;
+    }
+
+    public String getAssignedMechanic() {
+        return assignedMechanic;
+    }
+
+    public String getRepairNotes() {
+        return repairNotes;
+    }
+
+    public String getRepairStatus() {
+        return repairStatus;
+    }
+
+    // ===== COMPATIBILITY GETTER =====
+    // Keeps older truck-based screens from breaking immediately
+    public String getTruckId() {
+        return assetId;
+    }
+
+    // ===== SETTERS =====
     public void setAssignedMechanic(String mechanicName) {
         this.assignedMechanic = mechanicName;
     }
@@ -65,5 +119,18 @@ public class MechanicalWriteUp {
 
     public void setOutOfService(boolean outOfService) {
         this.outOfService = outOfService;
+    }
+
+    public void setAssetId(String assetId) {
+        this.assetId = assetId;
+    }
+
+    public void setAssetType(String assetType) {
+        this.assetType = assetType;
+    }
+
+    @Override
+    public String toString() {
+        return "Write-Up #" + writeUpId + " | " + assetType + " " + assetId + " | " + repairStatus;
     }
 }

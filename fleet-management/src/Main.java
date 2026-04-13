@@ -1,14 +1,35 @@
 import javax.swing.*;
 
 public class Main {
+
+    public static FleetManager manager;
+    public static Employee mike;
+    public static Employee charlie;
+
     public static void main(String[] args) {
-        FleetManager manager = new FleetManager();
+        initializeData();
+
+        SwingUtilities.invokeLater(() -> {
+            new LoginUI(manager).setVisible(true);
+        });
+    }
+
+    private static void initializeData() {
+        manager = new FleetManager();
 
         manager.addTruck(new Truck("T-101", "Freightliner"));
         manager.addTruck(new Truck("T-202", "Attenuator"));
         manager.addTruck(new Truck("T-303", "Service Truck"));
 
-        Employee mike = new Employee(
+        manager.addForklift(new Forklift(
+                "F-101",
+                2020,
+                "Toyota",
+                "8FGCU25",
+                "VIN123456789"
+        ));
+
+        mike = new Employee(
                 1,
                 "Mike",
                 "Robinson",
@@ -24,7 +45,7 @@ public class Main {
         mike.setAssignedTruckId("T-101");
         manager.addEmployee(mike);
 
-        Employee charlie = new Employee(
+        charlie = new Employee(
                 2,
                 "Charlie",
                 "Smith",
@@ -66,37 +87,9 @@ public class Main {
                 "T-101, T-202",
                 "Scheduled"
         ));
+    }
 
-        SwingUtilities.invokeLater(() -> {
-            String[] options = {
-                    "Driver Portal",
-                    "Owner Portal",
-                    "Mechanic Portal",
-                    "Open All"
-            };
-
-            int choice = JOptionPane.showOptionDialog(
-                    null,
-                    "Access Level:",
-                    "FleetTrack Login",
-                    JOptionPane.DEFAULT_OPTION,
-                    JOptionPane.PLAIN_MESSAGE,
-                    null,
-                    options,
-                    options[0]
-            );
-
-            if (choice == 0 || choice == 3) {
-                new EmployeeHomepageUI(manager, mike).setVisible(true);
-            }
-
-            if (choice == 1 || choice == 3) {
-                new OwnerPortal(manager).setVisible(true);
-            }
-
-            if (choice == 2 || choice == 3) {
-                new MechanicDashboardUI(manager, charlie).setVisible(true);
-            }
-        });
+    public static void showLoginScreen() {
+        new LoginUI(manager).setVisible(true);
     }
 }

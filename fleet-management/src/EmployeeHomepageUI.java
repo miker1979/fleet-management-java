@@ -168,11 +168,13 @@ public class EmployeeHomepageUI extends JFrame {
             refreshTableData();
             refreshRepairStatus();
         });
+
         closeBtn.addActionListener(e -> {
             if (autoRefreshTimer != null) {
                 autoRefreshTimer.stop();
             }
             dispose();
+            Main.showLoginScreen();
         });
 
         footer.add(timeOffBtn);
@@ -201,7 +203,7 @@ public class EmployeeHomepageUI extends JFrame {
 
         monthLabel.setText(
                 currentMonth.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH) +
-                " " + currentMonth.getYear()
+                        " " + currentMonth.getYear()
         );
 
         JPanel calendarGrid = new JPanel(new GridLayout(0, 7, 6, 6));
@@ -259,9 +261,9 @@ public class EmployeeHomepageUI extends JFrame {
 
         JButton btn = new JButton(
                 "<html><center>" +
-                "<div style='font-size:16px; font-weight:bold;'>" + date.getDayOfMonth() + "</div>" +
-                "<div style='font-size:10px; margin-top:4px;'>" + indicators + "</div>" +
-                "</center></html>"
+                        "<div style='font-size:16px; font-weight:bold;'>" + date.getDayOfMonth() + "</div>" +
+                        "<div style='font-size:10px; margin-top:4px;'>" + indicators + "</div>" +
+                        "</center></html>"
         );
 
         btn.setFocusPainted(false);
@@ -515,13 +517,13 @@ public class EmployeeHomepageUI extends JFrame {
 
         repairStatusArea.setText(
                 "Truck: " + latest.getTruckId() + "\n" +
-                "Status: " + latest.getRepairStatus() + "\n" +
-                "Assigned Mechanic: " + latest.getAssignedMechanic() + "\n" +
-                "Priority: " + latest.getPriority() + "\n" +
-                "Safe To Drive: " + (latest.isSafeToDrive() ? "Yes" : "No") + "\n" +
-                "Out Of Service: " + (latest.isOutOfService() ? "Yes" : "No") + "\n\n" +
-                "Problem:\n" + latest.getProblemDescription() + "\n\n" +
-                "Repair Notes:\n" + latest.getRepairNotes()
+                        "Status: " + latest.getRepairStatus() + "\n" +
+                        "Assigned Mechanic: " + latest.getAssignedMechanic() + "\n" +
+                        "Priority: " + latest.getPriority() + "\n" +
+                        "Safe To Drive: " + (latest.isSafeToDrive() ? "Yes" : "No") + "\n" +
+                        "Out Of Service: " + (latest.isOutOfService() ? "Yes" : "No") + "\n\n" +
+                        "Problem:\n" + latest.getProblemDescription() + "\n\n" +
+                        "Repair Notes:\n" + latest.getRepairNotes()
         );
     }
 

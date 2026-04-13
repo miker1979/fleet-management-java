@@ -1,5 +1,5 @@
 import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
+import javax.swing.table.*;
 import java.awt.*;
 
 public class CompanyRosterUI extends JFrame {
@@ -7,6 +7,7 @@ public class CompanyRosterUI extends JFrame {
     private FleetManager manager;
     private JTable employeeTable;
     private DefaultTableModel tableModel;
+    private JComboBox<String> filterCombo;
 
     public CompanyRosterUI(FleetManager manager) {
         this.manager = manager;
@@ -19,7 +20,26 @@ public class CompanyRosterUI extends JFrame {
 
         JLabel titleLabel = new JLabel("Company Roster", SwingConstants.CENTER);
         titleLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
-        add(titleLabel, BorderLayout.NORTH);
+
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.add(titleLabel, BorderLayout.CENTER);
+
+        // 🔥 FILTER DROPDOWN
+        filterCombo = new JComboBox<>(new String[]{
+                "Show All",
+                "Active Only",
+                "Inactive Only"
+        });
+
+        filterCombo.addActionListener(e -> refreshData());
+
+        JPanel filterPanel = new JPanel();
+        filterPanel.add(new JLabel("Filter: "));
+        filterPanel.add(filterCombo);
+
+        topPanel.add(filterPanel, BorderLayout.SOUTH);
+
+        add(topPanel, BorderLayout.NORTH);
 
         String[] columns = {
                 "ID",
@@ -33,40 +53,53 @@ public class CompanyRosterUI extends JFrame {
         };
 
         tableModel = new DefaultTableModel(columns, 0) {
-            @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
         };
 
         employeeTable = new JTable(tableModel);
+
+        // 🔥 COLOR INACTIVE ROWS
+        employeeTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            public Component getTableCellRendererComponent(
+                    JTable table, Object value, boolean isSelected,
+                    boolean hasFocus, int row, int column) {
+
+                Component c = super.getTableCellRendererComponent(
+                        table, value, isSelected, hasFocus, row, column);
+
+                String status = table.getValueAt(row, 6).toString();
+
+                if (status.equalsIgnoreCase("Inactive")) {
+                    c.setForeground(Color.GRAY);
+                } else {
+                    c.setForeground(Color.BLACK);
+                }
+
+                return c;
+            }
+        });
+
         employeeTable.setRowHeight(32);
         employeeTable.setFont(new Font("SansSerif", Font.PLAIN, 14));
         employeeTable.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 14));
-        employeeTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         JScrollPane scrollPane = new JScrollPane(employeeTable);
         add(scrollPane, BorderLayout.CENTER);
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 10));
+        JPanel buttonPanel = new JPanel();
 
-        JButton refreshBtn = new JButton("Refresh");
         JButton editBtn = new JButton("Edit Employee");
         JButton deleteBtn = new JButton("Delete Employee");
         JButton openPortalBtn = new JButton("Open Portal");
         JButton closeBtn = new JButton("Close");
 
-        refreshBtn.addActionListener(e -> refreshData());
-
         editBtn.addActionListener(e -> editSelectedEmployee());
-
         deleteBtn.addActionListener(e -> deleteSelectedEmployee());
-
         openPortalBtn.addActionListener(e -> openSelectedEmployeePortal());
-
         closeBtn.addActionListener(e -> dispose());
 
-        buttonPanel.add(refreshBtn);
         buttonPanel.add(editBtn);
         buttonPanel.add(deleteBtn);
         buttonPanel.add(openPortalBtn);
@@ -74,14 +107,29 @@ public class CompanyRosterUI extends JFrame {
 
         add(buttonPanel, BorderLayout.SOUTH);
 
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            public void windowActivated(java.awt.event.WindowEvent e) {
+                refreshData();
+            }
+        });
+
         refreshData();
     }
 
     public void refreshData() {
         tableModel.setRowCount(0);
 
+        String filter = (String) filterCombo.getSelectedItem();
+
         for (Employee employee : manager.getEmployees()) {
-            String status = employee.isActive() ? "Active" : "Inactive";
+
+            boolean isActive = employee.isActive();
+
+            // 🔥 FILTER LOGIC
+            if (filter.equals("Active Only") && !isActive) continue;
+            if (filter.equals("Inactive Only") && isActive) continue;
+
+            String status = isActive ? "Active" : "Inactive";
             String assignedTruck = employee.getAssignedTruckId();
 
             if (assignedTruck == null || assignedTruck.trim().isEmpty()) {
@@ -102,76 +150,53 @@ public class CompanyRosterUI extends JFrame {
     }
 
     private Employee getSelectedEmployee() {
-        int selectedRow = employeeTable.getSelectedRow();
+        int row = employeeTable.getSelectedRow();
 
-        if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this, "Please select an employee first.");
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Select an employee first.");
             return null;
         }
 
-        int employeeId = (int) tableModel.getValueAt(selectedRow, 0);
-        return manager.findEmployeeById(employeeId);
+        int id = (int) tableModel.getValueAt(row, 0);
+        return manager.findEmployeeById(id);
     }
 
     private void editSelectedEmployee() {
-        Employee employee = getSelectedEmployee();
-        if (employee == null) {
-            return;
-        }
+        Employee emp = getSelectedEmployee();
+        if (emp == null) return;
 
-        EditEmployeeUI editUI = new EditEmployeeUI(manager, employee);
-        editUI.setVisible(true);
-
-        editUI.addWindowListener(new java.awt.event.WindowAdapter() {
-            @Override
-            public void windowClosed(java.awt.event.WindowEvent e) {
-                refreshData();
-            }
-        });
+        new EditEmployeeUI(manager, emp).setVisible(true);
     }
 
     private void deleteSelectedEmployee() {
-        Employee employee = getSelectedEmployee();
-        if (employee == null) {
-            return;
-        }
+        Employee emp = getSelectedEmployee();
+        if (emp == null) return;
 
-        if (isEmployeeAssignedToActiveTask(employee)) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "This employee is tied to an active task and cannot be deleted right now."
-            );
+        if (isEmployeeAssignedToActiveTask(emp)) {
+            JOptionPane.showMessageDialog(this,
+                    "Employee is tied to an active task.");
             return;
         }
 
         int confirm = JOptionPane.showConfirmDialog(
                 this,
-                "Delete " + employee.getFullName() + "?",
-                "Confirm Delete",
+                "Delete " + emp.getFullName() + "?",
+                "Confirm",
                 JOptionPane.YES_NO_OPTION
         );
 
-        if (confirm != JOptionPane.YES_OPTION) {
-            return;
-        }
+        if (confirm != JOptionPane.YES_OPTION) return;
 
-        if (employee.getAssignedTruckId() != null && !employee.getAssignedTruckId().trim().isEmpty()) {
-            employee.setAssignedTruckId("");
-        }
-
-        manager.getEmployees().remove(employee);
+        manager.getEmployees().remove(emp);
         refreshData();
-
-        JOptionPane.showMessageDialog(this, "Employee deleted successfully.");
     }
 
-    private boolean isEmployeeAssignedToActiveTask(Employee employee) {
-        for (Task task : manager.getTasks()) {
-            if (task.getForeman() != null
-                    && task.getForeman().equalsIgnoreCase(employee.getFullName())
-                    && task.getStatus() != null
-                    && !task.getStatus().equalsIgnoreCase("Completed")
-                    && !task.getStatus().equalsIgnoreCase("Canceled")) {
+    private boolean isEmployeeAssignedToActiveTask(Employee emp) {
+        for (Task t : manager.getTasks()) {
+            if (t.getForeman() != null &&
+                    t.getForeman().equalsIgnoreCase(emp.getFullName()) &&
+                    !t.getStatus().equalsIgnoreCase("Completed") &&
+                    !t.getStatus().equalsIgnoreCase("Canceled")) {
                 return true;
             }
         }
@@ -179,18 +204,20 @@ public class CompanyRosterUI extends JFrame {
     }
 
     private void openSelectedEmployeePortal() {
-        Employee employee = getSelectedEmployee();
-        if (employee == null) {
+        Employee emp = getSelectedEmployee();
+        if (emp == null) return;
+
+        // 🔥 BLOCK INACTIVE EMPLOYEES
+        if (!emp.isActive()) {
+            JOptionPane.showMessageDialog(this,
+                    "Inactive employees cannot access the portal.");
             return;
         }
 
-        String position = employee.getPosition() == null ? "" : employee.getPosition().trim().toLowerCase();
-
-        if (position.equals("mechanic")) {
-            new MechanicDashboardUI(manager, employee).setVisible(true);
-            return;
+        if ("mechanic".equalsIgnoreCase(emp.getPosition())) {
+            new MechanicDashboardUI(manager, emp).setVisible(true);
+        } else {
+            new EmployeeHomepageUI(manager, emp).setVisible(true);
         }
-
-        new EmployeeHomepageUI(manager, employee).setVisible(true);
     }
 }

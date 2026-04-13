@@ -132,7 +132,6 @@ public class FleetTrackDashboard extends JFrame {
 
         btn5.addActionListener(e -> new ManagerTimeOffDashboardUI(manager).setVisible(true));
 
-        // 🔥 FIX HERE
         btn7.addActionListener(e -> {
             Employee mechanic = null;
 
@@ -165,11 +164,7 @@ public class FleetTrackDashboard extends JFrame {
         center.setBorder(BorderFactory.createTitledBorder("Live Fleet Map View"));
         center.setBackground(Color.WHITE);
 
-        JLabel mapPlaceholder = new JLabel(
-                "[Placeholder for Interactive Map]",
-                JLabel.CENTER
-        );
-
+        JLabel mapPlaceholder = new JLabel("[Placeholder for Interactive Map]", JLabel.CENTER);
         center.add(mapPlaceholder, BorderLayout.CENTER);
 
         rightSide.add(center, BorderLayout.CENTER);

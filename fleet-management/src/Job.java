@@ -56,12 +56,32 @@ public class Job {
         return jobName;
     }
 
-    public String getStatus() {
-        return status;
+    public String getContractingCompany() {
+        return contractingCompany;
     }
 
     public String getLocation() {
         return location;
+    }
+
+    public String getStartDate() {
+        return startDate;
+    }
+
+    public String getEstimatedCompletionDate() {
+        return estimatedCompletionDate;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public String getProjectManager() {
+        return projectManager;
+    }
+
+    public String getDotProjectNumber() {
+        return dotProjectNumber;
     }
 
     public String getBarrierType() {
@@ -70,6 +90,10 @@ public class Job {
 
     public int getTotalLinearFeet() {
         return totalLinearFeet;
+    }
+
+    public String getNotes() {
+        return notes;
     }
 
     public void setStatus(String status) {

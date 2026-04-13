@@ -5,6 +5,7 @@ public class FleetManager {
 
     private ArrayList<Employee> employees;
     private ArrayList<Truck> trucks;
+    private ArrayList<Forklift> forklifts;
     private ArrayList<Job> jobs;
     private ArrayList<Task> tasks;
     private ArrayList<MechanicalWriteUp> mechanicalWriteUps;
@@ -14,6 +15,7 @@ public class FleetManager {
     public FleetManager() {
         employees = new ArrayList<>();
         trucks = new ArrayList<>();
+        forklifts = new ArrayList<>();
         jobs = new ArrayList<>();
         tasks = new ArrayList<>();
         mechanicalWriteUps = new ArrayList<>();
@@ -52,6 +54,24 @@ public class FleetManager {
         for (Truck truck : trucks) {
             if (truck.getTruckID().equalsIgnoreCase(truckId)) {
                 return truck;
+            }
+        }
+        return null;
+    }
+
+    // ===== FORKLIFTS =====
+    public void addForklift(Forklift forklift) {
+        forklifts.add(forklift);
+    }
+
+    public List<Forklift> getForklifts() {
+        return forklifts;
+    }
+
+    public Forklift findForkliftById(String unitId) {
+        for (Forklift forklift : forklifts) {
+            if (forklift.getUnitId().equalsIgnoreCase(unitId)) {
+                return forklift;
             }
         }
         return null;

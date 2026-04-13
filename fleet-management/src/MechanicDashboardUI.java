@@ -1,21 +1,31 @@
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 public class MechanicDashboardUI extends JFrame {
 
     private FleetManager manager;
     private Employee mechanic;
-    private DefaultListModel<String> repairListModel;
-    private JList<String> repairList;
+
+    private JTable repairTable;
+    private DefaultTableModel tableModel;
     private JTextArea detailArea;
+
+    private List<MechanicalWriteUp> displayedWriteUps;
 
     public MechanicDashboardUI(FleetManager manager, Employee mechanic) {
         this.manager = manager;
         this.mechanic = mechanic;
+        this.displayedWriteUps = new ArrayList<>();
 
         setTitle("Mechanic Dashboard");
-        setSize(950, 600);
+        setSize(1200, 650);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
@@ -36,10 +46,40 @@ public class MechanicDashboardUI extends JFrame {
         listPanel.setBackground(Color.WHITE);
         listPanel.setBorder(BorderFactory.createTitledBorder("Mechanical Write-Ups"));
 
-        repairListModel = new DefaultListModel<>();
-        repairList = new JList<>(repairListModel);
-        repairList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        repairList.setFont(new Font("Monospaced", Font.PLAIN, 13));
+        String[] columns = {
+                "ID",
+                "Date Reported",
+                "Priority",
+                "Asset Type",
+                "Asset ID",
+                "Issue",
+                "Status"
+        };
+
+        tableModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        repairTable = new JTable(tableModel);
+        repairTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        repairTable.setRowHeight(28);
+        repairTable.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        repairTable.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
+
+        repairTable.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                showSelectedWriteUpDetails();
+            }
+        });
+
+        listPanel.add(new JScrollPane(repairTable), BorderLayout.CENTER);
+
+        JPanel detailPanel = new JPanel(new BorderLayout(5, 5));
+        detailPanel.setBackground(Color.WHITE);
+        detailPanel.setBorder(BorderFactory.createTitledBorder("Write-Up Details"));
 
         detailArea = new JTextArea();
         detailArea.setEditable(false);
@@ -47,24 +87,10 @@ public class MechanicDashboardUI extends JFrame {
         detailArea.setWrapStyleWord(true);
         detailArea.setFont(new Font("Monospaced", Font.PLAIN, 13));
 
-        refreshRepairList();
-
-        repairList.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                showSelectedWriteUpDetails();
-            }
-        });
-
-        listPanel.add(new JScrollPane(repairList), BorderLayout.CENTER);
-
-        JPanel detailPanel = new JPanel(new BorderLayout(5, 5));
-        detailPanel.setBackground(Color.WHITE);
-        detailPanel.setBorder(BorderFactory.createTitledBorder("Write-Up Details"));
         detailPanel.add(new JScrollPane(detailArea), BorderLayout.CENTER);
 
         centerPanel.add(listPanel);
         centerPanel.add(detailPanel);
-
         mainPanel.add(centerPanel, BorderLayout.CENTER);
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -75,14 +101,18 @@ public class MechanicDashboardUI extends JFrame {
         JButton markInRepairButton = new JButton("Mark In Repair");
         JButton markCompletedButton = new JButton("Mark Completed");
         JButton refreshButton = new JButton("Refresh");
-        JButton closeButton = new JButton("Close");
+        JButton closeButton = new JButton("Log Out");
 
         newWriteUpButton.addActionListener(e -> openWriteUpForm());
         editNotesButton.addActionListener(e -> editNotes());
         markInRepairButton.addActionListener(e -> updateSelectedWriteUpStatus("In Repair"));
         markCompletedButton.addActionListener(e -> updateSelectedWriteUpStatus("Completed"));
         refreshButton.addActionListener(e -> refreshRepairList());
-        closeButton.addActionListener(e -> dispose());
+
+        closeButton.addActionListener(e -> {
+            dispose();
+            Main.showLoginScreen();
+        });
 
         buttonPanel.add(newWriteUpButton);
         buttonPanel.add(editNotesButton);
@@ -93,49 +123,118 @@ public class MechanicDashboardUI extends JFrame {
 
         mainPanel.add(buttonPanel, BorderLayout.SOUTH);
         add(mainPanel);
+
+        refreshRepairList();
     }
 
     public void refreshRepairList() {
-        repairListModel.clear();
+        tableModel.setRowCount(0);
+        displayedWriteUps.clear();
 
-        java.util.List<MechanicalWriteUp> writeUps = manager.getMechanicalWriteUps();
+        List<MechanicalWriteUp> writeUps = new ArrayList<>(manager.getMechanicalWriteUps());
 
         if (writeUps.isEmpty()) {
-            repairListModel.addElement("No mechanical write-ups found.");
             detailArea.setText("");
             return;
         }
 
-        for (MechanicalWriteUp writeUp : writeUps) {
-            String line = "ID " + writeUp.getWriteUpId()
-                    + " | " + writeUp.getTruckId()
-                    + " | " + writeUp.getIssueType()
-                    + " | " + writeUp.getRepairStatus();
-            repairListModel.addElement(line);
+        writeUps.sort(
+                Comparator.comparingInt((MechanicalWriteUp w) -> getPriorityRank(w.getPriority()))
+                        .thenComparing((MechanicalWriteUp w) -> parseDateTime(w.getDateReported()), Comparator.reverseOrder())
+        );
+
+        displayedWriteUps.addAll(writeUps);
+
+        for (MechanicalWriteUp writeUp : displayedWriteUps) {
+            tableModel.addRow(new Object[]{
+                    writeUp.getWriteUpId(),
+                    writeUp.getDateReported(),
+                    writeUp.getPriority(),
+                    getAssetTypeSafe(writeUp),
+                    getAssetIdSafe(writeUp),
+                    writeUp.getIssueType(),
+                    writeUp.getRepairStatus()
+            });
         }
 
-        repairList.setSelectedIndex(0);
+        if (!displayedWriteUps.isEmpty()) {
+            repairTable.setRowSelectionInterval(0, 0);
+            showSelectedWriteUpDetails();
+        }
+    }
+
+    private int getPriorityRank(String priority) {
+        if (priority == null) return 99;
+
+        switch (priority.trim().toLowerCase()) {
+            case "critical":
+                return 1;
+            case "high":
+                return 2;
+            case "medium":
+                return 3;
+            case "low":
+                return 4;
+            case "pending mechanic review":
+            case "pending":
+                return 5;
+            default:
+                return 99;
+        }
+    }
+
+    private LocalDateTime parseDateTime(String dateText) {
+        if (dateText == null || dateText.trim().isEmpty()) {
+            return LocalDateTime.MIN;
+        }
+
+        String[] patterns = {
+                "MM/dd/yyyy HH:mm",
+                "yyyy-MM-dd HH:mm",
+                "yyyy-MM-dd'T'HH:mm:ss",
+                "yyyy-MM-dd"
+        };
+
+        for (String pattern : patterns) {
+            try {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern);
+                if (pattern.equals("yyyy-MM-dd")) {
+                    return java.time.LocalDate.parse(dateText, formatter).atStartOfDay();
+                }
+                return LocalDateTime.parse(dateText, formatter);
+            } catch (Exception ignored) {
+            }
+        }
+
+        return LocalDateTime.MIN;
+    }
+
+    private MechanicalWriteUp getSelectedWriteUp() {
+        int index = repairTable.getSelectedRow();
+
+        if (index < 0 || index >= displayedWriteUps.size()) {
+            return null;
+        }
+
+        return displayedWriteUps.get(index);
     }
 
     private void showSelectedWriteUpDetails() {
-        int index = repairList.getSelectedIndex();
-        java.util.List<MechanicalWriteUp> writeUps = manager.getMechanicalWriteUps();
+        MechanicalWriteUp writeUp = getSelectedWriteUp();
 
-        if (index < 0 || writeUps.isEmpty() || index >= writeUps.size()) {
+        if (writeUp == null) {
             detailArea.setText("");
             return;
         }
 
-        MechanicalWriteUp writeUp = writeUps.get(index);
-        Truck truck = manager.findTruckById(writeUp.getTruckId());
-
-        String truckText = (truck != null)
-                ? "Truck " + truck.getTruckID() + " - " + truck.getModel()
-                : "Truck ID " + writeUp.getTruckId();
+        String assetType = getAssetTypeSafe(writeUp);
+        String assetId = getAssetIdSafe(writeUp);
+        String assetDescription = buildAssetDescription(assetType, assetId);
 
         detailArea.setText(
                 "Write-Up ID: " + writeUp.getWriteUpId() + "\n" +
-                "Truck: " + truckText + "\n" +
+                "Asset Type: " + assetType + "\n" +
+                "Asset: " + assetDescription + "\n" +
                 "Date Reported: " + writeUp.getDateReported() + "\n" +
                 "Issue: " + writeUp.getIssueType() + "\n" +
                 "Priority: " + writeUp.getPriority() + "\n" +
@@ -149,18 +248,50 @@ public class MechanicDashboardUI extends JFrame {
         );
     }
 
+    private String getAssetTypeSafe(MechanicalWriteUp writeUp) {
+        String assetType = writeUp.getAssetType();
+        if (assetType == null || assetType.trim().isEmpty()) {
+            return "Truck";
+        }
+        return assetType;
+    }
+
+    private String getAssetIdSafe(MechanicalWriteUp writeUp) {
+        String assetId = writeUp.getAssetId();
+        if (assetId == null || assetId.trim().isEmpty()) {
+            return writeUp.getTruckId();
+        }
+        return assetId;
+    }
+
+    private String buildAssetDescription(String assetType, String assetId) {
+        if (assetType.equalsIgnoreCase("Forklift")) {
+            Forklift forklift = manager.findForkliftById(assetId);
+            if (forklift != null) {
+                return forklift.getUnitId() + " - " + forklift.getMake() + " " + forklift.getModel();
+            }
+            return assetId;
+        }
+
+        Truck truck = manager.findTruckById(assetId);
+        if (truck != null) {
+            return truck.getTruckID() + " - " + truck.getModel();
+        }
+
+        return assetId;
+    }
+
     private void openWriteUpForm() {
         new MechanicalWriteUpFormUI(manager, this, mechanic).setVisible(true);
     }
 
     private void editNotes() {
-        int index = repairList.getSelectedIndex();
-        if (index < 0) {
+        MechanicalWriteUp writeUp = getSelectedWriteUp();
+
+        if (writeUp == null) {
             JOptionPane.showMessageDialog(this, "Select a write-up first.");
             return;
         }
-
-        MechanicalWriteUp writeUp = manager.getMechanicalWriteUps().get(index);
 
         String newNotes = JOptionPane.showInputDialog(
                 this,
@@ -171,43 +302,58 @@ public class MechanicDashboardUI extends JFrame {
         if (newNotes != null) {
             writeUp.setRepairNotes(newNotes);
             refreshRepairList();
-            showSelectedWriteUpDetails();
         }
     }
 
     private void updateSelectedWriteUpStatus(String newStatus) {
-        int index = repairList.getSelectedIndex();
+        MechanicalWriteUp writeUp = getSelectedWriteUp();
 
-        if (index < 0) {
+        if (writeUp == null) {
             JOptionPane.showMessageDialog(this, "Select a write-up first.");
             return;
         }
 
-        MechanicalWriteUp writeUp = manager.getMechanicalWriteUps().get(index);
-
         writeUp.setAssignedMechanic(mechanic.getFullName());
         writeUp.setRepairStatus(newStatus);
 
-        Truck truck = manager.findTruckById(writeUp.getTruckId());
+        String assetType = getAssetTypeSafe(writeUp);
+        String assetId = getAssetIdSafe(writeUp);
 
-        if (truck != null) {
-            if ("In Repair".equalsIgnoreCase(newStatus)) {
-                writeUp.setOutOfService(true);
-                writeUp.setSafeToDrive(false);
-                truck.setDown(true, writeUp.getIssueType());
+        if (assetType.equalsIgnoreCase("Forklift")) {
+            Forklift forklift = manager.findForkliftById(assetId);
+
+            if (forklift != null) {
+                if ("In Repair".equalsIgnoreCase(newStatus)) {
+                    writeUp.setOutOfService(true);
+                    writeUp.setSafeToDrive(false);
+                    forklift.setDown(true, writeUp.getIssueType());
+                }
+
+                if ("Completed".equalsIgnoreCase(newStatus)) {
+                    writeUp.setOutOfService(false);
+                    writeUp.setSafeToDrive(true);
+                    forklift.setDown(false, "Ready");
+                }
             }
+        } else {
+            Truck truck = manager.findTruckById(assetId);
 
-            if ("Completed".equalsIgnoreCase(newStatus)) {
-                writeUp.setOutOfService(false);
-                writeUp.setSafeToDrive(true);
-                truck.setDown(false, "Ready");
+            if (truck != null) {
+                if ("In Repair".equalsIgnoreCase(newStatus)) {
+                    writeUp.setOutOfService(true);
+                    writeUp.setSafeToDrive(false);
+                    truck.setDown(true, writeUp.getIssueType());
+                }
+
+                if ("Completed".equalsIgnoreCase(newStatus)) {
+                    writeUp.setOutOfService(false);
+                    writeUp.setSafeToDrive(true);
+                    truck.setDown(false, "Ready");
+                }
             }
         }
 
         refreshRepairList();
-        repairList.setSelectedIndex(index);
-        showSelectedWriteUpDetails();
-
         JOptionPane.showMessageDialog(this, "Write-up updated.");
     }
 }

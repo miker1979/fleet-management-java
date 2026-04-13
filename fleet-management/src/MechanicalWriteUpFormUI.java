@@ -10,7 +10,9 @@ public class MechanicalWriteUpFormUI extends JFrame {
     private Employee currentEmployee;
     private boolean mechanicMode;
 
-    private JComboBox<String> truckCombo;
+    private JComboBox<String> assetTypeCombo;
+    private JComboBox<String> assetCombo;
+
     private JTextField dateField;
     private JTextField reportedByField;
     private JComboBox<String> issueTypeCombo;
@@ -29,7 +31,7 @@ public class MechanicalWriteUpFormUI extends JFrame {
         this.mechanicMode = isMechanic(currentEmployee);
 
         setTitle("Mechanical Write-Up Form");
-        setSize(720, mechanicMode ? 760 : 560);
+        setSize(720, mechanicMode ? 780 : 580);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
@@ -42,14 +44,19 @@ public class MechanicalWriteUpFormUI extends JFrame {
 
         int row = 0;
 
-        truckCombo = new JComboBox<>();
-        loadTrucks();
+        // 🔥 NEW: Asset Type
+        assetTypeCombo = new JComboBox<>(new String[]{
+                "Truck",
+                "Forklift"
+        });
 
-        if (currentEmployee != null
-                && currentEmployee.getAssignedTruckId() != null
-                && !currentEmployee.getAssignedTruckId().isEmpty()) {
-            truckCombo.setSelectedItem(currentEmployee.getAssignedTruckId());
-        }
+        assetCombo = new JComboBox<>();
+        loadAssets("Truck");
+
+        assetTypeCombo.addActionListener(e -> {
+            String selectedType = (String) assetTypeCombo.getSelectedItem();
+            loadAssets(selectedType);
+        });
 
         dateField = new JTextField(20);
         dateField.setEditable(false);
@@ -61,20 +68,19 @@ public class MechanicalWriteUpFormUI extends JFrame {
             reportedByField.setText(currentEmployee.getFullName());
         }
 
-        issueTypeCombo = new JComboBox<>(new String[] {
+        issueTypeCombo = new JComboBox<>(new String[]{
                 "Engine",
                 "Brakes",
                 "Tires",
                 "Transmission",
                 "Electrical",
-                "Suspension",
-                "Trailer",
                 "Hydraulics",
-                "Lights",
+                "Forks",
+                "Lift System",
                 "Other"
         });
 
-        priorityCombo = new JComboBox<>(new String[] {
+        priorityCombo = new JComboBox<>(new String[]{
                 "Low",
                 "Medium",
                 "High",
@@ -95,7 +101,7 @@ public class MechanicalWriteUpFormUI extends JFrame {
         repairNotesArea.setLineWrap(true);
         repairNotesArea.setWrapStyleWord(true);
 
-        repairStatusCombo = new JComboBox<>(new String[] {
+        repairStatusCombo = new JComboBox<>(new String[]{
                 "Open",
                 "In Repair",
                 "Waiting On Parts",
@@ -105,7 +111,9 @@ public class MechanicalWriteUpFormUI extends JFrame {
         safeToDriveCheck = new JCheckBox("Safe To Drive");
         outOfServiceCheck = new JCheckBox("Out Of Service");
 
-        addField(panel, gbc, row++, "Truck ID:", truckCombo);
+        // 🔧 FORM FIELDS
+        addField(panel, gbc, row++, "Asset Type:", assetTypeCombo);
+        addField(panel, gbc, row++, "Asset ID:", assetCombo);
         addField(panel, gbc, row++, "Date / Time Reported:", dateField);
         addField(panel, gbc, row++, "Reported By:", reportedByField);
         addField(panel, gbc, row++, "Issue Type:", issueTypeCombo);
@@ -120,9 +128,11 @@ public class MechanicalWriteUpFormUI extends JFrame {
             gbc.gridx = 0;
             gbc.gridy = row;
             gbc.gridwidth = 2;
+
             JPanel checkPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
             checkPanel.add(safeToDriveCheck);
             checkPanel.add(outOfServiceCheck);
+
             panel.add(checkPanel, gbc);
             row++;
         }
@@ -136,29 +146,28 @@ public class MechanicalWriteUpFormUI extends JFrame {
         gbc.gridx = 0;
         gbc.gridy = row;
         gbc.gridwidth = 2;
+
         JPanel buttonPanel = new JPanel();
         buttonPanel.add(saveButton);
         buttonPanel.add(cancelButton);
+
         panel.add(buttonPanel, gbc);
 
         add(new JScrollPane(panel));
     }
 
     private boolean isMechanic(Employee employee) {
-        return employee != null
-                && employee.getPosition() != null
-                && employee.getPosition().toLowerCase().contains("mechanic");
+        return employee != null &&
+                employee.getPosition() != null &&
+                employee.getPosition().toLowerCase().contains("mechanic");
     }
 
     private void addField(JPanel panel, GridBagConstraints gbc, int row, String labelText, Component field) {
         gbc.gridx = 0;
         gbc.gridy = row;
-        gbc.gridwidth = 1;
-        gbc.weightx = 0;
         panel.add(new JLabel(labelText), gbc);
 
         gbc.gridx = 1;
-        gbc.weightx = 1.0;
         panel.add(field, gbc);
     }
 
@@ -167,59 +176,58 @@ public class MechanicalWriteUpFormUI extends JFrame {
         return LocalDateTime.now().format(formatter);
     }
 
-    private void loadTrucks() {
-        truckCombo.removeAllItems();
+    // 🔥 LOAD TRUCKS + FORKLIFTS
+    private void loadAssets(String type) {
+        assetCombo.removeAllItems();
 
-        for (Truck truck : manager.getTrucks()) {
-            truckCombo.addItem(truck.getTruckID());
+        if (type.equalsIgnoreCase("Truck")) {
+            for (Truck t : manager.getTrucks()) {
+                assetCombo.addItem(t.getTruckID());
+            }
+        }
+
+        // 🔧 Future: add forklifts here when you create them
+        if (type.equalsIgnoreCase("Forklift")) {
+            if (manager.getForklifts() != null) {
+                for (Forklift f : manager.getForklifts()) {
+                    assetCombo.addItem(f.getUnitId());
+                }
+            }
         }
     }
 
     private void saveWriteUp() {
         try {
-            String truckId = (String) truckCombo.getSelectedItem();
+            String assetType = (String) assetTypeCombo.getSelectedItem();
+            String assetId = (String) assetCombo.getSelectedItem();
+
             String dateReported = dateField.getText().trim();
             String reportedBy = reportedByField.getText().trim();
             String issueType = (String) issueTypeCombo.getSelectedItem();
             String problemDescription = problemArea.getText().trim();
 
-            if (truckId == null || truckId.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Please select a truck.");
-                return;
-            }
-
-            if (reportedBy.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Missing reported by name.");
+            if (assetId == null || assetId.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please select an asset.");
                 return;
             }
 
             if (problemDescription.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Please enter a problem description.");
+                JOptionPane.showMessageDialog(this, "Enter a problem description.");
                 return;
             }
 
-            String priority = mechanicMode
-                    ? (String) priorityCombo.getSelectedItem()
-                    : "Pending Mechanic Review";
-
-            String assignedMechanic = mechanicMode
-                    ? assignedMechanicField.getText().trim()
-                    : "Unassigned";
-
-            String repairNotes = mechanicMode
-                    ? repairNotesArea.getText().trim()
-                    : "";
-
-            String repairStatus = mechanicMode
-                    ? (String) repairStatusCombo.getSelectedItem()
-                    : "Open";
+            String priority = mechanicMode ? (String) priorityCombo.getSelectedItem() : "Pending";
+            String assignedMechanic = mechanicMode ? assignedMechanicField.getText() : "Unassigned";
+            String repairNotes = mechanicMode ? repairNotesArea.getText() : "";
+            String repairStatus = mechanicMode ? (String) repairStatusCombo.getSelectedItem() : "Open";
 
             boolean safeToDrive = mechanicMode && safeToDriveCheck.isSelected();
             boolean outOfService = mechanicMode && outOfServiceCheck.isSelected();
 
             MechanicalWriteUp writeUp = new MechanicalWriteUp(
                     manager.getNextWriteUpId(),
-                    truckId,
+                    assetId,
+                    assetType,
                     dateReported,
                     reportedBy,
                     issueType,
@@ -238,11 +246,11 @@ public class MechanicalWriteUpFormUI extends JFrame {
                 dashboard.refreshRepairList();
             }
 
-            JOptionPane.showMessageDialog(this, "Mechanical write-up saved successfully.");
+            JOptionPane.showMessageDialog(this, "Write-up saved.");
             dispose();
 
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Error saving write-up: " + ex.getMessage());
+            JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
         }
     }
 }

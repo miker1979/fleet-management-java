@@ -5,13 +5,19 @@ import java.awt.*;
 public class AssignTruckUI extends JFrame {
 
     private FleetManager manager;
+    private CompanyRosterUI parentUI;
 
     private JComboBox<String> employeeCombo;
     private JComboBox<String> truckCombo;
     private JLabel currentTruckLabel;
 
     public AssignTruckUI(FleetManager manager) {
+        this(manager, null);
+    }
+
+    public AssignTruckUI(FleetManager manager, CompanyRosterUI parentUI) {
         this.manager = manager;
+        this.parentUI = parentUI;
 
         setTitle("Assign Truck to Employee");
         setSize(560, 340);
@@ -73,7 +79,10 @@ public class AssignTruckUI extends JFrame {
 
         assignBtn.addActionListener(e -> assignTruck());
         clearBtn.addActionListener(e -> clearTruckAssignment());
-        closeBtn.addActionListener(e -> dispose());
+        closeBtn.addActionListener(e -> {
+            refreshParent();
+            dispose();
+        });
 
         buttonPanel.add(assignBtn);
         buttonPanel.add(clearBtn);
@@ -141,6 +150,9 @@ public class AssignTruckUI extends JFrame {
                 this,
                 "Truck " + selectedTruck + " assigned to " + employee.getFullName() + "."
         );
+
+        refreshParent();
+        dispose();
     }
 
     private void clearTruckAssignment() {
@@ -159,6 +171,9 @@ public class AssignTruckUI extends JFrame {
                 this,
                 "Truck assignment cleared for " + employee.getFullName() + "."
         );
+
+        refreshParent();
+        dispose();
     }
 
     private Employee findEmployeeAssignedToTruck(String truckId) {
@@ -169,5 +184,11 @@ public class AssignTruckUI extends JFrame {
             }
         }
         return null;
+    }
+
+    private void refreshParent() {
+        if (parentUI != null) {
+            parentUI.refreshData();
+        }
     }
 }
