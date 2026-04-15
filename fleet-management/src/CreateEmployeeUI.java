@@ -8,7 +8,7 @@ import java.time.format.DateTimeParseException;
 
 public class CreateEmployeeUI extends JFrame {
 
-    private FleetManager manager;
+    private final FleetManager manager;
 
     public CreateEmployeeUI(FleetManager manager) {
         this.manager = manager;
@@ -64,12 +64,6 @@ public class CreateEmployeeUI extends JFrame {
 
         JCheckBox activeBox = new JCheckBox("Active", true);
 
-        JComboBox<String> assignedTruckCombo = new JComboBox<>();
-        assignedTruckCombo.addItem("None");
-        for (Truck truck : manager.getTrucks()) {
-            assignedTruckCombo.addItem(truck.getTruckID());
-        }
-
         JTextField licenseNumberField = new JTextField();
 
         JComboBox<String> licenseClassCombo = new JComboBox<>(new String[]{
@@ -103,7 +97,7 @@ public class CreateEmployeeUI extends JFrame {
         Component[] fields = {
                 idField, firstNameField, lastNameField, positionCombo,
                 departmentCombo, addressField, phoneField, emailField,
-                hireDateField, payRateField, payTypeCombo, assignedTruckCombo,
+                hireDateField, payRateField, payTypeCombo,
                 licenseNumberField, licenseClassCombo, licenseExpField,
                 endorsementsCombo, dotExpField,
                 forkliftExpField,
@@ -134,7 +128,6 @@ public class CreateEmployeeUI extends JFrame {
         addField(formPanel, "Hire Date (yyyy-MM-dd):", hireDateField, labelFont);
         addField(formPanel, "Pay Amount:", payRateField, labelFont);
         addField(formPanel, "Pay Type:", payTypeCombo, labelFont);
-        addField(formPanel, "Assigned Truck:", assignedTruckCombo, labelFont);
 
         addSectionHeader(formPanel, "Driver Compliance");
         addField(formPanel, "License Number:", licenseNumberField, labelFont);
@@ -218,27 +211,16 @@ public class CreateEmployeeUI extends JFrame {
                         payAmount
                 );
 
-                String truck = (String) assignedTruckCombo.getSelectedItem();
-                if (truck != null && !truck.equals("None")) {
-                    employee.setAssignedTruckId(truck);
-                }
-
                 employee.setDriverLicenseNumber(licenseNumberField.getText().trim());
                 employee.setLicenseClass((String) licenseClassCombo.getSelectedItem());
                 employee.setLicenseExpirationDate(licenseExp);
 
                 String selectedEndorsement = (String) endorsementsCombo.getSelectedItem();
-                if (selectedEndorsement != null) {
-                    employee.setEndorsements(selectedEndorsement);
-                } else {
-                    employee.setEndorsements("");
-                }
+                employee.setEndorsements(selectedEndorsement != null ? selectedEndorsement : "");
 
                 employee.setDotPhysicalExpirationDate(dotExp);
-
                 employee.setForkliftCertified(forkliftBox.isSelected());
                 employee.setForkliftCertificationExpirationDate(forkliftExp);
-
                 employee.setEmergencyContactName(emergencyName);
                 employee.setEmergencyContactPhone(emergencyPhone);
                 employee.setEmergencyContactRelationship(emergencyRelation);

@@ -1,10 +1,12 @@
 import javax.swing.*;
 import javax.swing.table.*;
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class CompanyVehicleListUI extends JFrame {
 
-    private FleetManager manager;
+    private final FleetManager manager;
     private JTable vehicleTable;
     private DefaultTableModel tableModel;
 
@@ -32,6 +34,7 @@ public class CompanyVehicleListUI extends JFrame {
         };
 
         tableModel = new DefaultTableModel(columns, 0) {
+            @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
@@ -39,8 +42,8 @@ public class CompanyVehicleListUI extends JFrame {
 
         vehicleTable = new JTable(tableModel);
 
-        // 🔥 Color coding
         vehicleTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
             public Component getTableCellRendererComponent(
                     JTable table, Object value, boolean isSelected,
                     boolean hasFocus, int row, int column) {
@@ -48,7 +51,11 @@ public class CompanyVehicleListUI extends JFrame {
                 Component c = super.getTableCellRendererComponent(
                         table, value, isSelected, hasFocus, row, column);
 
-                String status = table.getValueAt(row, 4).toString();
+                if (isSelected) {
+                    return c;
+                }
+
+                String status = String.valueOf(table.getValueAt(row, 4));
 
                 switch (status) {
                     case "Down":
@@ -77,25 +84,24 @@ public class CompanyVehicleListUI extends JFrame {
 
         add(new JScrollPane(vehicleTable), BorderLayout.CENTER);
 
-        // 🔧 Buttons
         JPanel buttonPanel = new JPanel();
 
         JButton refreshBtn = new JButton("Refresh");
-        JButton markInUseBtn = new JButton("Mark In Use");
+        JButton assignBtn = new JButton("Assign Driver");
         JButton markUnusedBtn = new JButton("Mark Unused");
         JButton markDownBtn = new JButton("Mark Down");
         JButton markStoredBtn = new JButton("Send to Storage");
         JButton closeBtn = new JButton("Close");
 
         refreshBtn.addActionListener(e -> refreshData());
-        markInUseBtn.addActionListener(e -> markSelectedVehicleInUse());
+        assignBtn.addActionListener(e -> assignSelectedVehicle());
         markUnusedBtn.addActionListener(e -> markSelectedVehicleUnused());
         markDownBtn.addActionListener(e -> markSelectedVehicleDown());
         markStoredBtn.addActionListener(e -> markSelectedVehicleStored());
         closeBtn.addActionListener(e -> dispose());
 
         buttonPanel.add(refreshBtn);
-        buttonPanel.add(markInUseBtn);
+        buttonPanel.add(assignBtn);
         buttonPanel.add(markUnusedBtn);
         buttonPanel.add(markDownBtn);
         buttonPanel.add(markStoredBtn);
@@ -104,6 +110,7 @@ public class CompanyVehicleListUI extends JFrame {
         add(buttonPanel, BorderLayout.SOUTH);
 
         addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
             public void windowActivated(java.awt.event.WindowEvent e) {
                 refreshData();
             }
@@ -116,7 +123,6 @@ public class CompanyVehicleListUI extends JFrame {
         tableModel.setRowCount(0);
 
         for (Truck t : manager.getTrucks()) {
-
             String assigned = t.getAssignedEmployeeName();
             if (assigned == null || assigned.isEmpty()) {
                 assigned = "None";
@@ -142,7 +148,7 @@ public class CompanyVehicleListUI extends JFrame {
             return null;
         }
 
-        String id = (String) tableModel.getValueAt(row, 0);
+        String id = String.valueOf(tableModel.getValueAt(row, 0));
 
         for (Truck t : manager.getTrucks()) {
             if (t.getTruckID().equals(id)) {
@@ -153,39 +159,79 @@ public class CompanyVehicleListUI extends JFrame {
         return null;
     }
 
-    private void markSelectedVehicleInUse() {
+    private void assignSelectedVehicle() {
         Truck t = getSelectedTruck();
-        if (t == null) return;
+        if (t == null) {
+            return;
+        }
 
-        String employee = JOptionPane.showInputDialog(
+        List<Employee> drivers = new ArrayList<>();
+        for (Employee e : manager.getEmployees()) {
+            String position = e.getPosition();
+            if (position != null && position.toLowerCase().contains("driver")) {
+                drivers.add(e);
+            }
+        }
+
+        if (drivers.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "No drivers found. Create a driver first.",
+                    "No Drivers",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            return;
+        }
+
+        Object selection = JOptionPane.showInputDialog(
                 this,
-                "Enter employee name using this vehicle:"
+                "Select Driver:",
+                "Assign Driver",
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                drivers.toArray(),
+                drivers.get(0)
         );
 
-        if (employee != null && !employee.trim().isEmpty()) {
-            t.markInUse(employee);
-            refreshData();
+        if (!(selection instanceof Employee)) {
+            return;
         }
+
+        Employee employee = (Employee) selection;
+        String fullName = employee.getFirstName() + " " + employee.getLastName();
+
+        t.markInUse(fullName);
+
+        if (employee.getAssignedTruckId() == null || employee.getAssignedTruckId().isEmpty()) {
+            employee.setAssignedTruckId(t.getTruckID());
+        } else {
+            employee.setAssignedTruckId(t.getTruckID());
+        }
+
+        refreshData();
     }
 
     private void markSelectedVehicleUnused() {
         Truck t = getSelectedTruck();
-        if (t == null) return;
+        if (t == null) {
+            return;
+        }
 
+        clearEmployeeAssignment(t.getTruckID());
         t.markUnused();
         refreshData();
     }
 
     private void markSelectedVehicleDown() {
         Truck t = getSelectedTruck();
-        if (t == null) return;
+        if (t == null) {
+            return;
+        }
 
-        String issue = JOptionPane.showInputDialog(
-                this,
-                "Enter issue:"
-        );
+        String issue = JOptionPane.showInputDialog(this, "Enter issue:");
 
         if (issue != null) {
+            clearEmployeeAssignment(t.getTruckID());
             t.setDown(true, issue);
             refreshData();
         }
@@ -193,9 +239,21 @@ public class CompanyVehicleListUI extends JFrame {
 
     private void markSelectedVehicleStored() {
         Truck t = getSelectedTruck();
-        if (t == null) return;
+        if (t == null) {
+            return;
+        }
 
+        clearEmployeeAssignment(t.getTruckID());
         t.markStored();
         refreshData();
+    }
+
+    private void clearEmployeeAssignment(String truckId) {
+        for (Employee e : manager.getEmployees()) {
+            String assignedTruckId = e.getAssignedTruckId();
+            if (assignedTruckId != null && assignedTruckId.equals(truckId)) {
+                e.setAssignedTruckId("");
+            }
+        }
     }
 }

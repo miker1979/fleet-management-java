@@ -1,177 +1,371 @@
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class FleetTrackDashboard extends JFrame {
 
-    private FleetManager manager;
+    private final FleetManager manager;
+
+    private JLabel jobsCountLabel;
+    private JLabel trucksCountLabel;
+    private JLabel forkliftsCountLabel;
+    private JLabel dateTimeLabel;
+
+    private JTextArea equipmentAlertsArea;
+    private JTextArea activeJobLocationsArea;
+    private JTextArea safetyMessageArea;
 
     public FleetTrackDashboard(FleetManager manager) {
         this.manager = manager;
 
-        setTitle("FleetTrack Pro");
-        setSize(1100, 850);
-        setMinimumSize(new Dimension(1100, 850));
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setTitle("FleetTrack Pro - Global Dashboard");
+        setSize(1550, 980);
         setLocationRelativeTo(null);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // ===== HEADER =====
-        JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(new Color(60, 90, 160));
-        header.setPreferredSize(new Dimension(0, 60));
+        add(createHeaderPanel(), BorderLayout.NORTH);
+        add(createMainContentPanel(), BorderLayout.CENTER);
 
-        JLabel title = new JLabel("FleetTrack Pro");
-        title.setForeground(Color.WHITE);
-        title.setFont(new Font("Arial", Font.BOLD, 22));
-        title.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 10));
+        refreshDashboardCounts();
+        startClock();
+    }
 
-        JLabel nav = new JLabel("Jobs   Fleet Status   Maintenance   |   Foreman Joe");
-        nav.setForeground(Color.WHITE);
-        nav.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 20));
+    private JPanel createHeaderPanel() {
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(new Color(37, 65, 126));
+        headerPanel.setBorder(new EmptyBorder(20, 25, 20, 25));
 
-        header.add(title, BorderLayout.WEST);
-        header.add(nav, BorderLayout.EAST);
-        add(header, BorderLayout.NORTH);
+        JPanel leftHeader = new JPanel();
+        leftHeader.setOpaque(false);
+        leftHeader.setLayout(new BoxLayout(leftHeader, BoxLayout.Y_AXIS));
 
-        // ===== MAIN PANEL =====
-        JPanel main = new JPanel(new BorderLayout(15, 15));
-        main.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        JLabel companyLabel = new JLabel("Ghostline Logistics Tech LLC");
+        companyLabel.setFont(new Font("Arial", Font.BOLD, 28));
+        companyLabel.setForeground(Color.WHITE);
 
-        JPanel left = new JPanel();
-        left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
-        left.setPreferredSize(new Dimension(380, 0));
-        left.setOpaque(false);
+        jobsCountLabel = new JLabel("Active Jobs: 0");
+        jobsCountLabel.setFont(new Font("Arial", Font.PLAIN, 18));
+        jobsCountLabel.setForeground(Color.WHITE);
 
-        JLabel summaryTitle = new JLabel("Today's Operations Summary");
-        summaryTitle.setFont(new Font("Arial", Font.BOLD, 36));
-        summaryTitle.setForeground(new Color(45, 74, 140));
-        summaryTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        trucksCountLabel = new JLabel("Trucks: 0");
+        trucksCountLabel.setFont(new Font("Arial", Font.PLAIN, 18));
+        trucksCountLabel.setForeground(Color.WHITE);
 
-        left.add(summaryTitle);
-        left.add(Box.createVerticalStrut(20));
+        forkliftsCountLabel = new JLabel("Forklifts: 0");
+        forkliftsCountLabel.setFont(new Font("Arial", Font.PLAIN, 18));
+        forkliftsCountLabel.setForeground(Color.WHITE);
 
-        JPanel vehicleCard = new JPanel();
-        vehicleCard.setLayout(new BoxLayout(vehicleCard, BoxLayout.Y_AXIS));
-        vehicleCard.setBorder(BorderFactory.createTitledBorder("Vehicle Status"));
-        vehicleCard.setBackground(new Color(235, 242, 252));
-        vehicleCard.setMaximumSize(new Dimension(370, 140));
-        vehicleCard.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JPanel statsRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 0));
+        statsRow.setOpaque(false);
+        statsRow.add(jobsCountLabel);
+        statsRow.add(trucksCountLabel);
+        statsRow.add(forkliftsCountLabel);
 
-        JLabel available = new JLabel("18 / 20 Available");
-        available.setForeground(new Color(34, 139, 34));
-        available.setFont(new Font("Arial", Font.BOLD, 16));
+        leftHeader.add(companyLabel);
+        leftHeader.add(Box.createVerticalStrut(10));
+        leftHeader.add(statsRow);
 
-        JLabel inUse = new JLabel("1 in Use (Job #405)");
-        inUse.setFont(new Font("Arial", Font.PLAIN, 14));
+        JPanel rightHeader = new JPanel();
+        rightHeader.setOpaque(false);
+        rightHeader.setLayout(new BoxLayout(rightHeader, BoxLayout.Y_AXIS));
 
-        JLabel maintenance = new JLabel("1 in Maintenance (Ticket #003)");
-        maintenance.setForeground(new Color(178, 34, 34));
-        maintenance.setFont(new Font("Arial", Font.PLAIN, 14));
+        JLabel dashboardLabel = new JLabel("GLOBAL DASHBOARD");
+        dashboardLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        dashboardLabel.setForeground(new Color(214, 228, 255));
+        dashboardLabel.setAlignmentX(Component.RIGHT_ALIGNMENT);
 
-        vehicleCard.add(Box.createVerticalStrut(10));
-        vehicleCard.add(available);
-        vehicleCard.add(Box.createVerticalStrut(10));
-        vehicleCard.add(inUse);
-        vehicleCard.add(Box.createVerticalStrut(10));
-        vehicleCard.add(maintenance);
-        vehicleCard.add(Box.createVerticalStrut(10));
+        dateTimeLabel = new JLabel();
+        dateTimeLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        dateTimeLabel.setForeground(Color.WHITE);
+        dateTimeLabel.setAlignmentX(Component.RIGHT_ALIGNMENT);
 
-        JLabel quickActionsLabel = new JLabel("Quick Actions");
-        quickActionsLabel.setFont(new Font("Arial", Font.BOLD, 18));
-        quickActionsLabel.setForeground(new Color(45, 74, 140));
-        quickActionsLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        rightHeader.add(dashboardLabel);
+        rightHeader.add(Box.createVerticalStrut(10));
+        rightHeader.add(dateTimeLabel);
 
-        JPanel actionsWrapper = new JPanel(new BorderLayout());
-        actionsWrapper.setOpaque(false);
-        actionsWrapper.setAlignmentX(Component.LEFT_ALIGNMENT);
-        actionsWrapper.setMaximumSize(new Dimension(370, 240));
+        headerPanel.add(leftHeader, BorderLayout.WEST);
+        headerPanel.add(rightHeader, BorderLayout.EAST);
 
-        JPanel actions = new JPanel(new GridLayout(4, 2, 10, 10));
-        actions.setOpaque(false);
+        return headerPanel;
+    }
 
-        JButton btn1 = new JButton("+ Create New Job");
-        JButton btn2 = new JButton("Review Timesheets");
-        JButton btn3 = new JButton("Job Sheets");
-        JButton btn4 = new JButton("Employee Portal");
-        JButton btn5 = new JButton("Time Off Manager");
-        JButton btn6 = new JButton("View Tasks");
-        JButton btn7 = new JButton("Maintenance");
-        JButton btn8 = new JButton("Reports");
+    private JPanel createMainContentPanel() {
+        JPanel mainPanel = new JPanel(new BorderLayout(20, 20));
+        mainPanel.setBackground(new Color(234, 238, 245));
+        mainPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        JButton[] buttons = {btn1, btn2, btn3, btn4, btn5, btn6, btn7, btn8};
+        JPanel topCardsPanel = new JPanel(new GridLayout(1, 3, 20, 20));
+        topCardsPanel.setOpaque(false);
 
-        for (JButton btn : buttons) {
-            btn.setFont(new Font("Arial", Font.BOLD, 12));
-            btn.setFocusPainted(false);
-            btn.setPreferredSize(new Dimension(170, 40));
+        topCardsPanel.add(createEquipmentStatusCard());
+        topCardsPanel.add(createYardOperationsCard());
+        topCardsPanel.add(createSafetyWeatherCard());
+
+        JPanel lowerSectionPanel = new JPanel(new BorderLayout(20, 0));
+        lowerSectionPanel.setOpaque(false);
+
+        lowerSectionPanel.add(createFleetMapPanel(), BorderLayout.CENTER);
+        lowerSectionPanel.add(createQuickActionsPanel(), BorderLayout.EAST);
+
+        mainPanel.add(topCardsPanel, BorderLayout.NORTH);
+        mainPanel.add(lowerSectionPanel, BorderLayout.CENTER);
+
+        return mainPanel;
+    }
+
+    private JPanel createEquipmentStatusCard() {
+        JPanel card = createCardPanel();
+
+        JLabel trucksReadyLabel = new JLabel("Trucks: 0 Ready / 0 Down");
+        trucksReadyLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        trucksReadyLabel.setForeground(new Color(20, 148, 32));
+
+        JLabel forkliftsReadyLabel = new JLabel("Forklifts: 0 Ready / 0 Down");
+        forkliftsReadyLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        forkliftsReadyLabel.setForeground(new Color(20, 148, 32));
+
+        JLabel alertsLabel = new JLabel("Equipment Alerts");
+        alertsLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        alertsLabel.setForeground(new Color(35, 42, 60));
+
+        equipmentAlertsArea = createInfoTextArea(
+                "No equipment in system yet.\nAdd trucks or forklifts in Owner Portal to begin operations."
+        );
+
+        card.add(trucksReadyLabel);
+        card.add(Box.createVerticalStrut(15));
+        card.add(forkliftsReadyLabel);
+        card.add(Box.createVerticalStrut(20));
+        card.add(alertsLabel);
+        card.add(Box.createVerticalStrut(12));
+        card.add(new JScrollPane(equipmentAlertsArea));
+
+        return card;
+    }
+
+    private JPanel createYardOperationsCard() {
+        JPanel card = createCardPanel();
+
+        JLabel yardEquipmentLabel = new JLabel("Yard Equipment Ready: 0");
+        yardEquipmentLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        yardEquipmentLabel.setForeground(new Color(35, 42, 60));
+
+        JLabel forkliftsAvailableLabel = new JLabel("Forklifts Available at Yard: 0");
+        forkliftsAvailableLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        forkliftsAvailableLabel.setForeground(new Color(35, 42, 60));
+
+        JLabel activeJobsLabel = new JLabel("Active Job Locations");
+        activeJobsLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        activeJobsLabel.setForeground(new Color(35, 42, 60));
+
+        activeJobLocationsArea = createInfoTextArea(
+                "No active job locations in system."
+        );
+
+        card.add(yardEquipmentLabel);
+        card.add(Box.createVerticalStrut(15));
+        card.add(forkliftsAvailableLabel);
+        card.add(Box.createVerticalStrut(20));
+        card.add(activeJobsLabel);
+        card.add(Box.createVerticalStrut(12));
+        card.add(new JScrollPane(activeJobLocationsArea));
+
+        return card;
+    }
+
+    private JPanel createSafetyWeatherCard() {
+        JPanel card = createCardPanel();
+
+        JLabel weatherLabel = new JLabel("Weather Status: Green - Normal Operations");
+        weatherLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        weatherLabel.setForeground(new Color(20, 148, 32));
+
+        JLabel managerLabel = new JLabel("On-Call Manager: Not Assigned");
+        managerLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        managerLabel.setForeground(new Color(35, 42, 60));
+
+        JLabel safetyLabel = new JLabel("Safety Message of the Day");
+        safetyLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        safetyLabel.setForeground(new Color(35, 42, 60));
+
+        safetyMessageArea = createInfoTextArea(
+                "Stay alert, inspect your equipment, and report any issues before dispatch. " +
+                "Maintain safe yard speeds and verify load security before rolling."
+        );
+
+        card.add(weatherLabel);
+        card.add(Box.createVerticalStrut(15));
+        card.add(managerLabel);
+        card.add(Box.createVerticalStrut(20));
+        card.add(safetyLabel);
+        card.add(Box.createVerticalStrut(12));
+        card.add(new JScrollPane(safetyMessageArea));
+
+        return card;
+    }
+
+    private JPanel createFleetMapPanel() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(205, 213, 224)),
+                new EmptyBorder(20, 20, 20, 20)
+        ));
+
+        JLabel titleLabel = new JLabel("Live Fleet Map / Visual Overview");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 22));
+        titleLabel.setForeground(new Color(37, 65, 126));
+        titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        titleLabel.setHorizontalAlignment(SwingConstants.LEFT);
+
+        JLabel descriptionLabel = new JLabel("This area is reserved for future live fleet mapping.");
+        descriptionLabel.setFont(new Font("Arial", Font.PLAIN, 16));
+        descriptionLabel.setForeground(Color.BLACK);
+        descriptionLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        descriptionLabel.setHorizontalAlignment(SwingConstants.LEFT);
+
+        JTextArea usesArea = new JTextArea();
+        usesArea.setEditable(false);
+        usesArea.setFont(new Font("Arial", Font.PLAIN, 16));
+        usesArea.setBackground(Color.WHITE);
+        usesArea.setLineWrap(true);
+        usesArea.setWrapStyleWord(true);
+        usesArea.setText(
+                "Planned uses:\n" +
+                "• Yard vs. field equipment visibility\n" +
+                "• Job site locations\n" +
+                "• Dispatch and route awareness\n" +
+                "• Weather and safety overlays"
+        );
+        usesArea.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        panel.add(titleLabel);
+        panel.add(Box.createVerticalStrut(10));
+        panel.add(descriptionLabel);
+        panel.add(Box.createVerticalStrut(20));
+        panel.add(usesArea);
+
+        return panel;
+    }
+
+    private JPanel createQuickActionsPanel() {
+        JPanel panel = new JPanel();
+        panel.setPreferredSize(new Dimension(360, 0));
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(205, 213, 224)),
+                new EmptyBorder(20, 20, 20, 20)
+        ));
+
+        JLabel titleLabel = new JLabel("Quick Actions");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        titleLabel.setForeground(new Color(37, 65, 126));
+        titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JButton ownerPortalButton = createDashboardButton("Owner Portal");
+        JButton employeePortalButton = createDashboardButton("Employee Portal");
+        JButton mechanicPortalButton = createDashboardButton("Mechanic Portal");
+        JButton stockpileButton = createDashboardButton("Stockpiles");
+        JButton logoutButton = createDashboardButton("Log Out");
+
+        ownerPortalButton.addActionListener(e ->
+                JOptionPane.showMessageDialog(this, "Owner Portal screen coming soon.")
+        );
+
+        employeePortalButton.addActionListener(e ->
+                JOptionPane.showMessageDialog(this, "Employee Portal screen coming soon.")
+        );
+
+        mechanicPortalButton.addActionListener(e ->
+                JOptionPane.showMessageDialog(this, "Mechanic Portal screen coming soon.")
+        );
+
+        stockpileButton.addActionListener(e ->
+                JOptionPane.showMessageDialog(this, "Stockpile screen coming soon.")
+        );
+
+        logoutButton.addActionListener(e -> {
+            int confirm = JOptionPane.showConfirmDialog(
+                    this,
+                    "Are you sure you want to log out?",
+                    "Confirm Logout",
+                    JOptionPane.YES_NO_OPTION
+            );
+
+            if (confirm == JOptionPane.YES_OPTION) {
+                dispose();
+                new LoginUI(manager).setVisible(true);
+            }
+        });
+
+        panel.add(titleLabel);
+        panel.add(Box.createVerticalStrut(20));
+        panel.add(ownerPortalButton);
+        panel.add(Box.createVerticalStrut(14));
+        panel.add(employeePortalButton);
+        panel.add(Box.createVerticalStrut(14));
+        panel.add(mechanicPortalButton);
+        panel.add(Box.createVerticalStrut(14));
+        panel.add(stockpileButton);
+        panel.add(Box.createVerticalStrut(14));
+        panel.add(logoutButton);
+
+        return panel;
+    }
+
+    private JButton createDashboardButton(String text) {
+        JButton button = new JButton(text);
+        button.setAlignmentX(Component.LEFT_ALIGNMENT);
+        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
+        button.setPreferredSize(new Dimension(300, 48));
+        button.setFont(new Font("Arial", Font.BOLD, 16));
+        button.setFocusPainted(false);
+        button.setBackground(new Color(225, 233, 243));
+        button.setForeground(new Color(35, 42, 60));
+        button.setBorder(BorderFactory.createLineBorder(new Color(140, 160, 185)));
+        return button;
+    }
+
+    private JPanel createCardPanel() {
+        JPanel card = new JPanel();
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBackground(Color.WHITE);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(205, 213, 224)),
+                new EmptyBorder(20, 20, 20, 20)
+        ));
+        return card;
+    }
+
+    private JTextArea createInfoTextArea(String text) {
+        JTextArea area = new JTextArea(text);
+        area.setEditable(false);
+        area.setFont(new Font("Arial", Font.PLAIN, 14));
+        area.setLineWrap(true);
+        area.setWrapStyleWord(true);
+        area.setBackground(new Color(248, 250, 252));
+        area.setBorder(BorderFactory.createLineBorder(new Color(140, 160, 185)));
+        return area;
+    }
+
+    private void refreshDashboardCounts() {
+        if (manager != null) {
+            jobsCountLabel.setText("Active Jobs: " + manager.getJobs().size());
+            trucksCountLabel.setText("Trucks: " + manager.getTrucks().size());
+            forkliftsCountLabel.setText("Forklifts: " + manager.getForklifts().size());
         }
+    }
 
-        actions.add(btn1);
-        actions.add(btn5);
-        actions.add(btn2);
-        actions.add(btn6);
-        actions.add(btn3);
-        actions.add(btn7);
-        actions.add(btn4);
-        actions.add(btn8);
-
-        actionsWrapper.add(actions, BorderLayout.NORTH);
-
-        // ===== BUTTON ACTIONS =====
-        btn1.addActionListener(e -> new JobScreenUI(manager).setVisible(true));
-
-        btn4.addActionListener(e -> {
-            if (manager.getEmployees().isEmpty()) {
-                JOptionPane.showMessageDialog(this, "No employees found.");
-                return;
-            }
-
-            Employee emp = manager.getEmployees().get(0);
-            new EmployeeHomepageUI(manager, emp).setVisible(true);
+    private void startClock() {
+        Timer timer = new Timer(1000, e -> {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy  |  HH:mm");
+            dateTimeLabel.setText(LocalDateTime.now().format(formatter));
         });
-
-        btn5.addActionListener(e -> new ManagerTimeOffDashboardUI(manager).setVisible(true));
-
-        btn7.addActionListener(e -> {
-            Employee mechanic = null;
-
-            for (Employee emp : manager.getEmployees()) {
-                if (emp.getPosition() != null &&
-                        emp.getPosition().toLowerCase().contains("mechanic")) {
-                    mechanic = emp;
-                    break;
-                }
-            }
-
-            if (mechanic == null) {
-                JOptionPane.showMessageDialog(this, "No mechanic found.");
-                return;
-            }
-
-            new MechanicDashboardUI(manager, mechanic).setVisible(true);
-        });
-
-        left.add(vehicleCard);
-        left.add(Box.createVerticalStrut(25));
-        left.add(quickActionsLabel);
-        left.add(Box.createVerticalStrut(10));
-        left.add(actionsWrapper);
-
-        JPanel rightSide = new JPanel(new BorderLayout(15, 15));
-        rightSide.setOpaque(false);
-
-        JPanel center = new JPanel(new BorderLayout());
-        center.setBorder(BorderFactory.createTitledBorder("Live Fleet Map View"));
-        center.setBackground(Color.WHITE);
-
-        JLabel mapPlaceholder = new JLabel("[Placeholder for Interactive Map]", JLabel.CENTER);
-        center.add(mapPlaceholder, BorderLayout.CENTER);
-
-        rightSide.add(center, BorderLayout.CENTER);
-
-        main.add(left, BorderLayout.WEST);
-        main.add(rightSide, BorderLayout.CENTER);
-
-        add(main, BorderLayout.CENTER);
+        timer.start();
     }
 }

@@ -14,6 +14,7 @@ public class Employee {
     private boolean active;
     private double payRate;
     private String assignedTruckId;
+    private String assignedTrailerId;
 
     // Emergency Contact
     private String emergencyContactName;
@@ -49,6 +50,7 @@ public class Employee {
         this.active = active;
         this.payRate = payRate;
         this.assignedTruckId = "";
+        this.assignedTrailerId = "";
 
         this.emergencyContactName = "";
         this.emergencyContactPhone = "";
@@ -70,6 +72,10 @@ public class Employee {
     // GETTERS
     // =========================
     public int getEmployeeId() {
+        return employeeId;
+    }
+
+    public int getId() {
         return employeeId;
     }
 
@@ -119,6 +125,10 @@ public class Employee {
 
     public String getAssignedTruckId() {
         return assignedTruckId;
+    }
+
+    public String getAssignedTrailerId() {
+        return assignedTrailerId;
     }
 
     public String getEmergencyContactName() {
@@ -200,6 +210,10 @@ public class Employee {
         this.assignedTruckId = assignedTruckId;
     }
 
+    public void setAssignedTrailerId(String assignedTrailerId) {
+        this.assignedTrailerId = assignedTrailerId;
+    }
+
     public void setEmergencyContactName(String emergencyContactName) {
         this.emergencyContactName = emergencyContactName;
     }
@@ -241,16 +255,16 @@ public class Employee {
     }
 
     public void setFirstName(String firstName) {
-    this.firstName = firstName;
-}
+        this.firstName = firstName;
+    }
 
-public void setLastName(String lastName) {
-    this.lastName = lastName;
-}
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
 
-public void setHireDate(String hireDate) {
-    this.hireDate = hireDate;
-}
+    public void setHireDate(String hireDate) {
+        this.hireDate = hireDate;
+    }
 
     // =========================
     // EVALUATION METHODS
@@ -296,6 +310,7 @@ public void setHireDate(String hireDate) {
         System.out.println("Status: " + (active ? "Active" : "Inactive"));
         System.out.println("Pay Rate: $" + payRate);
         System.out.println("Assigned Truck: " + (assignedTruckId == null || assignedTruckId.isEmpty() ? "None" : assignedTruckId));
+        System.out.println("Assigned Trailer: " + (assignedTrailerId == null || assignedTrailerId.isEmpty() ? "None" : assignedTrailerId));
 
         System.out.println("Emergency Contact: " +
                 (emergencyContactName == null || emergencyContactName.isEmpty() ? "None" : emergencyContactName));
@@ -321,5 +336,10 @@ public void setHireDate(String hireDate) {
 
         System.out.println("Average Evaluation Score: " + getAverageEvaluationScore());
         System.out.println("-----------------------------");
+    }
+
+    @Override
+    public String toString() {
+        return getFullName() + " - " + position;
     }
 }

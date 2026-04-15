@@ -4,6 +4,8 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 public class LoginUI extends JFrame {
 
@@ -67,33 +69,13 @@ public class LoginUI extends JFrame {
         cardPanel.setBorder(new EmptyBorder(24, 20, 18, 20));
         cardPanel.setMaximumSize(new Dimension(920, 220));
 
-        cardPanel.add(createCard("Driver Portal", () -> {
-            if (!manager.getEmployees().isEmpty()) {
-                new EmployeeHomepageUI(manager, manager.getEmployees().get(0)).setVisible(true);
-                dispose();
-            } else {
-                JOptionPane.showMessageDialog(this, "No employees available for Driver Portal.");
-            }
-        }));
+        cardPanel.add(createCard("Driver Portal", this::openDriverPortal));
 
-        cardPanel.add(createCard("Owner Portal", () -> {
-            new OwnerPortal(manager).setVisible(true);
-            dispose();
-        }));
+        cardPanel.add(createCard("Owner Portal", this::openOwnerPortal));
 
-        cardPanel.add(createCard("Mechanic Portal", () -> {
-            if (manager.getEmployees().size() > 1) {
-                new MechanicDashboardUI(manager, manager.getEmployees().get(1)).setVisible(true);
-                dispose();
-            } else {
-                JOptionPane.showMessageDialog(this, "No mechanic employee available.");
-            }
-        }));
+        cardPanel.add(createCard("Mechanic Portal", this::openMechanicPortal));
 
-        cardPanel.add(createCard("Dashboard", () -> {
-            new FleetTrackDashboard(manager).setVisible(true);
-            dispose();
-        }));
+        cardPanel.add(createCard("Global Dashboard", this::openGlobalDashboard));
 
         JButton exitButton = new JButton("Exit Program");
         exitButton.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -127,6 +109,122 @@ public class LoginUI extends JFrame {
 
         mainPanel.add(contentPanel, BorderLayout.CENTER);
         setContentPane(mainPanel);
+    }
+
+    private void openOwnerPortal() {
+        try {
+            OwnerPortal ownerPortal = new OwnerPortal(manager);
+            ownerPortal.setVisible(true);
+            dispose();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Could not open Owner Portal.\n\n" + ex.getMessage(),
+                    "Owner Portal Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
+    }
+
+    private void openGlobalDashboard() {
+        try {
+            FleetTrackDashboard dashboard = new FleetTrackDashboard(manager);
+            dashboard.setVisible(true);
+            dispose();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Could not open Global Dashboard.\n\n" + ex.getMessage(),
+                    "Dashboard Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
+    }
+
+    private void openDriverPortal() {
+        List<Employee> drivers = new ArrayList<>();
+
+        for (Employee e : manager.getEmployees()) {
+            if (e.getPosition() != null &&
+                e.getPosition().toLowerCase().contains("driver")) {
+                drivers.add(e);
+            }
+        }
+
+        if (drivers.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "No drivers have been created yet.\nPlease create a driver in the Owner Portal first.",
+                    "No Drivers Found",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            return;
+        }
+
+        if (drivers.size() == 1) {
+            new EmployeeHomepageUI(manager, drivers.get(0)).setVisible(true);
+            dispose();
+            return;
+        }
+
+        Object selection = JOptionPane.showInputDialog(
+                this,
+                "Select Driver:",
+                "Driver Login",
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                drivers.toArray(),
+                drivers.get(0)
+        );
+
+        if (selection instanceof Employee) {
+            new EmployeeHomepageUI(manager, (Employee) selection).setVisible(true);
+            dispose();
+        }
+    }
+
+    private void openMechanicPortal() {
+        List<Employee> mechanics = new ArrayList<>();
+
+        for (Employee e : manager.getEmployees()) {
+            if (e.getPosition() != null &&
+                e.getPosition().toLowerCase().contains("mechanic")) {
+                mechanics.add(e);
+            }
+        }
+
+        if (mechanics.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "No mechanics have been created yet.\nPlease create a mechanic in the Owner Portal first.",
+                    "No Mechanics Found",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            return;
+        }
+
+        if (mechanics.size() == 1) {
+            new MechanicDashboardUI(manager, mechanics.get(0)).setVisible(true);
+            dispose();
+            return;
+        }
+
+        Object selection = JOptionPane.showInputDialog(
+                this,
+                "Select Mechanic:",
+                "Mechanic Login",
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                mechanics.toArray(),
+                mechanics.get(0)
+        );
+
+        if (selection instanceof Employee) {
+            new MechanicDashboardUI(manager, (Employee) selection).setVisible(true);
+            dispose();
+        }
     }
 
     private JPanel createCard(String title, Runnable action) {

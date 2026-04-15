@@ -1,11 +1,14 @@
 public class Job {
 
-    private int jobId;
-    private String jobName;
-    private String contractingCompany;
-    private String location;
+    // 🔹 CORE JOB BOARD FIELDS (PRIMARY)
+    private int jobNumber;
+    private String contractor;
+    private String projectName;
     private String startDate;
-    private String estimatedCompletionDate;
+    private String endDate;
+    private String location;
+
+    // 🔹 OPTIONAL / FUTURE DETAIL FIELDS
     private String status;
     private String projectManager;
     private String dotProjectNumber;
@@ -13,90 +16,69 @@ public class Job {
     private int totalLinearFeet;
     private String notes;
 
-    public Job(int jobId, String jobName, String contractingCompany, String location,
-               String startDate, String estimatedCompletionDate, String status,
-               String projectManager, String dotProjectNumber, String barrierType,
-               int totalLinearFeet, String notes) {
+    // 🔥 CLEAN PRIMARY CONSTRUCTOR (Job Board Focused)
+    public Job(int jobNumber, String contractor, String projectName,
+               String startDate, String endDate, String location) {
 
-        this.jobId = jobId;
-        this.jobName = jobName;
-        this.contractingCompany = contractingCompany;
-        this.location = location;
+        this.jobNumber = jobNumber;
+        this.contractor = contractor;
+        this.projectName = projectName;
         this.startDate = startDate;
-        this.estimatedCompletionDate = estimatedCompletionDate;
-        this.status = status;
-        this.projectManager = projectManager;
-        this.dotProjectNumber = dotProjectNumber;
-        this.barrierType = barrierType;
-        this.totalLinearFeet = totalLinearFeet;
-        this.notes = notes;
+        this.endDate = endDate;
+        this.location = location;
+
+        // defaults
+        this.status = "Active";
+        this.projectManager = "";
+        this.dotProjectNumber = "";
+        this.barrierType = "";
+        this.totalLinearFeet = 0;
+        this.notes = "";
     }
 
+    // 🔹 GETTERS (Core)
+    public int getJobNumber() { return jobNumber; }
+    public String getContractor() { return contractor; }
+    public String getProjectName() { return projectName; }
+    public String getStartDate() { return startDate; }
+    public String getEndDate() { return endDate; }
+    public String getLocation() { return location; }
+
+    // 🔹 GETTERS (Optional)
+    public String getStatus() { return status; }
+    public String getProjectManager() { return projectManager; }
+    public String getDotProjectNumber() { return dotProjectNumber; }
+    public String getBarrierType() { return barrierType; }
+    public int getTotalLinearFeet() { return totalLinearFeet; }
+    public String getNotes() { return notes; }
+
+    // 🔹 SETTERS (Core editable)
+    public void setContractor(String contractor) { this.contractor = contractor; }
+    public void setProjectName(String projectName) { this.projectName = projectName; }
+    public void setStartDate(String startDate) { this.startDate = startDate; }
+    public void setEndDate(String endDate) { this.endDate = endDate; }
+    public void setLocation(String location) { this.location = location; }
+
+    // 🔹 SETTERS (Optional)
+    public void setStatus(String status) { this.status = status; }
+    public void setProjectManager(String projectManager) { this.projectManager = projectManager; }
+    public void setDotProjectNumber(String dotProjectNumber) { this.dotProjectNumber = dotProjectNumber; }
+    public void setBarrierType(String barrierType) { this.barrierType = barrierType; }
+    public void setTotalLinearFeet(int totalLinearFeet) { this.totalLinearFeet = totalLinearFeet; }
+    public void setNotes(String notes) { this.notes = notes; }
+
+    // 🔥 CLEAN DISPLAY (Job Board Style)
     public void displayJob() {
-        System.out.println("Job ID: " + jobId);
-        System.out.println("Job Name: " + jobName);
-        System.out.println("Contracting Company: " + contractingCompany);
+        System.out.println("Job #: " + jobNumber);
+        System.out.println("Contractor: " + contractor);
+        System.out.println("Project: " + projectName);
+        System.out.println("Start: " + startDate + " | End: " + endDate);
         System.out.println("Location: " + location);
-        System.out.println("Start Date: " + startDate);
-        System.out.println("Estimated Completion: " + estimatedCompletionDate);
-        System.out.println("Status: " + status);
-        System.out.println("Project Manager: " + projectManager);
-        System.out.println("DOT Project Number: " + dotProjectNumber);
-        System.out.println("Barrier Type: " + barrierType);
-        System.out.println("Total Linear Feet: " + totalLinearFeet);
-        System.out.println("Notes: " + notes);
         System.out.println("---------------------------");
     }
 
-    public int getJobId() {
-        return jobId;
-    }
-
-    public String getJobName() {
-        return jobName;
-    }
-
-    public String getContractingCompany() {
-        return contractingCompany;
-    }
-
-    public String getLocation() {
-        return location;
-    }
-
-    public String getStartDate() {
-        return startDate;
-    }
-
-    public String getEstimatedCompletionDate() {
-        return estimatedCompletionDate;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public String getProjectManager() {
-        return projectManager;
-    }
-
-    public String getDotProjectNumber() {
-        return dotProjectNumber;
-    }
-
-    public String getBarrierType() {
-        return barrierType;
-    }
-
-    public int getTotalLinearFeet() {
-        return totalLinearFeet;
-    }
-
-    public String getNotes() {
-        return notes;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
+    @Override
+    public String toString() {
+        return jobNumber + " | " + projectName + " | " + contractor;
     }
 }

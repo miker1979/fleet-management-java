@@ -100,14 +100,12 @@ public class MechanicDashboardUI extends JFrame {
         JButton editNotesButton = new JButton("Edit Notes");
         JButton markInRepairButton = new JButton("Mark In Repair");
         JButton markCompletedButton = new JButton("Mark Completed");
-        JButton refreshButton = new JButton("Refresh");
         JButton closeButton = new JButton("Log Out");
 
         newWriteUpButton.addActionListener(e -> openWriteUpForm());
         editNotesButton.addActionListener(e -> editNotes());
         markInRepairButton.addActionListener(e -> updateSelectedWriteUpStatus("In Repair"));
         markCompletedButton.addActionListener(e -> updateSelectedWriteUpStatus("Completed"));
-        refreshButton.addActionListener(e -> refreshRepairList());
 
         closeButton.addActionListener(e -> {
             dispose();
@@ -118,11 +116,17 @@ public class MechanicDashboardUI extends JFrame {
         buttonPanel.add(editNotesButton);
         buttonPanel.add(markInRepairButton);
         buttonPanel.add(markCompletedButton);
-        buttonPanel.add(refreshButton);
         buttonPanel.add(closeButton);
 
         mainPanel.add(buttonPanel, BorderLayout.SOUTH);
         add(mainPanel);
+
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowActivated(java.awt.event.WindowEvent e) {
+                refreshRepairList();
+            }
+        });
 
         refreshRepairList();
     }
