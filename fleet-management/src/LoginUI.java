@@ -3,7 +3,6 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,7 +31,7 @@ public class LoginUI extends JFrame {
         topHeaderPanel.setMaximumSize(new Dimension(920, 120));
         topHeaderPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel companyLogo = createImageLabel(95, 95, "/images/company_logo.png");
+        JLabel companyLogo = createImageLabel(95, 95, "images/company_logo.png");
         companyLogo.setBorder(new EmptyBorder(0, 0, 0, 15));
 
         JLabel companyLabel = new JLabel("Ghostline Logistics Tech LLC");
@@ -51,7 +50,7 @@ public class LoginUI extends JFrame {
         separator.setMaximumSize(new Dimension(900, 1));
         separator.setForeground(new Color(210, 210, 210));
 
-        JLabel appLogo = createImageLabel(180, 180, "/images/app_logo.png");
+        JLabel appLogo = createImageLabel(180, 180, "images/app_logo.png");
         appLogo.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         JLabel titleLabel = new JLabel("FleetTrack");
@@ -70,11 +69,8 @@ public class LoginUI extends JFrame {
         cardPanel.setMaximumSize(new Dimension(920, 220));
 
         cardPanel.add(createCard("Driver Portal", this::openDriverPortal));
-
         cardPanel.add(createCard("Owner Portal", this::openOwnerPortal));
-
         cardPanel.add(createCard("Mechanic Portal", this::openMechanicPortal));
-
         cardPanel.add(createCard("Global Dashboard", this::openGlobalDashboard));
 
         JButton exitButton = new JButton("Exit Program");
@@ -258,12 +254,12 @@ public class LoginUI extends JFrame {
         return card;
     }
 
-    private JLabel createImageLabel(int width, int height, String resourcePath) {
-        URL url = getClass().getResource(resourcePath);
+    private JLabel createImageLabel(int width, int height, String imagePath) {
+        ImageIcon icon = new ImageIcon(imagePath);
 
-        if (url != null) {
-            ImageIcon icon = new ImageIcon(url);
+        if (icon.getIconWidth() > 0 && icon.getIconHeight() > 0) {
             Image scaled = icon.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
+
             JLabel label = new JLabel(new ImageIcon(scaled));
             label.setPreferredSize(new Dimension(width, height));
             label.setMaximumSize(new Dimension(width, height));
