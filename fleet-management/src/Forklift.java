@@ -1,4 +1,7 @@
-public class Forklift {
+import java.io.Serializable;
+
+public class Forklift implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     private String unitId;
 
@@ -8,6 +11,13 @@ public class Forklift {
     private String model;
     private String vin;
 
+    // Added equipment detail fields
+    private String color;
+    private String engineModel;
+    private String engineType;
+    private String tireSize;
+    private int mileage;
+
     // Status
     private String status; // Unused, In Use, Stored, Down, Out of Service
     private boolean isDown;
@@ -16,13 +26,19 @@ public class Forklift {
     private String assignedOperator;
     private String notes;
 
-    // 🔹 Constructor
-    public Forklift(String unitId, int year, String make, String model, String vin) {
+    public Forklift(String unitId, int year, String make, String model, String vin,
+                    String color, String engineModel, String engineType,
+                    String tireSize, int mileage) {
         this.unitId = unitId;
         this.year = year;
         this.make = make;
         this.model = model;
         this.vin = vin;
+        this.color = color;
+        this.engineModel = engineModel;
+        this.engineType = engineType;
+        this.tireSize = tireSize;
+        this.mileage = mileage;
 
         this.status = "Unused";
         this.isDown = false;
@@ -31,12 +47,17 @@ public class Forklift {
         this.notes = "";
     }
 
-    // 🔹 Getters
+    // Getters
     public String getUnitId() { return unitId; }
     public int getYear() { return year; }
     public String getMake() { return make; }
     public String getModel() { return model; }
     public String getVin() { return vin; }
+    public String getColor() { return color; }
+    public String getEngineModel() { return engineModel; }
+    public String getEngineType() { return engineType; }
+    public String getTireSize() { return tireSize; }
+    public int getMileage() { return mileage; }
 
     public String getStatus() { return status; }
     public boolean isDown() { return isDown; }
@@ -44,7 +65,7 @@ public class Forklift {
     public String getAssignedOperator() { return assignedOperator; }
     public String getNotes() { return notes; }
 
-    // 🔹 Setters
+    // Setters
     public void setStatus(String status) {
         this.status = status;
     }
@@ -57,7 +78,10 @@ public class Forklift {
         this.notes = notes;
     }
 
-    // 🔧 Maintenance logic (same idea as Truck)
+    public void setMileage(int mileage) {
+        this.mileage = mileage;
+    }
+
     public void setDown(boolean down, String issue) {
         this.isDown = down;
         this.currentIssue = issue;
@@ -69,7 +93,7 @@ public class Forklift {
         }
     }
 
-    // 🔹 Status helpers
+    // Status helpers
     public void markInUse(String operator) {
         this.status = "In Use";
         this.assignedOperator = operator;
@@ -89,7 +113,6 @@ public class Forklift {
         this.isDown = true;
     }
 
-    // 🔹 Display
     @Override
     public String toString() {
         return unitId + " (" + make + " " + model + ") - " + status;

@@ -25,7 +25,7 @@ public class Employee {
     private String driverLicenseNumber;
     private String licenseClass;
     private String licenseExpirationDate;
-    private String endorsements;
+    private ArrayList<String> endorsements;
     private String dotPhysicalExpirationDate;
 
     // Equipment / Certification
@@ -50,8 +50,8 @@ public class Employee {
         this.active = active;
         this.payRate = payRate;
         this.assignedTruckId = "";
-        this.assignedTrailerId = "";
 
+        this.assignedTrailerId = "";
         this.emergencyContactName = "";
         this.emergencyContactPhone = "";
         this.emergencyContactRelationship = "";
@@ -59,7 +59,7 @@ public class Employee {
         this.driverLicenseNumber = "";
         this.licenseClass = "";
         this.licenseExpirationDate = "";
-        this.endorsements = "";
+        this.endorsements = new ArrayList<>();
         this.dotPhysicalExpirationDate = "";
 
         this.forkliftCertified = false;
@@ -155,7 +155,7 @@ public class Employee {
         return licenseExpirationDate;
     }
 
-    public String getEndorsements() {
+    public ArrayList<String> getEndorsements() {
         return endorsements;
     }
 
@@ -238,7 +238,7 @@ public class Employee {
         this.licenseExpirationDate = licenseExpirationDate;
     }
 
-    public void setEndorsements(String endorsements) {
+    public void setEndorsements(ArrayList<String> endorsements) {
         this.endorsements = endorsements;
     }
 
@@ -326,7 +326,7 @@ public class Employee {
         System.out.println("License Expiration: " +
                 (licenseExpirationDate == null || licenseExpirationDate.isEmpty() ? "N/A" : licenseExpirationDate));
         System.out.println("Endorsements: " +
-                (endorsements == null || endorsements.isEmpty() ? "N/A" : endorsements));
+                (endorsements == null || endorsements.isEmpty() ? "N/A" : String.join(", ", endorsements)));
         System.out.println("DOT Physical Expiration: " +
                 (dotPhysicalExpirationDate == null || dotPhysicalExpirationDate.isEmpty() ? "N/A" : dotPhysicalExpirationDate));
 

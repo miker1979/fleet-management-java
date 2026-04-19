@@ -1,6 +1,8 @@
+import java.io.Serializable;
 import java.util.ArrayList;
 
-public class FleetManager {
+public class FleetManager implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     private ArrayList<Employee> employees;
     private ArrayList<Job> jobs;
@@ -8,6 +10,7 @@ public class FleetManager {
     private ArrayList<Truck> trucks;
     private ArrayList<Trailer> trailers;
     private ArrayList<Forklift> forklifts;
+    private ArrayList<Gradall> gradalls;
     private ArrayList<TimeOffRequest> timeOffRequests;
     private ArrayList<MechanicalWriteUp> mechanicalWriteUps;
     private ArrayList<Stockpile> stockpiles;
@@ -22,6 +25,7 @@ public class FleetManager {
         trucks = new ArrayList<>();
         trailers = new ArrayList<>();
         forklifts = new ArrayList<>();
+        gradalls = new ArrayList<>();
         timeOffRequests = new ArrayList<>();
         mechanicalWriteUps = new ArrayList<>();
         stockpiles = new ArrayList<>();
@@ -131,6 +135,24 @@ public class FleetManager {
         for (Forklift f : forklifts) {
             if (f.getUnitId().equals(id)) {
                 return f;
+            }
+        }
+        return null;
+    }
+
+    // ================= GRADALLS =================
+    public void addGradall(Gradall gradall) {
+        gradalls.add(gradall);
+    }
+
+    public ArrayList<Gradall> getGradalls() {
+        return gradalls;
+    }
+
+    public Gradall findGradallById(String id) {
+        for (Gradall g : gradalls) {
+            if (g.getUnitId().equals(id)) {
+                return g;
             }
         }
         return null;

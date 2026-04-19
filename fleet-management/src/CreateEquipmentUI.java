@@ -34,6 +34,8 @@ public class CreateEquipmentUI extends JFrame {
 
         setTitle("Create Equipment");
         setSize(700, 650);
+        setMinimumSize(new Dimension(600, 500));
+        setResizable(true);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout(10, 10));
@@ -45,14 +47,24 @@ public class CreateEquipmentUI extends JFrame {
         Font labelFont = new Font("SansSerif", Font.BOLD, 14);
         Font fieldFont = new Font("SansSerif", Font.PLAIN, 14);
 
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 100, 20));
+
         JPanel formPanel = new JPanel(new GridBagLayout());
-        formPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        formPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(8, 8, 8, 8);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
 
-        equipmentTypeCombo = new JComboBox<>(new String[]{"Truck", "Trailer"});
+        equipmentTypeCombo = new JComboBox<>(new String[]{
+                "Truck",
+                "Trailer",
+                "Forklift",
+                "Gradall"
+        });
         equipmentTypeCombo.setFont(fieldFont);
 
         unitIdField = new JTextField();
@@ -104,7 +116,7 @@ public class CreateEquipmentUI extends JFrame {
         engineModelLabel = addField(formPanel, gbc, row++, "Engine Model:", engineModelField, labelFont);
         engineTypeLabel = addField(formPanel, gbc, row++, "Engine Type:", engineTypeField, labelFont);
         addField(formPanel, gbc, row++, "Tire Size:", tireSizeField, labelFont);
-        mileageLabel = addField(formPanel, gbc, row++, "Mileage:", mileageField, labelFont);
+        mileageLabel = addField(formPanel, gbc, row++, "Hours / Mileage:", mileageField, labelFont);
 
         trailerTypeLabel = addField(formPanel, gbc, row++, "Trailer Type:", trailerTypeCombo, labelFont);
         trailerLengthLabel = addField(formPanel, gbc, row++, "Trailer Length:", trailerLengthCombo, labelFont);
@@ -119,11 +131,18 @@ public class CreateEquipmentUI extends JFrame {
         cancelButton.addActionListener(e -> dispose());
 
         JPanel buttonPanel = new JPanel();
+        buttonPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         buttonPanel.add(saveButton);
         buttonPanel.add(cancelButton);
 
-        add(new JScrollPane(formPanel), BorderLayout.CENTER);
-        add(buttonPanel, BorderLayout.SOUTH);
+        mainPanel.add(formPanel);
+        mainPanel.add(Box.createVerticalStrut(20));
+        mainPanel.add(buttonPanel);
+
+        JScrollPane scrollPane = new JScrollPane(mainPanel);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+
+        add(scrollPane, BorderLayout.CENTER);
     }
 
     private JLabel addField(JPanel panel, GridBagConstraints gbc, int row,
@@ -144,20 +163,26 @@ public class CreateEquipmentUI extends JFrame {
     }
 
     private void updateFieldVisibility() {
-        boolean isTruck = "Truck".equals(equipmentTypeCombo.getSelectedItem());
-        boolean isTrailer = "Trailer".equals(equipmentTypeCombo.getSelectedItem());
+        String type = (String) equipmentTypeCombo.getSelectedItem();
 
-        colorLabel.setVisible(isTruck);
-        colorField.setVisible(isTruck);
+        boolean isTruck = "Truck".equals(type);
+        boolean isTrailer = "Trailer".equals(type);
+        boolean isForklift = "Forklift".equals(type);
+        boolean isGradall = "Gradall".equals(type);
 
-        engineModelLabel.setVisible(isTruck);
-        engineModelField.setVisible(isTruck);
+        boolean showPowerFields = isTruck || isForklift || isGradall;
 
-        engineTypeLabel.setVisible(isTruck);
-        engineTypeField.setVisible(isTruck);
+        colorLabel.setVisible(showPowerFields);
+        colorField.setVisible(showPowerFields);
 
-        mileageLabel.setVisible(isTruck);
-        mileageField.setVisible(isTruck);
+        engineModelLabel.setVisible(showPowerFields);
+        engineModelField.setVisible(showPowerFields);
+
+        engineTypeLabel.setVisible(showPowerFields);
+        engineTypeField.setVisible(showPowerFields);
+
+        mileageLabel.setVisible(showPowerFields);
+        mileageField.setVisible(showPowerFields);
 
         trailerTypeLabel.setVisible(isTrailer);
         trailerTypeCombo.setVisible(isTrailer);
@@ -211,8 +236,64 @@ public class CreateEquipmentUI extends JFrame {
                 );
 
                 manager.addTruck(truck);
-
                 JOptionPane.showMessageDialog(this, "Truck created successfully.");
+
+            } else if ("Forklift".equals(equipmentType)) {
+                String color = colorField.getText().trim();
+                String engineModel = engineModelField.getText().trim();
+                String engineType = engineTypeField.getText().trim();
+                String mileageText = mileageField.getText().trim();
+
+                if (mileageText.isEmpty()) {
+                    mileageText = "0";
+                }
+
+                int mileage = Integer.parseInt(mileageText);
+
+                Forklift forklift = new Forklift(
+                        unitId,
+                        year,
+                        make,
+                        model,
+                        vin,
+                        color,
+                        engineModel,
+                        engineType,
+                        tireSize,
+                        mileage
+                );
+
+                manager.addForklift(forklift);
+                JOptionPane.showMessageDialog(this, "Forklift created successfully.");
+
+            } else if ("Gradall".equals(equipmentType)) {
+                String color = colorField.getText().trim();
+                String engineModel = engineModelField.getText().trim();
+                String engineType = engineTypeField.getText().trim();
+                String hoursText = mileageField.getText().trim();
+
+                if (hoursText.isEmpty()) {
+                    hoursText = "0";
+                }
+
+                int hours = Integer.parseInt(hoursText);
+
+                Gradall gradall = new Gradall(
+                        unitId,
+                        year,
+                        make,
+                        model,
+                        vin,
+                        color,
+                        engineModel,
+                        engineType,
+                        tireSize,
+                        hours
+                );
+
+                manager.addGradall(gradall);
+                JOptionPane.showMessageDialog(this, "Gradall created successfully.");
+
             } else {
                 String trailerType = (String) trailerTypeCombo.getSelectedItem();
                 String trailerLength = (String) trailerLengthCombo.getSelectedItem();
@@ -229,14 +310,13 @@ public class CreateEquipmentUI extends JFrame {
                 );
 
                 manager.addTrailer(trailer);
-
                 JOptionPane.showMessageDialog(this, "Trailer created successfully.");
             }
 
             dispose();
 
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Year and mileage must be valid numbers.");
+            JOptionPane.showMessageDialog(this, "Year and hours/mileage must be valid numbers.");
         } catch (IllegalArgumentException ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage());
         } catch (Exception ex) {
