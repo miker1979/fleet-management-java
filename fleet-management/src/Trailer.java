@@ -39,35 +39,76 @@ public class Trailer {
         this.notes = "";
     }
 
-    // 🔹 Getters
-    public String getTrailerId() { return trailerId; }
-    public int getYear() { return year; }
-    public String getMake() { return make; }
-    public String getModel() { return model; }
-    public String getTrailerType() { return trailerType; }
-    public String getTrailerLength() { return trailerLength; }
-    public String getVin() { return vin; }
-    public String getTireSize() { return tireSize; }
+    public String getTrailerId() {
+        return trailerId;
+    }
 
-    public String getStatus() { return status; }
-    public boolean isDown() { return isDown; }
-    public String getCurrentIssue() { return currentIssue; }
-    public String getAssignedEmployeeName() { return assignedEmployeeName; }
-    public String getNotes() { return notes; }
+    public int getYear() {
+        return year;
+    }
 
-    // 🔹 Setters
-    public void setStatus(String status) { this.status = status; }
-    public void setAssignedEmployeeName(String name) { this.assignedEmployeeName = name; }
-    public void setNotes(String notes) { this.notes = notes; }
+    public String getMake() {
+        return make;
+    }
 
-    // 🔹 Maintenance logic
+    public String getModel() {
+        return model;
+    }
+
+    public String getTrailerType() {
+        return trailerType;
+    }
+
+    public String getTrailerLength() {
+        return trailerLength;
+    }
+
+    public String getVin() {
+        return vin;
+    }
+
+    public String getTireSize() {
+        return tireSize;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public boolean isDown() {
+        return isDown;
+    }
+
+    public String getCurrentIssue() {
+        return currentIssue;
+    }
+
+    public String getAssignedEmployeeName() {
+        return assignedEmployeeName;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public void setAssignedEmployeeName(String name) {
+        this.assignedEmployeeName = name;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
+
     public void setDown(boolean down, String issue) {
         this.isDown = down;
         this.currentIssue = issue;
         this.status = down ? "Down" : "Unused";
     }
 
-    // 🔹 Dispatch helpers
     public void markInUse(String employeeName) {
         this.status = "In Use";
         this.assignedEmployeeName = employeeName;
@@ -91,6 +132,6 @@ public class Trailer {
 
     @Override
     public String toString() {
-        return trailerId + " | " + trailerType + " | " + trailerLength;
+        return trailerId + " | " + trailerType + " | " + trailerLength + " | " + status;
     }
 }

@@ -6,6 +6,7 @@ public class FleetManager {
     private ArrayList<Job> jobs;
     private ArrayList<Task> tasks;
     private ArrayList<Truck> trucks;
+    private ArrayList<Trailer> trailers;
     private ArrayList<Forklift> forklifts;
     private ArrayList<TimeOffRequest> timeOffRequests;
     private ArrayList<MechanicalWriteUp> mechanicalWriteUps;
@@ -19,6 +20,7 @@ public class FleetManager {
         jobs = new ArrayList<>();
         tasks = new ArrayList<>();
         trucks = new ArrayList<>();
+        trailers = new ArrayList<>();
         forklifts = new ArrayList<>();
         timeOffRequests = new ArrayList<>();
         mechanicalWriteUps = new ArrayList<>();
@@ -72,9 +74,9 @@ public class FleetManager {
     }
 
     public Task findTaskById(int taskId) {
-        for (Task task : tasks) {
-            if (task.getTaskId() == taskId) {
-                return task;
+        for (Task t : tasks) {
+            if (t.getTaskId() == taskId) {
+                return t;
             }
         }
         return null;
@@ -89,9 +91,27 @@ public class FleetManager {
         return trucks;
     }
 
-    public Truck findTruckById(String truckId) {
+    public Truck findTruckById(String id) {
         for (Truck t : trucks) {
-            if (t.getTruckID().equals(truckId)) {
+            if (t.getTruckID().equals(id)) {
+                return t;
+            }
+        }
+        return null;
+    }
+
+    // ================= TRAILERS =================
+    public void addTrailer(Trailer trailer) {
+        trailers.add(trailer);
+    }
+
+    public ArrayList<Trailer> getTrailers() {
+        return trailers;
+    }
+
+    public Trailer findTrailerById(String id) {
+        for (Trailer t : trailers) {
+            if (t.getTrailerId().equals(id)) {
                 return t;
             }
         }
@@ -107,10 +127,10 @@ public class FleetManager {
         return forklifts;
     }
 
-    public Forklift findForkliftById(String unitId) {
-        for (Forklift forklift : forklifts) {
-            if (forklift.getUnitId().equals(unitId)) {
-                return forklift;
+    public Forklift findForkliftById(String id) {
+        for (Forklift f : forklifts) {
+            if (f.getUnitId().equals(id)) {
+                return f;
             }
         }
         return null;
@@ -123,15 +143,6 @@ public class FleetManager {
 
     public ArrayList<Stockpile> getStockpiles() {
         return stockpiles;
-    }
-
-    public Stockpile findStockpileByName(String name) {
-        for (Stockpile stockpile : stockpiles) {
-            if (stockpile.getName().equalsIgnoreCase(name)) {
-                return stockpile;
-            }
-        }
-        return null;
     }
 
     // ================= TIME OFF =================
@@ -147,7 +158,7 @@ public class FleetManager {
         return timeOffRequests.size() + 1;
     }
 
-    // ================= MECHANICAL WRITE-UPS =================
+    // ================= MECHANICAL =================
     public void addMechanicalWriteUp(MechanicalWriteUp writeUp) {
         mechanicalWriteUps.add(writeUp);
     }
@@ -160,22 +171,13 @@ public class FleetManager {
         return mechanicalWriteUps.size() + 1;
     }
 
-    // ================= DVIR REPORTS =================
+    // ================= DVIR =================
     public void addDvirReport(DVIRReport report) {
         dvirReports.add(report);
     }
 
     public ArrayList<DVIRReport> getDvirReports() {
         return dvirReports;
-    }
-
-    public DVIRReport findDvirReportById(int reportId) {
-        for (DVIRReport report : dvirReports) {
-            if (report.getReportId() == reportId) {
-                return report;
-            }
-        }
-        return null;
     }
 
     public int getNextDvirReportId() {

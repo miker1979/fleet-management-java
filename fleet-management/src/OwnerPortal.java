@@ -4,8 +4,11 @@ import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 
 public class OwnerPortal extends JFrame {
@@ -235,7 +238,7 @@ public class OwnerPortal extends JFrame {
     private void setupTaskTable() {
         String[] columns = {
                 "Task #", "Job #", "Date", "Time", "Task Type",
-                "Contractor", "Location", "Foreman", "Assigned Equipment", "Status"
+                "Contractor", "Location", "Foreman", "Crew", "Status"
         };
 
         taskModel = new DefaultTableModel(columns, 0) {
@@ -324,10 +327,20 @@ public class OwnerPortal extends JFrame {
                     t.getContractor(),
                     t.getLocation(),
                     t.getForeman(),
-                    t.getAssignedTruck(),
+                    buildCrewDisplay(t),
                     t.getStatus()
             });
         }
+    }
+
+    private String buildCrewDisplay(Task task) {
+        String notes = safe(task.getNotes());
+
+        if (notes.startsWith("Crew:")) {
+            return notes.substring("Crew:".length()).trim();
+        }
+
+        return notes;
     }
 
     private void refreshJobTable() {
@@ -562,19 +575,60 @@ public class OwnerPortal extends JFrame {
     private Task showTaskDialog(Task existing) {
         JTextField taskIdField = new JTextField();
         JComboBox<String> jobIdCombo = new JComboBox<>();
+
         JTextField dateField = new JTextField(LocalDate.now().toString());
-        JTextField timeField = new JTextField("07:00");
-        JTextField taskTypeField = new JTextField();
+
+        JSpinner timeSpinner = new JSpinner(new SpinnerDateModel());
+        JSpinner.DateEditor timeEditor = new JSpinner.DateEditor(timeSpinner, "HH:mm");
+        timeSpinner.setEditor(timeEditor);
+
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 7);
+        cal.set(java.util.Calendar.MINUTE, 0);
+        cal.set(java.util.Calendar.SECOND, 0);
+        cal.set(java.util.Calendar.MILLISECOND, 0);
+        timeSpinner.setValue(cal.getTime());
+
+        JComboBox<String> taskTypeField = new JComboBox<>(new String[]{
+                "Install",
+                "Remove",
+                "Relocate"
+        });
+
         JTextField contractorField = new JTextField();
         JTextField locationField = new JTextField();
-        JTextField foremanField = new JTextField();
-        JTextField assignedTruckField = new JTextField();
+
+        JComboBox<String> foremanField = new JComboBox<>();
+        for (Employee employee : manager.getEmployees()) {
+            String position = employee.getPosition();
+            if (position != null && position.toLowerCase().contains("foreman")) {
+                foremanField.addItem(employee.getFullName());
+            }
+        }
+
+        DefaultListModel<String> driverListModel = new DefaultListModel<>();
+        for (Employee employee : manager.getEmployees()) {
+            String position = employee.getPosition();
+            if (position != null && position.toLowerCase().contains("driver")) {
+                driverListModel.addElement(employee.getFullName());
+            }
+        }
+
+        JList<String> driverList = new JList<>(driverListModel);
+        driverList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        JScrollPane driverScrollPane = new JScrollPane(driverList);
+        driverScrollPane.setPreferredSize(new Dimension(220, 120));
+
         JTextField statusField = new JTextField("Open");
         JTextField notesField = new JTextField();
 
         for (Job job : manager.getJobs()) {
             jobIdCombo.addItem(String.valueOf(job.getJobNumber()));
         }
+
+        contractorField.setEditable(false);
+
+        jobIdCombo.addActionListener(e -> updateTaskJobLinkedFields(jobIdCombo, contractorField, locationField));
 
         if (jobIdCombo.getItemCount() == 0) {
             JOptionPane.showMessageDialog(this, "Create a job before creating a task.");
@@ -586,16 +640,53 @@ public class OwnerPortal extends JFrame {
             taskIdField.setEditable(false);
             jobIdCombo.setSelectedItem(String.valueOf(existing.getJobId()));
             dateField.setText(safe(existing.getStartDate()));
-            timeField.setText(safe(existing.getStartTime()));
-            taskTypeField.setText(safe(existing.getJobType()));
+
+            try {
+                LocalTime existingTime = LocalTime.parse(safe(existing.getStartTime()));
+                java.util.Calendar editCal = java.util.Calendar.getInstance();
+                editCal.set(java.util.Calendar.HOUR_OF_DAY, existingTime.getHour());
+                editCal.set(java.util.Calendar.MINUTE, existingTime.getMinute());
+                editCal.set(java.util.Calendar.SECOND, 0);
+                editCal.set(java.util.Calendar.MILLISECOND, 0);
+                timeSpinner.setValue(editCal.getTime());
+            } catch (Exception ignored) {
+            }
+
+            taskTypeField.setSelectedItem(safe(existing.getJobType()));
             contractorField.setText(safe(existing.getContractor()));
             locationField.setText(safe(existing.getLocation()));
-            foremanField.setText(safe(existing.getForeman()));
-            assignedTruckField.setText(safe(existing.getAssignedTruck()));
+            foremanField.setSelectedItem(safe(existing.getForeman()));
             statusField.setText(safe(existing.getStatus()));
-            notesField.setText(safe(existing.getNotes()));
+
+            String notes = safe(existing.getNotes());
+            if (notes.startsWith("Crew:")) {
+                String crewText = notes.substring("Crew:".length()).trim();
+                if (!crewText.isEmpty()) {
+                    String[] selectedDrivers = crewText.split(",");
+                    List<Integer> indexes = new ArrayList<>();
+
+                    for (String driverName : selectedDrivers) {
+                        String trimmed = driverName.trim();
+                        for (int i = 0; i < driverListModel.size(); i++) {
+                            if (driverListModel.get(i).equalsIgnoreCase(trimmed)) {
+                                indexes.add(i);
+                                break;
+                            }
+                        }
+                    }
+
+                    int[] selectedIndexes = new int[indexes.size()];
+                    for (int i = 0; i < indexes.size(); i++) {
+                        selectedIndexes[i] = indexes.get(i);
+                    }
+                    driverList.setSelectedIndices(selectedIndexes);
+                }
+            } else {
+                notesField.setText(notes);
+            }
         } else {
             taskIdField.setText(String.valueOf(getNextTaskId()));
+            updateTaskJobLinkedFields(jobIdCombo, contractorField, locationField);
         }
 
         JPanel panel = new JPanel(new GridLayout(0, 2, 10, 10));
@@ -605,8 +696,8 @@ public class OwnerPortal extends JFrame {
         panel.add(jobIdCombo);
         panel.add(new JLabel("Date (yyyy-MM-dd):"));
         panel.add(dateField);
-        panel.add(new JLabel("Time (HH:mm):"));
-        panel.add(timeField);
+        panel.add(new JLabel("Time (24hr HH:mm):"));
+        panel.add(timeSpinner);
         panel.add(new JLabel("Task Type:"));
         panel.add(taskTypeField);
         panel.add(new JLabel("Contractor:"));
@@ -615,8 +706,8 @@ public class OwnerPortal extends JFrame {
         panel.add(locationField);
         panel.add(new JLabel("Foreman:"));
         panel.add(foremanField);
-        panel.add(new JLabel("Assigned Equipment:"));
-        panel.add(assignedTruckField);
+        panel.add(new JLabel("Assigned Drivers:"));
+        panel.add(driverScrollPane);
         panel.add(new JLabel("Status:"));
         panel.add(statusField);
         panel.add(new JLabel("Notes:"));
@@ -639,22 +730,40 @@ public class OwnerPortal extends JFrame {
             int jobId = Integer.parseInt(String.valueOf(jobIdCombo.getSelectedItem()));
 
             LocalDate.parse(dateField.getText().trim());
-            LocalTime.parse(timeField.getText().trim());
+
+            Date spinnerDate = (Date) timeSpinner.getValue();
+            LocalTime spinnerTime = spinnerDate.toInstant()
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalTime()
+                    .withSecond(0)
+                    .withNano(0);
+
+            String timeText = spinnerTime.format(DateTimeFormatter.ofPattern("HH:mm"));
+            String foreman = String.valueOf(foremanField.getSelectedItem()).trim();
+
+            List<String> selectedDrivers = driverList.getSelectedValuesList();
+            String crewText = String.join(", ", selectedDrivers);
+
+            String finalNotes = notesField.getText().trim();
+            if (!crewText.isEmpty()) {
+                finalNotes = "Crew: " + crewText;
+            }
 
             Task rebuiltTask = new Task(
                     taskId,
                     jobId,
                     dateField.getText().trim(),
-                    timeField.getText().trim(),
-                    taskTypeField.getText().trim(),
+                    timeText,
+                    String.valueOf(taskTypeField.getSelectedItem()).trim(),
                     contractorField.getText().trim(),
                     locationField.getText().trim(),
-                    foremanField.getText().trim(),
-                    assignedTruckField.getText().trim(),
+                    foreman,
+                    "",
+                    "",
                     statusField.getText().trim()
             );
 
-            rebuiltTask.setNotes(notesField.getText().trim());
+            rebuiltTask.setNotes(finalNotes);
 
             if (existing == null) {
                 return rebuiltTask;
@@ -670,6 +779,30 @@ public class OwnerPortal extends JFrame {
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Invalid task data: " + ex.getMessage());
             return null;
+        }
+    }
+
+    private void updateTaskJobLinkedFields(JComboBox<String> jobIdCombo, JTextField contractorField, JTextField locationField) {
+        String selectedJobText = (String) jobIdCombo.getSelectedItem();
+        if (selectedJobText == null) {
+            contractorField.setText("");
+            locationField.setText("");
+            return;
+        }
+
+        try {
+            int selectedJobNumber = Integer.parseInt(selectedJobText);
+            Job selectedJob = manager.findJobByNumber(selectedJobNumber);
+            if (selectedJob != null) {
+                contractorField.setText(safe(selectedJob.getContractor()));
+                locationField.setText(safe(selectedJob.getLocation()));
+            } else {
+                contractorField.setText("");
+                locationField.setText("");
+            }
+        } catch (NumberFormatException e) {
+            contractorField.setText("");
+            locationField.setText("");
         }
     }
 
