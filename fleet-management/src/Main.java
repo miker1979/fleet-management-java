@@ -18,7 +18,7 @@ public class Main {
     }
 
     private static void initializeData() {
-        manager = new FleetManager();
+        manager = DataStore.load();
     }
 
     public static void showLoginScreen() {

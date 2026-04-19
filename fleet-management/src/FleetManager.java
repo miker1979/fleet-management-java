@@ -86,6 +86,45 @@ public class FleetManager implements Serializable {
         return null;
     }
 
+    public ArrayList<Employee> getAvailableDriversByDate(String date) {
+        ArrayList<Employee> availableDrivers = new ArrayList<>();
+
+        for (Employee e : employees) {
+            String position = e.getPosition();
+
+            if (position != null && position.toLowerCase().contains("driver")) {
+                boolean isAssigned = false;
+
+                for (Task t : tasks) {
+                    if (date != null && date.equals(t.getStartDate())) {
+                        String notes = t.getNotes();
+                        if (notes != null && notes.toLowerCase().startsWith("crew:")) {
+                            String crewText = notes.substring("Crew:".length()).trim();
+                            String[] assignedNames = crewText.split(",");
+
+                            for (String assignedName : assignedNames) {
+                                if (assignedName.trim().equalsIgnoreCase(e.getFullName())) {
+                                    isAssigned = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if (isAssigned) {
+                        break;
+                    }
+                }
+
+                if (!isAssigned) {
+                    availableDrivers.add(e);
+                }
+            }
+        }
+
+        return availableDrivers;
+    }
+
     // ================= TRUCKS =================
     public void addTruck(Truck truck) {
         trucks.add(truck);

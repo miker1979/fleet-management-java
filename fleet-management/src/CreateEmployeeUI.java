@@ -266,6 +266,7 @@ public class CreateEmployeeUI extends JFrame {
                 employee.setEmergencyContactRelationship(emergencyRelation);
 
                 manager.addEmployee(employee);
+                DataStore.save(manager);
 
                 JOptionPane.showMessageDialog(this, "Employee created successfully.");
                 dispose();

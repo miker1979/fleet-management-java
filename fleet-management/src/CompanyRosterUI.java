@@ -1,5 +1,6 @@
 import javax.swing.*;
-import javax.swing.table.*;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 
 public class CompanyRosterUI extends JFrame {
@@ -24,13 +25,11 @@ public class CompanyRosterUI extends JFrame {
         JPanel topPanel = new JPanel(new BorderLayout());
         topPanel.add(titleLabel, BorderLayout.CENTER);
 
-        // 🔥 FILTER DROPDOWN
         filterCombo = new JComboBox<>(new String[]{
                 "Show All",
                 "Active Only",
                 "Inactive Only"
         });
-
         filterCombo.addActionListener(e -> refreshData());
 
         JPanel filterPanel = new JPanel();
@@ -38,7 +37,6 @@ public class CompanyRosterUI extends JFrame {
         filterPanel.add(filterCombo);
 
         topPanel.add(filterPanel, BorderLayout.SOUTH);
-
         add(topPanel, BorderLayout.NORTH);
 
         String[] columns = {
@@ -49,10 +47,12 @@ public class CompanyRosterUI extends JFrame {
                 "Phone",
                 "Email",
                 "Status",
-                "Assigned Truck"
+                "Assigned Truck",
+                "Assigned Trailer"
         };
 
         tableModel = new DefaultTableModel(columns, 0) {
+            @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
@@ -60,8 +60,8 @@ public class CompanyRosterUI extends JFrame {
 
         employeeTable = new JTable(tableModel);
 
-        // 🔥 COLOR INACTIVE ROWS
         employeeTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
             public Component getTableCellRendererComponent(
                     JTable table, Object value, boolean isSelected,
                     boolean hasFocus, int row, int column) {
@@ -71,10 +71,12 @@ public class CompanyRosterUI extends JFrame {
 
                 String status = table.getValueAt(row, 6).toString();
 
-                if (status.equalsIgnoreCase("Inactive")) {
-                    c.setForeground(Color.GRAY);
-                } else {
-                    c.setForeground(Color.BLACK);
+                if (!isSelected) {
+                    if (status.equalsIgnoreCase("Inactive")) {
+                        c.setForeground(Color.GRAY);
+                    } else {
+                        c.setForeground(Color.BLACK);
+                    }
                 }
 
                 return c;
@@ -90,16 +92,22 @@ public class CompanyRosterUI extends JFrame {
 
         JPanel buttonPanel = new JPanel();
 
+        JButton assignBtn = new JButton("Assign Equipment");
+        JButton clearBtn = new JButton("Clear Equipment");
         JButton editBtn = new JButton("Edit Employee");
         JButton deleteBtn = new JButton("Delete Employee");
         JButton openPortalBtn = new JButton("Open Portal");
         JButton closeBtn = new JButton("Close");
 
+        assignBtn.addActionListener(e -> assignEquipment());
+        clearBtn.addActionListener(e -> clearEquipment());
         editBtn.addActionListener(e -> editSelectedEmployee());
         deleteBtn.addActionListener(e -> deleteSelectedEmployee());
         openPortalBtn.addActionListener(e -> openSelectedEmployeePortal());
         closeBtn.addActionListener(e -> dispose());
 
+        buttonPanel.add(assignBtn);
+        buttonPanel.add(clearBtn);
         buttonPanel.add(editBtn);
         buttonPanel.add(deleteBtn);
         buttonPanel.add(openPortalBtn);
@@ -108,6 +116,7 @@ public class CompanyRosterUI extends JFrame {
         add(buttonPanel, BorderLayout.SOUTH);
 
         addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
             public void windowActivated(java.awt.event.WindowEvent e) {
                 refreshData();
             }
@@ -122,18 +131,21 @@ public class CompanyRosterUI extends JFrame {
         String filter = (String) filterCombo.getSelectedItem();
 
         for (Employee employee : manager.getEmployees()) {
-
             boolean isActive = employee.isActive();
 
-            // 🔥 FILTER LOGIC
-            if (filter.equals("Active Only") && !isActive) continue;
-            if (filter.equals("Inactive Only") && isActive) continue;
+            if ("Active Only".equals(filter) && !isActive) continue;
+            if ("Inactive Only".equals(filter) && isActive) continue;
 
             String status = isActive ? "Active" : "Inactive";
-            String assignedTruck = employee.getAssignedTruckId();
 
-            if (assignedTruck == null || assignedTruck.trim().isEmpty()) {
+            String assignedTruck = safe(employee.getAssignedTruckId());
+            if (assignedTruck.isEmpty()) {
                 assignedTruck = "None";
+            }
+
+            String assignedTrailer = safe(employee.getAssignedTrailerId());
+            if (assignedTrailer.isEmpty()) {
+                assignedTrailer = "None";
             }
 
             tableModel.addRow(new Object[]{
@@ -144,7 +156,8 @@ public class CompanyRosterUI extends JFrame {
                     employee.getPhoneNumber(),
                     employee.getEmail(),
                     status,
-                    assignedTruck
+                    assignedTruck,
+                    assignedTrailer
             });
         }
     }
@@ -161,6 +174,132 @@ public class CompanyRosterUI extends JFrame {
         return manager.findEmployeeById(id);
     }
 
+    private void assignEquipment() {
+        try {
+            Employee emp = getSelectedEmployee();
+            if (emp == null) return;
+
+            if (!emp.isActive()) {
+                JOptionPane.showMessageDialog(this, "Cannot assign equipment to an inactive employee.");
+                return;
+            }
+
+            JComboBox<String> truckBox = new JComboBox<>();
+            JComboBox<String> trailerBox = new JComboBox<>();
+
+            truckBox.addItem("None");
+            for (Truck truck : manager.getTrucks()) {
+                String truckId = safe(truck.getTruckID());
+                if (!truckId.isEmpty()) {
+                    truckBox.addItem(truckId);
+                }
+            }
+
+            trailerBox.addItem("None");
+            for (Trailer trailer : manager.getTrailers()) {
+                String trailerId = safe(trailer.getTrailerId());
+                if (!trailerId.isEmpty()) {
+                    trailerBox.addItem(trailerId);
+                }
+            }
+
+            if (!safe(emp.getAssignedTruckId()).isEmpty()) {
+                truckBox.setSelectedItem(emp.getAssignedTruckId());
+            }
+
+            if (!safe(emp.getAssignedTrailerId()).isEmpty()) {
+                trailerBox.setSelectedItem(emp.getAssignedTrailerId());
+            }
+
+            JPanel panel = new JPanel(new GridLayout(4, 1, 8, 8));
+            panel.add(new JLabel("Assign Truck:"));
+            panel.add(truckBox);
+            panel.add(new JLabel("Assign Trailer:"));
+            panel.add(trailerBox);
+
+            int result = JOptionPane.showConfirmDialog(
+                    this,
+                    panel,
+                    "Assign Equipment to " + emp.getFullName(),
+                    JOptionPane.OK_CANCEL_OPTION,
+                    JOptionPane.PLAIN_MESSAGE
+            );
+
+            if (result != JOptionPane.OK_OPTION) {
+                return;
+            }
+
+            String selectedTruck = safe((String) truckBox.getSelectedItem());
+            String selectedTrailer = safe((String) trailerBox.getSelectedItem());
+
+            if ("None".equalsIgnoreCase(selectedTruck)) {
+                selectedTruck = "";
+            }
+
+            if ("None".equalsIgnoreCase(selectedTrailer)) {
+                selectedTrailer = "";
+            }
+
+            for (Employee other : manager.getEmployees()) {
+                if (other == emp) continue;
+
+                if (!selectedTruck.isEmpty() &&
+                        selectedTruck.equalsIgnoreCase(safe(other.getAssignedTruckId()))) {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Truck " + selectedTruck + " is already assigned to " + other.getFullName() + "."
+                    );
+                    return;
+                }
+
+                if (!selectedTrailer.isEmpty() &&
+                        selectedTrailer.equalsIgnoreCase(safe(other.getAssignedTrailerId()))) {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Trailer " + selectedTrailer + " is already assigned to " + other.getFullName() + "."
+                    );
+                    return;
+                }
+            }
+
+            emp.setAssignedTruckId(selectedTruck);
+            emp.setAssignedTrailerId(selectedTrailer);
+
+            DataStore.save(manager);
+            refreshData();
+
+            JOptionPane.showMessageDialog(this, "Equipment assignment saved.");
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Assign Equipment failed: " + ex.getClass().getSimpleName() + " - " + ex.getMessage()
+            );
+        }
+    }
+
+    private void clearEquipment() {
+        Employee emp = getSelectedEmployee();
+        if (emp == null) return;
+
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "Clear truck and trailer assignment for " + emp.getFullName() + "?",
+                "Clear Equipment",
+                JOptionPane.YES_NO_OPTION
+        );
+
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        emp.setAssignedTruckId("");
+        emp.setAssignedTrailerId("");
+
+        DataStore.save(manager);
+        refreshData();
+    }
+
     private void editSelectedEmployee() {
         Employee emp = getSelectedEmployee();
         if (emp == null) return;
@@ -173,8 +312,7 @@ public class CompanyRosterUI extends JFrame {
         if (emp == null) return;
 
         if (isEmployeeAssignedToActiveTask(emp)) {
-            JOptionPane.showMessageDialog(this,
-                    "Employee is tied to an active task.");
+            JOptionPane.showMessageDialog(this, "Employee is tied to an active task.");
             return;
         }
 
@@ -188,15 +326,16 @@ public class CompanyRosterUI extends JFrame {
         if (confirm != JOptionPane.YES_OPTION) return;
 
         manager.getEmployees().remove(emp);
+        DataStore.save(manager);
         refreshData();
     }
 
     private boolean isEmployeeAssignedToActiveTask(Employee emp) {
         for (Task t : manager.getTasks()) {
-            if (t.getForeman() != null &&
-                    t.getForeman().equalsIgnoreCase(emp.getFullName()) &&
-                    !t.getStatus().equalsIgnoreCase("Completed") &&
-                    !t.getStatus().equalsIgnoreCase("Canceled")) {
+            if (t.getAssignedEmployeeIds() != null &&
+                    t.getAssignedEmployeeIds().contains(emp.getEmployeeId()) &&
+                    !safe(t.getStatus()).equalsIgnoreCase("Completed") &&
+                    !safe(t.getStatus()).equalsIgnoreCase("Canceled")) {
                 return true;
             }
         }
@@ -207,10 +346,8 @@ public class CompanyRosterUI extends JFrame {
         Employee emp = getSelectedEmployee();
         if (emp == null) return;
 
-        // 🔥 BLOCK INACTIVE EMPLOYEES
         if (!emp.isActive()) {
-            JOptionPane.showMessageDialog(this,
-                    "Inactive employees cannot access the portal.");
+            JOptionPane.showMessageDialog(this, "Inactive employees cannot access the portal.");
             return;
         }
 
@@ -219,5 +356,9 @@ public class CompanyRosterUI extends JFrame {
         } else {
             new EmployeeHomepageUI(manager, emp).setVisible(true);
         }
+    }
+
+    private String safe(String s) {
+        return s == null ? "" : s.trim();
     }
 }

@@ -1,4 +1,7 @@
-public class Trailer {
+import java.io.Serializable;
+
+public class Trailer implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     private String trailerId;
 

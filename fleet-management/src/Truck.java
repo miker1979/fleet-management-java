@@ -1,4 +1,7 @@
-public class Truck {
+import java.io.Serializable;
+
+public class Truck implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     private String truckID;
 
@@ -23,16 +26,18 @@ public class Truck {
 
     private String notes;
 
-    // 🔹 Existing constructor (kept for compatibility)
+    // Existing constructor
     public Truck(String truckID, String model) {
         this.truckID = truckID;
         this.model = model;
         this.status = "Unused";
         this.isDown = false;
         this.currentIssue = "Ready";
+        this.assignedEmployeeName = "";
+        this.notes = "";
     }
 
-    // 🔹 New full constructor (for CreateTruckUI later)
+    // Full constructor
     public Truck(String truckID, int year, String make, String model,
                  String vin, String color, String engineModel,
                  String engineType, String tireSize, int mileage) {
@@ -55,7 +60,7 @@ public class Truck {
         this.notes = "";
     }
 
-    // 🔹 Getters
+    // Getters
     public String getTruckID() { return truckID; }
     public String getModel() { return model; }
     public boolean isDown() { return isDown; }
@@ -74,11 +79,10 @@ public class Truck {
     public String getAssignedEmployeeName() { return assignedEmployeeName; }
     public String getNotes() { return notes; }
 
-    // 🔹 Compatibility helper
+    // Compatibility helper
     public String getId() { return truckID; }
 
-    // 🔹 Setters
-
+    // Setters
     public void setStatus(String status) {
         this.status = status;
     }
@@ -95,7 +99,7 @@ public class Truck {
         this.notes = notes;
     }
 
-    // 🔹 Maintenance logic (keeps your system working)
+    // Maintenance logic
     public void setDown(boolean down, String issue) {
         this.isDown = down;
         this.currentIssue = issue;
@@ -107,7 +111,7 @@ public class Truck {
         }
     }
 
-    // 🔹 Dispatch helpers (NEW)
+    // Dispatch helpers
     public void markInUse(String employeeName) {
         this.status = "In Use";
         this.assignedEmployeeName = employeeName;
@@ -127,7 +131,6 @@ public class Truck {
         this.isDown = true;
     }
 
-    // 🔹 Display
     @Override
     public String toString() {
         return truckID + " (" + model + ") - " + status;

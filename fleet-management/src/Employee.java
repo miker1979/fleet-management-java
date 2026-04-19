@@ -1,6 +1,8 @@
+import java.io.Serializable;
 import java.util.ArrayList;
 
-public class Employee {
+public class Employee implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     private int employeeId;
     private String firstName;
@@ -49,9 +51,10 @@ public class Employee {
         this.hireDate = hireDate;
         this.active = active;
         this.payRate = payRate;
-        this.assignedTruckId = "";
 
+        this.assignedTruckId = "";
         this.assignedTrailerId = "";
+
         this.emergencyContactName = "";
         this.emergencyContactPhone = "";
         this.emergencyContactRelationship = "";
@@ -71,200 +74,74 @@ public class Employee {
     // =========================
     // GETTERS
     // =========================
-    public int getEmployeeId() {
-        return employeeId;
-    }
+    public int getEmployeeId() { return employeeId; }
+    public int getId() { return employeeId; }
+    public String getFirstName() { return firstName; }
+    public String getLastName() { return lastName; }
+    public String getFullName() { return firstName + " " + lastName; }
+    public String getPosition() { return position; }
+    public String getDepartment() { return department; }
+    public String getAddress() { return address; }
+    public String getPhoneNumber() { return phoneNumber; }
+    public String getEmail() { return email; }
+    public String getHireDate() { return hireDate; }
+    public boolean isActive() { return active; }
+    public double getPayRate() { return payRate; }
+    public String getAssignedTruckId() { return assignedTruckId; }
+    public String getAssignedTrailerId() { return assignedTrailerId; }
 
-    public int getId() {
-        return employeeId;
-    }
+    public String getEmergencyContactName() { return emergencyContactName; }
+    public String getEmergencyContactPhone() { return emergencyContactPhone; }
+    public String getEmergencyContactRelationship() { return emergencyContactRelationship; }
 
-    public String getFirstName() {
-        return firstName;
-    }
+    public String getDriverLicenseNumber() { return driverLicenseNumber; }
+    public String getLicenseClass() { return licenseClass; }
+    public String getLicenseExpirationDate() { return licenseExpirationDate; }
+    public ArrayList<String> getEndorsements() { return endorsements; }
+    public String getDotPhysicalExpirationDate() { return dotPhysicalExpirationDate; }
 
-    public String getLastName() {
-        return lastName;
-    }
+    public boolean isForkliftCertified() { return forkliftCertified; }
+    public String getForkliftCertificationExpirationDate() { return forkliftCertificationExpirationDate; }
 
-    public String getFullName() {
-        return firstName + " " + lastName;
-    }
-
-    public String getPosition() {
-        return position;
-    }
-
-    public String getDepartment() {
-        return department;
-    }
-
-    public String getAddress() {
-        return address;
-    }
-
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public String getHireDate() {
-        return hireDate;
-    }
-
-    public boolean isActive() {
-        return active;
-    }
-
-    public double getPayRate() {
-        return payRate;
-    }
-
-    public String getAssignedTruckId() {
-        return assignedTruckId;
-    }
-
-    public String getAssignedTrailerId() {
-        return assignedTrailerId;
-    }
-
-    public String getEmergencyContactName() {
-        return emergencyContactName;
-    }
-
-    public String getEmergencyContactPhone() {
-        return emergencyContactPhone;
-    }
-
-    public String getEmergencyContactRelationship() {
-        return emergencyContactRelationship;
-    }
-
-    public String getDriverLicenseNumber() {
-        return driverLicenseNumber;
-    }
-
-    public String getLicenseClass() {
-        return licenseClass;
-    }
-
-    public String getLicenseExpirationDate() {
-        return licenseExpirationDate;
-    }
-
-    public ArrayList<String> getEndorsements() {
-        return endorsements;
-    }
-
-    public String getDotPhysicalExpirationDate() {
-        return dotPhysicalExpirationDate;
-    }
-
-    public boolean isForkliftCertified() {
-        return forkliftCertified;
-    }
-
-    public String getForkliftCertificationExpirationDate() {
-        return forkliftCertificationExpirationDate;
-    }
-
-    public ArrayList<Evaluation> getEvaluations() {
-        return evaluations;
-    }
+    public ArrayList<Evaluation> getEvaluations() { return evaluations; }
 
     // =========================
     // SETTERS
     // =========================
-    public void setPosition(String position) {
-        this.position = position;
-    }
+    public void setPosition(String position) { this.position = position; }
+    public void setDepartment(String department) { this.department = department; }
+    public void setAddress(String address) { this.address = address; }
+    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+    public void setEmail(String email) { this.email = email; }
+    public void setActive(boolean active) { this.active = active; }
+    public void setPayRate(double payRate) { this.payRate = payRate; }
 
-    public void setDepartment(String department) {
-        this.department = department;
-    }
+    public void setAssignedTruckId(String assignedTruckId) { this.assignedTruckId = assignedTruckId; }
+    public void setAssignedTrailerId(String assignedTrailerId) { this.assignedTrailerId = assignedTrailerId; }
 
-    public void setAddress(String address) {
-        this.address = address;
-    }
+    public void setEmergencyContactName(String name) { this.emergencyContactName = name; }
+    public void setEmergencyContactPhone(String phone) { this.emergencyContactPhone = phone; }
+    public void setEmergencyContactRelationship(String relation) { this.emergencyContactRelationship = relation; }
 
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
-    }
+    public void setDriverLicenseNumber(String driverLicenseNumber) { this.driverLicenseNumber = driverLicenseNumber; }
+    public void setLicenseClass(String licenseClass) { this.licenseClass = licenseClass; }
+    public void setLicenseExpirationDate(String licenseExpirationDate) { this.licenseExpirationDate = licenseExpirationDate; }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public void setActive(boolean active) {
-        this.active = active;
-    }
-
-    public void setPayRate(double payRate) {
-        this.payRate = payRate;
-    }
-
-    public void setAssignedTruckId(String assignedTruckId) {
-        this.assignedTruckId = assignedTruckId;
-    }
-
-    public void setAssignedTrailerId(String assignedTrailerId) {
-        this.assignedTrailerId = assignedTrailerId;
-    }
-
-    public void setEmergencyContactName(String emergencyContactName) {
-        this.emergencyContactName = emergencyContactName;
-    }
-
-    public void setEmergencyContactPhone(String emergencyContactPhone) {
-        this.emergencyContactPhone = emergencyContactPhone;
-    }
-
-    public void setEmergencyContactRelationship(String emergencyContactRelationship) {
-        this.emergencyContactRelationship = emergencyContactRelationship;
-    }
-
-    public void setDriverLicenseNumber(String driverLicenseNumber) {
-        this.driverLicenseNumber = driverLicenseNumber;
-    }
-
-    public void setLicenseClass(String licenseClass) {
-        this.licenseClass = licenseClass;
-    }
-
-    public void setLicenseExpirationDate(String licenseExpirationDate) {
-        this.licenseExpirationDate = licenseExpirationDate;
-    }
-
-    public void setEndorsements(ArrayList<String> endorsements) {
-        this.endorsements = endorsements;
-    }
+    public void setEndorsements(ArrayList<String> endorsements) { this.endorsements = endorsements; }
 
     public void setDotPhysicalExpirationDate(String dotPhysicalExpirationDate) {
         this.dotPhysicalExpirationDate = dotPhysicalExpirationDate;
     }
 
-    public void setForkliftCertified(boolean forkliftCertified) {
-        this.forkliftCertified = forkliftCertified;
+    public void setForkliftCertified(boolean forkliftCertified) { this.forkliftCertified = forkliftCertified; }
+
+    public void setForkliftCertificationExpirationDate(String date) {
+        this.forkliftCertificationExpirationDate = date;
     }
 
-    public void setForkliftCertificationExpirationDate(String forkliftCertificationExpirationDate) {
-        this.forkliftCertificationExpirationDate = forkliftCertificationExpirationDate;
-    }
-
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-
-    public void setHireDate(String hireDate) {
-        this.hireDate = hireDate;
-    }
+    public void setFirstName(String firstName) { this.firstName = firstName; }
+    public void setLastName(String lastName) { this.lastName = lastName; }
+    public void setHireDate(String hireDate) { this.hireDate = hireDate; }
 
     // =========================
     // EVALUATION METHODS
@@ -286,15 +163,12 @@ public class Employee {
     }
 
     public double getAverageEvaluationScore() {
-        if (evaluations.isEmpty()) {
-            return 0.0;
-        }
+        if (evaluations.isEmpty()) return 0.0;
 
         double total = 0.0;
         for (Evaluation evaluation : evaluations) {
             total += evaluation.getOverallScore();
         }
-
         return total / evaluations.size();
     }
 
@@ -309,30 +183,33 @@ public class Employee {
         System.out.println("Hire Date: " + hireDate);
         System.out.println("Status: " + (active ? "Active" : "Inactive"));
         System.out.println("Pay Rate: $" + payRate);
-        System.out.println("Assigned Truck: " + (assignedTruckId == null || assignedTruckId.isEmpty() ? "None" : assignedTruckId));
-        System.out.println("Assigned Trailer: " + (assignedTrailerId == null || assignedTrailerId.isEmpty() ? "None" : assignedTrailerId));
+
+        System.out.println("Assigned Truck: " +
+                (assignedTruckId.isEmpty() ? "None" : assignedTruckId));
+        System.out.println("Assigned Trailer: " +
+                (assignedTrailerId.isEmpty() ? "None" : assignedTrailerId));
 
         System.out.println("Emergency Contact: " +
-                (emergencyContactName == null || emergencyContactName.isEmpty() ? "None" : emergencyContactName));
+                (emergencyContactName.isEmpty() ? "None" : emergencyContactName));
         System.out.println("Emergency Contact Phone: " +
-                (emergencyContactPhone == null || emergencyContactPhone.isEmpty() ? "None" : emergencyContactPhone));
+                (emergencyContactPhone.isEmpty() ? "None" : emergencyContactPhone));
         System.out.println("Emergency Contact Relationship: " +
-                (emergencyContactRelationship == null || emergencyContactRelationship.isEmpty() ? "None" : emergencyContactRelationship));
+                (emergencyContactRelationship.isEmpty() ? "None" : emergencyContactRelationship));
 
         System.out.println("Driver License Number: " +
-                (driverLicenseNumber == null || driverLicenseNumber.isEmpty() ? "N/A" : driverLicenseNumber));
+                (driverLicenseNumber.isEmpty() ? "N/A" : driverLicenseNumber));
         System.out.println("License Class: " +
-                (licenseClass == null || licenseClass.isEmpty() ? "N/A" : licenseClass));
+                (licenseClass.isEmpty() ? "N/A" : licenseClass));
         System.out.println("License Expiration: " +
-                (licenseExpirationDate == null || licenseExpirationDate.isEmpty() ? "N/A" : licenseExpirationDate));
+                (licenseExpirationDate.isEmpty() ? "N/A" : licenseExpirationDate));
         System.out.println("Endorsements: " +
-                (endorsements == null || endorsements.isEmpty() ? "N/A" : String.join(", ", endorsements)));
+                (endorsements.isEmpty() ? "N/A" : String.join(", ", endorsements)));
         System.out.println("DOT Physical Expiration: " +
-                (dotPhysicalExpirationDate == null || dotPhysicalExpirationDate.isEmpty() ? "N/A" : dotPhysicalExpirationDate));
+                (dotPhysicalExpirationDate.isEmpty() ? "N/A" : dotPhysicalExpirationDate));
 
         System.out.println("Forklift Certified: " + (forkliftCertified ? "Yes" : "No"));
         System.out.println("Forklift Certification Expiration: " +
-                (forkliftCertificationExpirationDate == null || forkliftCertificationExpirationDate.isEmpty() ? "N/A" : forkliftCertificationExpirationDate));
+                (forkliftCertificationExpirationDate.isEmpty() ? "N/A" : forkliftCertificationExpirationDate));
 
         System.out.println("Average Evaluation Score: " + getAverageEvaluationScore());
         System.out.println("-----------------------------");

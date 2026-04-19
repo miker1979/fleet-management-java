@@ -1,6 +1,9 @@
-public class Job {
+import java.io.Serializable;
 
-    // 🔹 CORE JOB BOARD FIELDS (PRIMARY)
+public class Job implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    // CORE JOB BOARD FIELDS (PRIMARY)
     private int jobNumber;
     private String contractor;
     private String projectName;
@@ -8,7 +11,7 @@ public class Job {
     private String endDate;
     private String location;
 
-    // 🔹 OPTIONAL / FUTURE DETAIL FIELDS
+    // OPTIONAL / FUTURE DETAIL FIELDS
     private String status;
     private String projectManager;
     private String dotProjectNumber;
@@ -16,7 +19,7 @@ public class Job {
     private int totalLinearFeet;
     private String notes;
 
-    // 🔥 CLEAN PRIMARY CONSTRUCTOR (Job Board Focused)
+    // CLEAN PRIMARY CONSTRUCTOR (Job Board Focused)
     public Job(int jobNumber, String contractor, String projectName,
                String startDate, String endDate, String location) {
 
@@ -36,7 +39,7 @@ public class Job {
         this.notes = "";
     }
 
-    // 🔹 GETTERS (Core)
+    // GETTERS (Core)
     public int getJobNumber() { return jobNumber; }
     public String getContractor() { return contractor; }
     public String getProjectName() { return projectName; }
@@ -44,7 +47,7 @@ public class Job {
     public String getEndDate() { return endDate; }
     public String getLocation() { return location; }
 
-    // 🔹 GETTERS (Optional)
+    // GETTERS (Optional)
     public String getStatus() { return status; }
     public String getProjectManager() { return projectManager; }
     public String getDotProjectNumber() { return dotProjectNumber; }
@@ -52,14 +55,14 @@ public class Job {
     public int getTotalLinearFeet() { return totalLinearFeet; }
     public String getNotes() { return notes; }
 
-    // 🔹 SETTERS (Core editable)
+    // SETTERS (Core editable)
     public void setContractor(String contractor) { this.contractor = contractor; }
     public void setProjectName(String projectName) { this.projectName = projectName; }
     public void setStartDate(String startDate) { this.startDate = startDate; }
     public void setEndDate(String endDate) { this.endDate = endDate; }
     public void setLocation(String location) { this.location = location; }
 
-    // 🔹 SETTERS (Optional)
+    // SETTERS (Optional)
     public void setStatus(String status) { this.status = status; }
     public void setProjectManager(String projectManager) { this.projectManager = projectManager; }
     public void setDotProjectNumber(String dotProjectNumber) { this.dotProjectNumber = dotProjectNumber; }
@@ -67,7 +70,7 @@ public class Job {
     public void setTotalLinearFeet(int totalLinearFeet) { this.totalLinearFeet = totalLinearFeet; }
     public void setNotes(String notes) { this.notes = notes; }
 
-    // 🔥 CLEAN DISPLAY (Job Board Style)
+    // CLEAN DISPLAY (Job Board Style)
     public void displayJob() {
         System.out.println("Job #: " + jobNumber);
         System.out.println("Contractor: " + contractor);

@@ -236,6 +236,7 @@ public class CreateEquipmentUI extends JFrame {
                 );
 
                 manager.addTruck(truck);
+                DataStore.save(manager);
                 JOptionPane.showMessageDialog(this, "Truck created successfully.");
 
             } else if ("Forklift".equals(equipmentType)) {
@@ -264,6 +265,7 @@ public class CreateEquipmentUI extends JFrame {
                 );
 
                 manager.addForklift(forklift);
+                DataStore.save(manager);
                 JOptionPane.showMessageDialog(this, "Forklift created successfully.");
 
             } else if ("Gradall".equals(equipmentType)) {
@@ -292,6 +294,7 @@ public class CreateEquipmentUI extends JFrame {
                 );
 
                 manager.addGradall(gradall);
+                DataStore.save(manager);
                 JOptionPane.showMessageDialog(this, "Gradall created successfully.");
 
             } else {
@@ -310,6 +313,7 @@ public class CreateEquipmentUI extends JFrame {
                 );
 
                 manager.addTrailer(trailer);
+                DataStore.save(manager);
                 JOptionPane.showMessageDialog(this, "Trailer created successfully.");
             }
 

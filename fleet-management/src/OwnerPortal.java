@@ -1,4 +1,6 @@
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
@@ -126,14 +128,17 @@ public class OwnerPortal extends JFrame {
 
         JButton createTaskBtn = createStyledButton("Create Task", new Color(0, 255, 150));
         JButton editTaskBtn = createStyledButton("Edit Task", new Color(0, 200, 255));
+        JButton dispatchTaskBtn = createStyledButton("Dispatch Task", new Color(255, 215, 0));
         JButton deleteTaskBtn = createStyledButton("Delete Task", new Color(255, 100, 100));
 
         createTaskBtn.addActionListener(e -> createTask());
         editTaskBtn.addActionListener(e -> editSelectedTask());
+        dispatchTaskBtn.addActionListener(e -> dispatchSelectedTask());
         deleteTaskBtn.addActionListener(e -> deleteSelectedTask());
 
         actionPanel.add(createTaskBtn);
         actionPanel.add(editTaskBtn);
+        actionPanel.add(dispatchTaskBtn);
         actionPanel.add(deleteTaskBtn);
 
         panel.add(actionPanel, BorderLayout.SOUTH);
@@ -237,8 +242,8 @@ public class OwnerPortal extends JFrame {
 
     private void setupTaskTable() {
         String[] columns = {
-                "Task #", "Job #", "Date", "Time", "Task Type",
-                "Contractor", "Location", "Foreman", "Crew", "Status"
+                "Task #", "Job #", "Date", "Start", "End", "Task Type",
+                "Contractor", "Location", "Foreman", "Crew", "Linear Feet", "Status"
         };
 
         taskModel = new DefaultTableModel(columns, 0) {
@@ -273,6 +278,7 @@ public class OwnerPortal extends JFrame {
         table.setBackground(new Color(30, 30, 30));
         table.setForeground(Color.WHITE);
         table.setSelectionBackground(new Color(60, 60, 60));
+        table.setSelectionForeground(Color.WHITE);
         table.setRowHeight(34);
         table.setFont(new Font("SansSerif", Font.PLAIN, 14));
 
@@ -323,19 +329,35 @@ public class OwnerPortal extends JFrame {
                     t.getJobId(),
                     t.getStartDate(),
                     t.getStartTime(),
+                    t.getEndTime(),
                     t.getJobType(),
                     t.getContractor(),
                     t.getLocation(),
                     t.getForeman(),
                     buildCrewDisplay(t),
+                    t.getLinearFeet(),
                     t.getStatus()
             });
         }
     }
 
     private String buildCrewDisplay(Task task) {
-        String notes = safe(task.getNotes());
+        if (task.getAssignedEmployeeIds() != null && !task.getAssignedEmployeeIds().isEmpty()) {
+            ArrayList<String> names = new ArrayList<>();
 
+            for (Integer employeeId : task.getAssignedEmployeeIds()) {
+                Employee employee = manager.findEmployeeById(employeeId);
+                if (employee != null) {
+                    names.add(employee.getFullName());
+                }
+            }
+
+            if (!names.isEmpty()) {
+                return String.join(", ", names);
+            }
+        }
+
+        String notes = safe(task.getNotes());
         if (notes.startsWith("Crew:")) {
             return notes.substring("Crew:".length()).trim();
         }
@@ -370,6 +392,7 @@ public class OwnerPortal extends JFrame {
         Job job = showJobDialog(null);
         if (job != null) {
             manager.getJobs().add(job);
+            DataStore.save(manager);
             refreshData();
         }
     }
@@ -382,6 +405,7 @@ public class OwnerPortal extends JFrame {
         }
 
         if (showJobDialog(selected) != null) {
+            DataStore.save(manager);
             refreshData();
         }
     }
@@ -411,6 +435,7 @@ public class OwnerPortal extends JFrame {
             }
             manager.getTasks().removeAll(tasksToRemove);
 
+            DataStore.save(manager);
             refreshData();
         }
     }
@@ -447,35 +472,33 @@ public class OwnerPortal extends JFrame {
             jobNumberField.setText(String.valueOf(getNextJobNumber()));
         }
 
-        JPanel panel = new JPanel(new GridLayout(0, 2, 10, 10));
-        panel.add(new JLabel("Job #:"));
-        panel.add(jobNumberField);
-        panel.add(new JLabel("Contractor:"));
-        panel.add(contractorField);
-        panel.add(new JLabel("Project Name:"));
-        panel.add(projectField);
-        panel.add(new JLabel("Start Date (yyyy-MM-dd):"));
-        panel.add(startDateField);
-        panel.add(new JLabel("End Date (yyyy-MM-dd):"));
-        panel.add(endDateField);
-        panel.add(new JLabel("Location:"));
-        panel.add(locationField);
-        panel.add(new JLabel("Status:"));
-        panel.add(statusField);
-        panel.add(new JLabel("Project Manager:"));
-        panel.add(managerField);
-        panel.add(new JLabel("DOT Project #:"));
-        panel.add(dotField);
-        panel.add(new JLabel("Barrier Type:"));
-        panel.add(barrierField);
-        panel.add(new JLabel("Total Linear Feet:"));
-        panel.add(linearFeetField);
-        panel.add(new JLabel("Notes:"));
-        panel.add(notesField);
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(6, 6, 6, 6);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.WEST;
+
+        addFormRow(panel, gbc, 0, "Job #:", jobNumberField);
+        addFormRow(panel, gbc, 1, "Contractor:", contractorField);
+        addFormRow(panel, gbc, 2, "Project Name:", projectField);
+        addFormRow(panel, gbc, 3, "Start Date (yyyy-MM-dd):", startDateField);
+        addFormRow(panel, gbc, 4, "End Date (yyyy-MM-dd):", endDateField);
+        addFormRow(panel, gbc, 5, "Location:", locationField);
+        addFormRow(panel, gbc, 6, "Status:", statusField);
+        addFormRow(panel, gbc, 7, "Project Manager:", managerField);
+        addFormRow(panel, gbc, 8, "DOT Project #:", dotField);
+        addFormRow(panel, gbc, 9, "Barrier Type:", barrierField);
+        addFormRow(panel, gbc, 10, "Total Linear Feet:", linearFeetField);
+        addFormRow(panel, gbc, 11, "Notes:", notesField);
+
+        JScrollPane scrollPane = new JScrollPane(panel);
+        scrollPane.setPreferredSize(new Dimension(650, 450));
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
         int result = JOptionPane.showConfirmDialog(
                 this,
-                panel,
+                scrollPane,
                 existing == null ? "Create Job" : "Edit Job",
                 JOptionPane.OK_CANCEL_OPTION,
                 JOptionPane.PLAIN_MESSAGE
@@ -535,6 +558,7 @@ public class OwnerPortal extends JFrame {
         Task task = showTaskDialog(null);
         if (task != null) {
             manager.getTasks().add(task);
+            DataStore.save(manager);
             refreshData();
         }
     }
@@ -548,6 +572,20 @@ public class OwnerPortal extends JFrame {
 
         Task edited = showTaskDialog(selected);
         if (edited != null) {
+            DataStore.save(manager);
+            refreshData();
+        }
+    }
+
+    private void dispatchSelectedTask() {
+        Task selected = getSelectedTask();
+        if (selected == null) {
+            JOptionPane.showMessageDialog(this, "Select a task first.");
+            return;
+        }
+
+        if (showDispatchDialog(selected)) {
+            DataStore.save(manager);
             refreshData();
         }
     }
@@ -568,6 +606,7 @@ public class OwnerPortal extends JFrame {
 
         if (confirm == JOptionPane.YES_OPTION) {
             manager.getTasks().remove(selected);
+            DataStore.save(manager);
             refreshData();
         }
     }
@@ -578,16 +617,27 @@ public class OwnerPortal extends JFrame {
 
         JTextField dateField = new JTextField(LocalDate.now().toString());
 
-        JSpinner timeSpinner = new JSpinner(new SpinnerDateModel());
-        JSpinner.DateEditor timeEditor = new JSpinner.DateEditor(timeSpinner, "HH:mm");
-        timeSpinner.setEditor(timeEditor);
+        JSpinner startTimeSpinner = new JSpinner(new SpinnerDateModel());
+        JSpinner.DateEditor startEditor = new JSpinner.DateEditor(startTimeSpinner, "HH:mm");
+        startTimeSpinner.setEditor(startEditor);
 
-        java.util.Calendar cal = java.util.Calendar.getInstance();
-        cal.set(java.util.Calendar.HOUR_OF_DAY, 7);
-        cal.set(java.util.Calendar.MINUTE, 0);
-        cal.set(java.util.Calendar.SECOND, 0);
-        cal.set(java.util.Calendar.MILLISECOND, 0);
-        timeSpinner.setValue(cal.getTime());
+        java.util.Calendar startCal = java.util.Calendar.getInstance();
+        startCal.set(java.util.Calendar.HOUR_OF_DAY, 7);
+        startCal.set(java.util.Calendar.MINUTE, 0);
+        startCal.set(java.util.Calendar.SECOND, 0);
+        startCal.set(java.util.Calendar.MILLISECOND, 0);
+        startTimeSpinner.setValue(startCal.getTime());
+
+        JSpinner endTimeSpinner = new JSpinner(new SpinnerDateModel());
+        JSpinner.DateEditor endEditor = new JSpinner.DateEditor(endTimeSpinner, "HH:mm");
+        endTimeSpinner.setEditor(endEditor);
+
+        java.util.Calendar endCal = java.util.Calendar.getInstance();
+        endCal.set(java.util.Calendar.HOUR_OF_DAY, 15);
+        endCal.set(java.util.Calendar.MINUTE, 0);
+        endCal.set(java.util.Calendar.SECOND, 0);
+        endCal.set(java.util.Calendar.MILLISECOND, 0);
+        endTimeSpinner.setValue(endCal.getTime());
 
         JComboBox<String> taskTypeField = new JComboBox<>(new String[]{
                 "Install",
@@ -597,6 +647,20 @@ public class OwnerPortal extends JFrame {
 
         JTextField contractorField = new JTextField();
         JTextField locationField = new JTextField();
+        JTextField linearFeetField = new JTextField("0");
+
+        JComboBox<String> tcbLengthBox = new JComboBox<>(new String[]{"20", "12"});
+        JComboBox<String> tiaTypeBox = new JComboBox<>(new String[]{
+                TIA.NONE,
+                TIA.NEW_STYLE,
+                TIA.OLD_STYLE
+        });
+        JTextField tiaSetField = new JTextField("0");
+
+        JLabel straightPiecesLabel = new JLabel("0");
+        JLabel absorbPiecesLabel = new JLabel("0");
+        JLabel totalPiecesLabel = new JLabel("0");
+        JLabel plasticUnitsLabel = new JLabel("0");
 
         JComboBox<String> foremanField = new JComboBox<>();
         for (Employee employee : manager.getEmployees()) {
@@ -606,19 +670,6 @@ public class OwnerPortal extends JFrame {
             }
         }
 
-        DefaultListModel<String> driverListModel = new DefaultListModel<>();
-        for (Employee employee : manager.getEmployees()) {
-            String position = employee.getPosition();
-            if (position != null && position.toLowerCase().contains("driver")) {
-                driverListModel.addElement(employee.getFullName());
-            }
-        }
-
-        JList<String> driverList = new JList<>(driverListModel);
-        driverList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-        JScrollPane driverScrollPane = new JScrollPane(driverList);
-        driverScrollPane.setPreferredSize(new Dimension(220, 120));
-
         JTextField statusField = new JTextField("Open");
         JTextField notesField = new JTextField();
 
@@ -627,6 +678,22 @@ public class OwnerPortal extends JFrame {
         }
 
         contractorField.setEditable(false);
+
+        Runnable calc = () -> updateBarrierCalculator(
+                linearFeetField,
+                tcbLengthBox,
+                tiaSetField,
+                tiaTypeBox,
+                straightPiecesLabel,
+                absorbPiecesLabel,
+                totalPiecesLabel,
+                plasticUnitsLabel
+        );
+
+        linearFeetField.getDocument().addDocumentListener(new SimpleDocumentListener(calc));
+        tiaSetField.getDocument().addDocumentListener(new SimpleDocumentListener(calc));
+        tcbLengthBox.addActionListener(e -> calc.run());
+        tiaTypeBox.addActionListener(e -> calc.run());
 
         jobIdCombo.addActionListener(e -> updateTaskJobLinkedFields(jobIdCombo, contractorField, locationField));
 
@@ -640,15 +707,36 @@ public class OwnerPortal extends JFrame {
             taskIdField.setEditable(false);
             jobIdCombo.setSelectedItem(String.valueOf(existing.getJobId()));
             dateField.setText(safe(existing.getStartDate()));
+            linearFeetField.setText(String.valueOf(existing.getLinearFeet()));
+
+            if (existing.getTcb() != null) {
+                tcbLengthBox.setSelectedItem(String.valueOf(existing.getTcb().getLengthFeet()));
+            }
+
+            if (existing.getTia() != null) {
+                tiaTypeBox.setSelectedItem(existing.getTia().getType());
+                tiaSetField.setText(String.valueOf(existing.getTia().getSetCount()));
+            }
 
             try {
-                LocalTime existingTime = LocalTime.parse(safe(existing.getStartTime()));
-                java.util.Calendar editCal = java.util.Calendar.getInstance();
-                editCal.set(java.util.Calendar.HOUR_OF_DAY, existingTime.getHour());
-                editCal.set(java.util.Calendar.MINUTE, existingTime.getMinute());
-                editCal.set(java.util.Calendar.SECOND, 0);
-                editCal.set(java.util.Calendar.MILLISECOND, 0);
-                timeSpinner.setValue(editCal.getTime());
+                LocalTime existingStart = LocalTime.parse(safe(existing.getStartTime()));
+                java.util.Calendar editStartCal = java.util.Calendar.getInstance();
+                editStartCal.set(java.util.Calendar.HOUR_OF_DAY, existingStart.getHour());
+                editStartCal.set(java.util.Calendar.MINUTE, existingStart.getMinute());
+                editStartCal.set(java.util.Calendar.SECOND, 0);
+                editStartCal.set(java.util.Calendar.MILLISECOND, 0);
+                startTimeSpinner.setValue(editStartCal.getTime());
+            } catch (Exception ignored) {
+            }
+
+            try {
+                LocalTime existingEnd = LocalTime.parse(safe(existing.getEndTime()));
+                java.util.Calendar editEndCal = java.util.Calendar.getInstance();
+                editEndCal.set(java.util.Calendar.HOUR_OF_DAY, existingEnd.getHour());
+                editEndCal.set(java.util.Calendar.MINUTE, existingEnd.getMinute());
+                editEndCal.set(java.util.Calendar.SECOND, 0);
+                editEndCal.set(java.util.Calendar.MILLISECOND, 0);
+                endTimeSpinner.setValue(editEndCal.getTime());
             } catch (Exception ignored) {
             }
 
@@ -657,65 +745,48 @@ public class OwnerPortal extends JFrame {
             locationField.setText(safe(existing.getLocation()));
             foremanField.setSelectedItem(safe(existing.getForeman()));
             statusField.setText(safe(existing.getStatus()));
-
-            String notes = safe(existing.getNotes());
-            if (notes.startsWith("Crew:")) {
-                String crewText = notes.substring("Crew:".length()).trim();
-                if (!crewText.isEmpty()) {
-                    String[] selectedDrivers = crewText.split(",");
-                    List<Integer> indexes = new ArrayList<>();
-
-                    for (String driverName : selectedDrivers) {
-                        String trimmed = driverName.trim();
-                        for (int i = 0; i < driverListModel.size(); i++) {
-                            if (driverListModel.get(i).equalsIgnoreCase(trimmed)) {
-                                indexes.add(i);
-                                break;
-                            }
-                        }
-                    }
-
-                    int[] selectedIndexes = new int[indexes.size()];
-                    for (int i = 0; i < indexes.size(); i++) {
-                        selectedIndexes[i] = indexes.get(i);
-                    }
-                    driverList.setSelectedIndices(selectedIndexes);
-                }
-            } else {
-                notesField.setText(notes);
-            }
+            notesField.setText(safe(existing.getNotes()));
         } else {
             taskIdField.setText(String.valueOf(getNextTaskId()));
             updateTaskJobLinkedFields(jobIdCombo, contractorField, locationField);
         }
 
-        JPanel panel = new JPanel(new GridLayout(0, 2, 10, 10));
-        panel.add(new JLabel("Task #:"));
-        panel.add(taskIdField);
-        panel.add(new JLabel("Job #:"));
-        panel.add(jobIdCombo);
-        panel.add(new JLabel("Date (yyyy-MM-dd):"));
-        panel.add(dateField);
-        panel.add(new JLabel("Time (24hr HH:mm):"));
-        panel.add(timeSpinner);
-        panel.add(new JLabel("Task Type:"));
-        panel.add(taskTypeField);
-        panel.add(new JLabel("Contractor:"));
-        panel.add(contractorField);
-        panel.add(new JLabel("Location:"));
-        panel.add(locationField);
-        panel.add(new JLabel("Foreman:"));
-        panel.add(foremanField);
-        panel.add(new JLabel("Assigned Drivers:"));
-        panel.add(driverScrollPane);
-        panel.add(new JLabel("Status:"));
-        panel.add(statusField);
-        panel.add(new JLabel("Notes:"));
-        panel.add(notesField);
+        calc.run();
+
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(6, 6, 6, 6);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.WEST;
+
+        addFormRow(panel, gbc, 0, "Task #:", taskIdField);
+        addFormRow(panel, gbc, 1, "Job #:", jobIdCombo);
+        addFormRow(panel, gbc, 2, "Date (yyyy-MM-dd):", dateField);
+        addFormRow(panel, gbc, 3, "Start Time (24hr HH:mm):", startTimeSpinner);
+        addFormRow(panel, gbc, 4, "End Time (24hr HH:mm):", endTimeSpinner);
+        addFormRow(panel, gbc, 5, "Task Type:", taskTypeField);
+        addFormRow(panel, gbc, 6, "Contractor:", contractorField);
+        addFormRow(panel, gbc, 7, "Location:", locationField);
+        addFormRow(panel, gbc, 8, "Foreman:", foremanField);
+        addFormRow(panel, gbc, 9, "Linear Feet:", linearFeetField);
+        addFormRow(panel, gbc, 10, "TCB Length:", tcbLengthBox);
+        addFormRow(panel, gbc, 11, "TIA Type:", tiaTypeBox);
+        addFormRow(panel, gbc, 12, "TIA Sets:", tiaSetField);
+        addFormRow(panel, gbc, 13, "Straight Pieces:", straightPiecesLabel);
+        addFormRow(panel, gbc, 14, "Absorb Pieces:", absorbPiecesLabel);
+        addFormRow(panel, gbc, 15, "Total Pieces:", totalPiecesLabel);
+        addFormRow(panel, gbc, 16, "Plastic Units:", plasticUnitsLabel);
+        addFormRow(panel, gbc, 17, "Status:", statusField);
+        addFormRow(panel, gbc, 18, "Notes:", notesField);
+
+        JScrollPane scrollPane = new JScrollPane(panel);
+        scrollPane.setPreferredSize(new Dimension(720, 650));
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
         int result = JOptionPane.showConfirmDialog(
                 this,
-                panel,
+                scrollPane,
                 existing == null ? "Create Task" : "Edit Task",
                 JOptionPane.OK_CANCEL_OPTION,
                 JOptionPane.PLAIN_MESSAGE
@@ -728,57 +799,318 @@ public class OwnerPortal extends JFrame {
         try {
             int taskId = Integer.parseInt(taskIdField.getText().trim());
             int jobId = Integer.parseInt(String.valueOf(jobIdCombo.getSelectedItem()));
+            int linearFeet = parseIntSafe(linearFeetField.getText().trim(), 0);
+
+            int tcbLength = Integer.parseInt(String.valueOf(tcbLengthBox.getSelectedItem()));
+            int tiaSets = parseIntSafe(tiaSetField.getText().trim(), 0);
+            String tiaType = String.valueOf(tiaTypeBox.getSelectedItem());
+
+            int straightPieces = parseIntSafe(straightPiecesLabel.getText(), 0);
+            int absorbPieces = parseIntSafe(absorbPiecesLabel.getText(), 0);
+
+            TCB tcb = new TCB(tcbLength, straightPieces, absorbPieces, linearFeet);
+            TIA tia = new TIA(tiaType, tiaSets);
 
             LocalDate.parse(dateField.getText().trim());
 
-            Date spinnerDate = (Date) timeSpinner.getValue();
-            LocalTime spinnerTime = spinnerDate.toInstant()
+            Date startSpinnerDate = (Date) startTimeSpinner.getValue();
+            LocalTime startTime = startSpinnerDate.toInstant()
                     .atZone(ZoneId.systemDefault())
                     .toLocalTime()
                     .withSecond(0)
                     .withNano(0);
 
-            String timeText = spinnerTime.format(DateTimeFormatter.ofPattern("HH:mm"));
+            Date endSpinnerDate = (Date) endTimeSpinner.getValue();
+            LocalTime endTime = endSpinnerDate.toInstant()
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalTime()
+                    .withSecond(0)
+                    .withNano(0);
+
+            String startTimeText = startTime.format(DateTimeFormatter.ofPattern("HH:mm"));
+            String endTimeText = endTime.format(DateTimeFormatter.ofPattern("HH:mm"));
             String foreman = String.valueOf(foremanField.getSelectedItem()).trim();
 
-            List<String> selectedDrivers = driverList.getSelectedValuesList();
-            String crewText = String.join(", ", selectedDrivers);
-
-            String finalNotes = notesField.getText().trim();
-            if (!crewText.isEmpty()) {
-                finalNotes = "Crew: " + crewText;
-            }
-
-            Task rebuiltTask = new Task(
-                    taskId,
-                    jobId,
-                    dateField.getText().trim(),
-                    timeText,
-                    String.valueOf(taskTypeField.getSelectedItem()).trim(),
-                    contractorField.getText().trim(),
-                    locationField.getText().trim(),
-                    foreman,
-                    "",
-                    "",
-                    statusField.getText().trim()
-            );
-
-            rebuiltTask.setNotes(finalNotes);
-
             if (existing == null) {
+                Task newTask = new Task(
+                        taskId,
+                        jobId,
+                        dateField.getText().trim(),
+                        startTimeText,
+                        endTimeText,
+                        String.valueOf(taskTypeField.getSelectedItem()).trim(),
+                        contractorField.getText().trim(),
+                        locationField.getText().trim(),
+                        foreman,
+                        statusField.getText().trim(),
+                        linearFeet,
+                        tcb,
+                        tia
+                );
+
+                newTask.setNotes(notesField.getText().trim());
+                return newTask;
+            } else {
+                ArrayList<Integer> existingAssignedIds = new ArrayList<>();
+                if (existing.getAssignedEmployeeIds() != null) {
+                    existingAssignedIds.addAll(existing.getAssignedEmployeeIds());
+                }
+
+                Task rebuiltTask = new Task(
+                        taskId,
+                        jobId,
+                        dateField.getText().trim(),
+                        startTimeText,
+                        endTimeText,
+                        String.valueOf(taskTypeField.getSelectedItem()).trim(),
+                        contractorField.getText().trim(),
+                        locationField.getText().trim(),
+                        foreman,
+                        statusField.getText().trim(),
+                        linearFeet,
+                        tcb,
+                        tia
+                );
+
+                rebuiltTask.setNotes(notesField.getText().trim());
+                rebuiltTask.setAssignedEmployeeIds(existingAssignedIds);
+
+                int index = manager.getTasks().indexOf(existing);
+                if (index >= 0) {
+                    manager.getTasks().set(index, rebuiltTask);
+                }
+
                 return rebuiltTask;
             }
-
-            int index = manager.getTasks().indexOf(existing);
-            if (index >= 0) {
-                manager.getTasks().set(index, rebuiltTask);
-            }
-
-            return rebuiltTask;
 
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Invalid task data: " + ex.getMessage());
             return null;
+        }
+    }
+
+    private void updateBarrierCalculator(
+            JTextField linearFeetField,
+            JComboBox<String> tcbLengthBox,
+            JTextField tiaSetField,
+            JComboBox<String> tiaTypeBox,
+            JLabel straightPiecesLabel,
+            JLabel absorbPiecesLabel,
+            JLabel totalPiecesLabel,
+            JLabel plasticUnitsLabel
+    ) {
+        try {
+            int linearFeet = parseIntSafe(linearFeetField.getText().trim(), 0);
+            int length = Integer.parseInt((String) tcbLengthBox.getSelectedItem());
+            int sets = parseIntSafe(tiaSetField.getText().trim(), 0);
+
+            String type = (String) tiaTypeBox.getSelectedItem();
+            if (TIA.NONE.equals(type)) {
+                sets = 0;
+            }
+
+            int absorbPieces = sets;
+            int absorbFootage = absorbPieces * length;
+
+            int remainingFeet = Math.max(linearFeet - absorbFootage, 0);
+            int straightPieces = (int) Math.ceil((double) remainingFeet / length);
+            int totalPieces = straightPieces + absorbPieces;
+
+            int plasticUnits = 0;
+            if (TIA.NEW_STYLE.equals(type)) {
+                plasticUnits = sets * 3;
+            } else if (TIA.OLD_STYLE.equals(type)) {
+                plasticUnits = sets * 10;
+            }
+
+            straightPiecesLabel.setText(String.valueOf(straightPieces));
+            absorbPiecesLabel.setText(String.valueOf(absorbPieces));
+            totalPiecesLabel.setText(String.valueOf(totalPieces));
+            plasticUnitsLabel.setText(String.valueOf(plasticUnits));
+        } catch (Exception e) {
+            straightPiecesLabel.setText("0");
+            absorbPiecesLabel.setText("0");
+            totalPiecesLabel.setText("0");
+            plasticUnitsLabel.setText("0");
+        }
+    }
+
+    private boolean showDispatchDialog(Task task) {
+        ArrayList<Employee> availableDrivers = getAvailableDriversForTask(task);
+        DefaultListModel<DriverOption> driverListModel = new DefaultListModel<>();
+
+        for (Employee employee : availableDrivers) {
+            driverListModel.addElement(new DriverOption(employee));
+        }
+
+        JList<DriverOption> driverJList = new JList<>(driverListModel);
+        driverJList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        JScrollPane driverScrollPane = new JScrollPane(driverJList);
+        driverScrollPane.setPreferredSize(new Dimension(280, 220));
+
+        JTextArea assignmentPreview = new JTextArea(12, 35);
+        assignmentPreview.setEditable(false);
+        assignmentPreview.setLineWrap(true);
+        assignmentPreview.setWrapStyleWord(true);
+        JScrollPane previewScrollPane = new JScrollPane(assignmentPreview);
+
+        if (task.getAssignedEmployeeIds() != null && !task.getAssignedEmployeeIds().isEmpty()) {
+            ArrayList<Integer> indexes = new ArrayList<>();
+
+            for (int i = 0; i < driverListModel.size(); i++) {
+                DriverOption option = driverListModel.get(i);
+                if (task.getAssignedEmployeeIds().contains(option.employee.getEmployeeId())) {
+                    indexes.add(i);
+                }
+            }
+
+            int[] selectedIndexes = new int[indexes.size()];
+            for (int i = 0; i < indexes.size(); i++) {
+                selectedIndexes[i] = indexes.get(i);
+            }
+            driverJList.setSelectedIndices(selectedIndexes);
+        }
+
+        Runnable updatePreview = () -> {
+            List<DriverOption> selected = driverJList.getSelectedValuesList();
+            StringBuilder sb = new StringBuilder();
+
+            if (selected.isEmpty()) {
+                sb.append("No drivers assigned yet.");
+            } else {
+                for (DriverOption option : selected) {
+                    Employee employee = option.employee;
+                    sb.append(employee.getFullName())
+                      .append(" | Truck: ")
+                      .append(safe(employee.getAssignedTruckId()).isEmpty() ? "None" : employee.getAssignedTruckId())
+                      .append(" | Trailer: ")
+                      .append(safe(employee.getAssignedTrailerId()).isEmpty() ? "None" : employee.getAssignedTrailerId())
+                      .append("\n");
+                }
+            }
+
+            assignmentPreview.setText(sb.toString());
+        };
+
+        driverJList.addListSelectionListener(e -> updatePreview.run());
+        updatePreview.run();
+
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(6, 6, 6, 6);
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.anchor = GridBagConstraints.WEST;
+
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 0.5;
+        gbc.weighty = 0;
+        panel.add(new JLabel("Available Drivers for " + task.getStartDate() + " " + task.getStartTime() + "-" + task.getEndTime() + ":"), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.weightx = 0.5;
+        panel.add(new JLabel("Assigned Equipment Preview:"), gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.weightx = 0.5;
+        gbc.weighty = 1.0;
+        panel.add(driverScrollPane, gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 1;
+        gbc.weightx = 0.5;
+        gbc.weighty = 1.0;
+        panel.add(previewScrollPane, gbc);
+
+        int result = JOptionPane.showConfirmDialog(
+                this,
+                panel,
+                "Dispatch Task #" + task.getTaskId(),
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
+        );
+
+        if (result != JOptionPane.OK_OPTION) {
+            return false;
+        }
+
+        ArrayList<Integer> assignedIds = new ArrayList<>();
+        for (DriverOption option : driverJList.getSelectedValuesList()) {
+            assignedIds.add(option.employee.getEmployeeId());
+        }
+
+        task.setAssignedEmployeeIds(assignedIds);
+
+        if (!assignedIds.isEmpty()) {
+            ArrayList<String> names = new ArrayList<>();
+            for (Integer employeeId : assignedIds) {
+                Employee employee = manager.findEmployeeById(employeeId);
+                if (employee != null) {
+                    names.add(employee.getFullName());
+                }
+            }
+            task.setNotes("Crew: " + String.join(", ", names));
+            task.setStatus("Dispatched");
+        } else {
+            task.setNotes("");
+            task.setStatus("Open");
+        }
+
+        return true;
+    }
+
+    private ArrayList<Employee> getAvailableDriversForTask(Task currentTask) {
+        ArrayList<Employee> availableDrivers = new ArrayList<>();
+
+        for (Employee employee : manager.getEmployees()) {
+            String position = safe(employee.getPosition()).toLowerCase();
+
+            if (!employee.isActive()) continue;
+            if (!position.contains("driver")) continue;
+
+            boolean conflict = false;
+
+            for (Task task : manager.getTasks()) {
+                if (task == currentTask) continue;
+
+                if (task.getAssignedEmployeeIds() != null &&
+                        task.getAssignedEmployeeIds().contains(employee.getEmployeeId())) {
+
+                    if (isTimeConflict(currentTask, task)) {
+                        conflict = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!conflict) {
+                availableDrivers.add(employee);
+            }
+        }
+
+        availableDrivers.sort(Comparator.comparing(Employee::getFullName, String.CASE_INSENSITIVE_ORDER));
+        return availableDrivers;
+    }
+
+    private boolean isTimeConflict(Task a, Task b) {
+        try {
+            LocalDate dateA = LocalDate.parse(a.getStartDate());
+            LocalDate dateB = LocalDate.parse(b.getStartDate());
+
+            if (!dateA.equals(dateB)) return false;
+
+            LocalTime aStart = LocalTime.parse(a.getStartTime());
+            LocalTime aEnd = LocalTime.parse(a.getEndTime());
+
+            LocalTime bStart = LocalTime.parse(b.getStartTime());
+            LocalTime bEnd = LocalTime.parse(b.getEndTime());
+
+            return aStart.isBefore(bEnd) && aEnd.isAfter(bStart);
+        } catch (Exception e) {
+            return true;
         }
     }
 
@@ -881,6 +1213,63 @@ public class OwnerPortal extends JFrame {
             return LocalTime.parse(task.getStartTime());
         } catch (Exception e) {
             return LocalTime.MAX;
+        }
+    }
+
+    private void addFormRow(JPanel panel, GridBagConstraints gbc, int row, String labelText, Component field) {
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.weightx = 0;
+        gbc.fill = GridBagConstraints.NONE;
+        panel.add(new JLabel(labelText), gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        panel.add(field, gbc);
+    }
+
+    private static class DriverOption {
+        private final Employee employee;
+
+        private DriverOption(Employee employee) {
+            this.employee = employee;
+        }
+
+        @Override
+        public String toString() {
+            String truck = employee.getAssignedTruckId() == null || employee.getAssignedTruckId().isEmpty()
+                    ? "No Truck"
+                    : employee.getAssignedTruckId();
+
+            String trailer = employee.getAssignedTrailerId() == null || employee.getAssignedTrailerId().isEmpty()
+                    ? "No Trailer"
+                    : employee.getAssignedTrailerId();
+
+            return employee.getFullName() + " | Truck: " + truck + " | Trailer: " + trailer;
+        }
+    }
+
+    private static class SimpleDocumentListener implements DocumentListener {
+        private final Runnable action;
+
+        public SimpleDocumentListener(Runnable action) {
+            this.action = action;
+        }
+
+        @Override
+        public void insertUpdate(DocumentEvent e) {
+            action.run();
+        }
+
+        @Override
+        public void removeUpdate(DocumentEvent e) {
+            action.run();
+        }
+
+        @Override
+        public void changedUpdate(DocumentEvent e) {
+            action.run();
         }
     }
 }

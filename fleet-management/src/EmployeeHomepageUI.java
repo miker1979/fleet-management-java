@@ -351,7 +351,9 @@ public class EmployeeHomepageUI extends JFrame {
         List<Task> allTasks = manager.getTasks();
 
         for (Task t : allTasks) {
-            if (t.getForeman().equalsIgnoreCase(employee.getFullName())) {
+            if (t.getAssignedEmployeeIds() != null &&
+                    t.getAssignedEmployeeIds().contains(employee.getEmployeeId())) {
+
                 LocalDate taskDate = parseDateSafe(t.getStartDate());
 
                 boolean includeRow;
@@ -368,7 +370,7 @@ public class EmployeeHomepageUI extends JFrame {
                             t.getContractor(),
                             t.getLocation(),
                             t.getStatus(),
-                            t.getAssignedTruck()
+                            employee.getAssignedTruckId()
                     };
                     tableModel.addRow(row);
                 }
@@ -386,7 +388,9 @@ public class EmployeeHomepageUI extends JFrame {
 
     private boolean hasJobOnDate(LocalDate date) {
         for (Task t : manager.getTasks()) {
-            if (t.getForeman().equalsIgnoreCase(employee.getFullName())) {
+            if (t.getAssignedEmployeeIds() != null &&
+                    t.getAssignedEmployeeIds().contains(employee.getEmployeeId())) {
+
                 LocalDate taskDate = parseDateSafe(t.getStartDate());
                 if (taskDate != null && taskDate.equals(date)) {
                     return true;
@@ -609,8 +613,9 @@ public class EmployeeHomepageUI extends JFrame {
 
     private void checkForUrgentNotifications() {
         for (Task t : manager.getTasks()) {
-            if (t.getForeman().equalsIgnoreCase(employee.getFullName())
-                    && t.getStatus().equalsIgnoreCase("Canceled")) {
+            if (t.getAssignedEmployeeIds() != null &&
+                    t.getAssignedEmployeeIds().contains(employee.getEmployeeId()) &&
+                    t.getStatus().equalsIgnoreCase("Canceled")) {
 
                 JOptionPane.showMessageDialog(
                         this,

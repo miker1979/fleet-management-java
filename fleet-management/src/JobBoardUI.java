@@ -1,7 +1,10 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 public class JobBoardUI extends JFrame {
@@ -18,7 +21,7 @@ public class JobBoardUI extends JFrame {
         this.manager = manager;
 
         setTitle("Ghostline Logistics Tech - Dispatch Board");
-        setSize(1200, 720);
+        setSize(1350, 760);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
@@ -49,14 +52,14 @@ public class JobBoardUI extends JFrame {
 
         JPanel bottom = new JPanel();
 
-        JButton assignBtn = new JButton("Assign Driver + Equipment");
-        JButton clearBtn = new JButton("Clear Assignment");
+        JButton dispatchBtn = new JButton("Dispatch Driver(s)");
+        JButton clearBtn = new JButton("Clear Dispatch");
         JButton refreshBtn = new JButton("Refresh");
         JButton ownerBtn = new JButton("Owner Portal");
         JButton backBtn = new JButton("Back");
 
-        assignBtn.addActionListener(e -> assignFullDispatch());
-        clearBtn.addActionListener(e -> clearAssignment());
+        dispatchBtn.addActionListener(e -> dispatchSelectedTask());
+        clearBtn.addActionListener(e -> clearDispatch());
         refreshBtn.addActionListener(e -> loadJobs());
 
         ownerBtn.addActionListener(e -> {
@@ -69,7 +72,7 @@ public class JobBoardUI extends JFrame {
             Main.showLoginScreen();
         });
 
-        bottom.add(assignBtn);
+        bottom.add(dispatchBtn);
         bottom.add(clearBtn);
         bottom.add(refreshBtn);
         bottom.add(ownerBtn);
@@ -99,7 +102,9 @@ public class JobBoardUI extends JFrame {
     }
 
     private void setupTaskTable() {
-        String[] cols = {"Task #", "Date", "Type", "Foreman", "Truck", "Trailer", "Status"};
+        String[] cols = {
+                "Task #", "Date", "Start", "End", "Type", "Foreman", "Crew", "Truck(s)", "Trailer(s)", "Status"
+        };
 
         taskModel = new DefaultTableModel(cols, 0) {
             @Override
@@ -115,7 +120,10 @@ public class JobBoardUI extends JFrame {
     private void loadJobs() {
         jobModel.setRowCount(0);
 
-        for (Job j : manager.getJobs()) {
+        List<Job> jobs = new ArrayList<>(manager.getJobs());
+        jobs.sort(Comparator.comparingInt(Job::getJobNumber));
+
+        for (Job j : jobs) {
             jobModel.addRow(new Object[]{
                     j.getJobNumber(),
                     safe(j.getProjectName()),
@@ -138,253 +146,290 @@ public class JobBoardUI extends JFrame {
         int jobId = (int) jobModel.getValueAt(row, 0);
         taskModel.setRowCount(0);
 
-        for (Task t : manager.getTasks()) {
+        List<Task> tasks = new ArrayList<>(manager.getTasks());
+        tasks.sort(Comparator.comparingInt(Task::getTaskId));
+
+        for (Task t : tasks) {
             if (t.getJobId() == jobId) {
                 taskModel.addRow(new Object[]{
                         t.getTaskId(),
                         safe(t.getStartDate()),
+                        safe(t.getStartTime()),
+                        safe(t.getEndTime()),
                         safe(t.getJobType()),
                         safe(t.getForeman()),
-                        safe(t.getAssignedTruck()),
-                        safe(t.getAssignedTrailer()),
+                        buildCrewDisplay(t),
+                        buildTruckDisplay(t),
+                        buildTrailerDisplay(t),
                         safe(t.getStatus())
                 });
             }
         }
     }
 
-    private void assignFullDispatch() {
+    private void dispatchSelectedTask() {
         Task task = getSelectedTask();
         if (task == null) {
             JOptionPane.showMessageDialog(this, "Select a task first.");
             return;
         }
 
-        Employee driver = selectDriver();
-        if (driver == null) {
+        if (showDispatchDialog(task)) {
+            DataStore.save(manager);
+            loadTasks();
+            taskTable.clearSelection();
+        }
+    }
+
+    private void clearDispatch() {
+        Task task = getSelectedTask();
+        if (task == null) {
+            JOptionPane.showMessageDialog(this, "Select a task first.");
             return;
         }
 
-        Truck truck = selectTruck();
-        if (truck == null) {
-            return;
-        }
+        task.clearAssignedEmployees();
+        task.setNotes("");
+        task.setStatus("Open");
 
-        Trailer trailer = selectTrailer();
-        if (trailer == null) {
-            return;
-        }
-
-        clearExistingDriverAssignment(driver);
-
-        task.setForeman(driver.getFullName());
-        task.setAssignedTruck(truck.getTruckID());
-        task.setAssignedTrailer(trailer.getTrailerId());
-        task.setStatus("Assigned");
-
-        driver.setAssignedTruckId(truck.getTruckID());
-        driver.setAssignedTrailerId(trailer.getTrailerId());
-
-        truck.markInUse(driver.getFullName());
-        trailer.markInUse(driver.getFullName());
-
+        DataStore.save(manager);
         loadTasks();
         taskTable.clearSelection();
     }
 
-    private void clearAssignment() {
-        Task task = getSelectedTask();
-        if (task == null) {
-            JOptionPane.showMessageDialog(this, "Select a task first.");
-            return;
+    private boolean showDispatchDialog(Task task) {
+        ArrayList<Employee> availableDrivers = getAvailableDriversForTask(task);
+        DefaultListModel<DriverOption> driverListModel = new DefaultListModel<>();
+
+        for (Employee employee : availableDrivers) {
+            driverListModel.addElement(new DriverOption(employee));
         }
 
-        String truckId = task.getAssignedTruck();
-        String trailerId = task.getAssignedTrailer();
-        String foremanName = task.getForeman();
+        JList<DriverOption> driverJList = new JList<>(driverListModel);
+        driverJList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        JScrollPane driverScrollPane = new JScrollPane(driverJList);
+        driverScrollPane.setPreferredSize(new Dimension(320, 240));
 
-        if (truckId != null && !truckId.trim().isEmpty()) {
-            Truck truck = manager.findTruckById(truckId);
-            if (truck != null) {
-                truck.markUnused();
+        JTextArea previewArea = new JTextArea(12, 38);
+        previewArea.setEditable(false);
+        previewArea.setLineWrap(true);
+        previewArea.setWrapStyleWord(true);
+        JScrollPane previewScrollPane = new JScrollPane(previewArea);
+
+        if (task.getAssignedEmployeeIds() != null && !task.getAssignedEmployeeIds().isEmpty()) {
+            ArrayList<Integer> indexes = new ArrayList<>();
+
+            for (int i = 0; i < driverListModel.size(); i++) {
+                DriverOption option = driverListModel.get(i);
+                if (task.getAssignedEmployeeIds().contains(option.employee.getEmployeeId())) {
+                    indexes.add(i);
+                }
+            }
+
+            int[] selectedIndexes = new int[indexes.size()];
+            for (int i = 0; i < indexes.size(); i++) {
+                selectedIndexes[i] = indexes.get(i);
+            }
+            driverJList.setSelectedIndices(selectedIndexes);
+        }
+
+        Runnable updatePreview = () -> {
+            List<DriverOption> selected = driverJList.getSelectedValuesList();
+            StringBuilder sb = new StringBuilder();
+
+            if (selected.isEmpty()) {
+                sb.append("No drivers selected.");
+            } else {
+                for (DriverOption option : selected) {
+                    Employee employee = option.employee;
+                    sb.append(employee.getFullName())
+                      .append(" | Truck: ")
+                      .append(safe(employee.getAssignedTruckId()).isEmpty() ? "None" : employee.getAssignedTruckId())
+                      .append(" | Trailer: ")
+                      .append(safe(employee.getAssignedTrailerId()).isEmpty() ? "None" : employee.getAssignedTrailerId())
+                      .append("\n");
+                }
+            }
+
+            previewArea.setText(sb.toString());
+        };
+
+        driverJList.addListSelectionListener(e -> updatePreview.run());
+        updatePreview.run();
+
+        JPanel panel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        gbc.insets = new Insets(6, 6, 6, 6);
+        gbc.fill = GridBagConstraints.BOTH;
+
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 0.45;
+        gbc.weighty = 0;
+        panel.add(new JLabel("Available Drivers for " + task.getStartDate() + " " + task.getStartTime() + "-" + task.getEndTime() + ":"), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.weightx = 0.55;
+        gbc.weighty = 0;
+        panel.add(new JLabel("Equipment Preview:"), gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.weightx = 0.45;
+        gbc.weighty = 1.0;
+        panel.add(driverScrollPane, gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 1;
+        gbc.weightx = 0.55;
+        gbc.weighty = 1.0;
+        panel.add(previewScrollPane, gbc);
+
+        int result = JOptionPane.showConfirmDialog(
+                this,
+                panel,
+                "Dispatch Task #" + task.getTaskId(),
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
+        );
+
+        if (result != JOptionPane.OK_OPTION) {
+            return false;
+        }
+
+        ArrayList<Integer> assignedIds = new ArrayList<>();
+        ArrayList<String> assignedNames = new ArrayList<>();
+
+        for (DriverOption option : driverJList.getSelectedValuesList()) {
+            assignedIds.add(option.employee.getEmployeeId());
+            assignedNames.add(option.employee.getFullName());
+        }
+
+        task.setAssignedEmployeeIds(assignedIds);
+
+        if (!assignedNames.isEmpty()) {
+            task.setNotes("Crew: " + String.join(", ", assignedNames));
+            task.setStatus("Dispatched");
+        } else {
+            task.setNotes("");
+            task.setStatus("Open");
+        }
+
+        return true;
+    }
+
+    private ArrayList<Employee> getAvailableDriversForTask(Task currentTask) {
+        ArrayList<Employee> availableDrivers = new ArrayList<>();
+
+        for (Employee employee : manager.getEmployees()) {
+            String position = safe(employee.getPosition()).toLowerCase();
+
+            if (!employee.isActive()) continue;
+            if (!position.contains("driver")) continue;
+
+            boolean conflict = false;
+
+            for (Task task : manager.getTasks()) {
+                if (task == currentTask) continue;
+
+                if (task.getAssignedEmployeeIds() != null &&
+                        task.getAssignedEmployeeIds().contains(employee.getEmployeeId())) {
+
+                    if (isTimeConflict(currentTask, task)) {
+                        conflict = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!conflict) {
+                availableDrivers.add(employee);
             }
         }
 
-        if (trailerId != null && !trailerId.trim().isEmpty()) {
-            Trailer trailer = manager.findTrailerById(trailerId);
-            if (trailer != null) {
-                trailer.markUnused();
-            }
-        }
+        availableDrivers.sort(Comparator.comparing(Employee::getFullName, String.CASE_INSENSITIVE_ORDER));
+        return availableDrivers;
+    }
 
-        if (foremanName != null && !foremanName.trim().isEmpty()) {
-            for (Employee employee : manager.getEmployees()) {
-                if (employee.getFullName().equalsIgnoreCase(foremanName)) {
-                    employee.setAssignedTruckId("");
-                    employee.setAssignedTrailerId("");
-                    break;
+    private boolean isTimeConflict(Task a, Task b) {
+        try {
+            LocalDate dateA = LocalDate.parse(a.getStartDate());
+            LocalDate dateB = LocalDate.parse(b.getStartDate());
+
+            if (!dateA.equals(dateB)) return false;
+
+            LocalTime aStart = LocalTime.parse(a.getStartTime());
+            LocalTime aEnd = LocalTime.parse(a.getEndTime());
+
+            LocalTime bStart = LocalTime.parse(b.getStartTime());
+            LocalTime bEnd = LocalTime.parse(b.getEndTime());
+
+            return aStart.isBefore(bEnd) && aEnd.isAfter(bStart);
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
+    private String buildCrewDisplay(Task task) {
+        ArrayList<String> names = new ArrayList<>();
+
+        if (task.getAssignedEmployeeIds() != null) {
+            for (Integer employeeId : task.getAssignedEmployeeIds()) {
+                Employee employee = manager.findEmployeeById(employeeId);
+                if (employee != null) {
+                    names.add(employee.getFullName());
                 }
             }
         }
 
-        task.setAssignedTruck("");
-        task.setAssignedTrailer("");
-        task.setForeman("");
-        task.setStatus("Open");
+        if (!names.isEmpty()) {
+            return String.join(", ", names);
+        }
 
-        loadTasks();
-        taskTable.clearSelection();
+        String notes = safe(task.getNotes());
+        if (notes.startsWith("Crew:")) {
+            return notes.substring("Crew:".length()).trim();
+        }
+
+        return "";
     }
 
-    private void clearExistingDriverAssignment(Employee driver) {
-        String currentTruckId = driver.getAssignedTruckId();
-        String currentTrailerId = driver.getAssignedTrailerId();
+    private String buildTruckDisplay(Task task) {
+        ArrayList<String> trucks = new ArrayList<>();
 
-        if (currentTruckId != null && !currentTruckId.trim().isEmpty()) {
-            Truck truck = manager.findTruckById(currentTruckId);
-            if (truck != null) {
-                truck.markUnused();
+        if (task.getAssignedEmployeeIds() != null) {
+            for (Integer employeeId : task.getAssignedEmployeeIds()) {
+                Employee employee = manager.findEmployeeById(employeeId);
+                if (employee != null) {
+                    String truckId = safe(employee.getAssignedTruckId());
+                    if (!truckId.isEmpty() && !trucks.contains(truckId)) {
+                        trucks.add(truckId);
+                    }
+                }
             }
         }
 
-        if (currentTrailerId != null && !currentTrailerId.trim().isEmpty()) {
-            Trailer trailer = manager.findTrailerById(currentTrailerId);
-            if (trailer != null) {
-                trailer.markUnused();
-            }
-        }
-
-        for (Task task : manager.getTasks()) {
-            if (driver.getFullName().equalsIgnoreCase(safe(task.getForeman()))) {
-                task.setAssignedTruck("");
-                task.setAssignedTrailer("");
-                task.setForeman("");
-                task.setStatus("Open");
-            }
-        }
-
-        driver.setAssignedTruckId("");
-        driver.setAssignedTrailerId("");
+        return trucks.isEmpty() ? "" : String.join(", ", trucks);
     }
 
-    private Employee selectDriver() {
-        List<Employee> drivers = new ArrayList<>();
+    private String buildTrailerDisplay(Task task) {
+        ArrayList<String> trailers = new ArrayList<>();
 
-        for (Employee employee : manager.getEmployees()) {
-            String position = employee.getPosition();
-            if (position != null && position.toLowerCase().contains("driver")) {
-                drivers.add(employee);
+        if (task.getAssignedEmployeeIds() != null) {
+            for (Integer employeeId : task.getAssignedEmployeeIds()) {
+                Employee employee = manager.findEmployeeById(employeeId);
+                if (employee != null) {
+                    String trailerId = safe(employee.getAssignedTrailerId());
+                    if (!trailerId.isEmpty() && !trailers.contains(trailerId)) {
+                        trailers.add(trailerId);
+                    }
+                }
             }
         }
 
-        if (drivers.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No drivers available.");
-            return null;
-        }
-
-        String[] options = drivers.stream()
-                .map(Employee::getFullName)
-                .toArray(String[]::new);
-
-        String selected = (String) JOptionPane.showInputDialog(
-                this,
-                "Select Driver",
-                "Driver",
-                JOptionPane.PLAIN_MESSAGE,
-                null,
-                options,
-                options[0]
-        );
-
-        if (selected == null) {
-            return null;
-        }
-
-        for (Employee employee : drivers) {
-            if (employee.getFullName().equals(selected)) {
-                return employee;
-            }
-        }
-
-        return null;
-    }
-
-    private Truck selectTruck() {
-        List<Truck> available = new ArrayList<>();
-
-        for (Truck truck : manager.getTrucks()) {
-            String status = safe(truck.getStatus());
-            if (!truck.isDown()
-                    && !status.equalsIgnoreCase("In Use")
-                    && !status.equalsIgnoreCase("Out of Service")) {
-                available.add(truck);
-            }
-        }
-
-        if (available.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No trucks available.");
-            return null;
-        }
-
-        String[] options = available.stream()
-                .map(t -> t.getTruckID() + " | " + safe(t.getStatus()))
-                .toArray(String[]::new);
-
-        String selected = (String) JOptionPane.showInputDialog(
-                this,
-                "Select Truck",
-                "Truck",
-                JOptionPane.PLAIN_MESSAGE,
-                null,
-                options,
-                options[0]
-        );
-
-        if (selected == null) {
-            return null;
-        }
-
-        String truckId = selected.split("\\|")[0].trim();
-        return manager.findTruckById(truckId);
-    }
-
-    private Trailer selectTrailer() {
-        List<Trailer> available = new ArrayList<>();
-
-        for (Trailer trailer : manager.getTrailers()) {
-            String status = safe(trailer.getStatus());
-            if (!trailer.isDown()
-                    && !status.equalsIgnoreCase("In Use")
-                    && !status.equalsIgnoreCase("Out of Service")) {
-                available.add(trailer);
-            }
-        }
-
-        if (available.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No trailers available.");
-            return null;
-        }
-
-        String[] options = available.stream()
-                .map(t -> t.getTrailerId() + " | " + safe(t.getTrailerType()) + " | " + safe(t.getTrailerLength()))
-                .toArray(String[]::new);
-
-        String selected = (String) JOptionPane.showInputDialog(
-                this,
-                "Select Trailer",
-                "Trailer",
-                JOptionPane.PLAIN_MESSAGE,
-                null,
-                options,
-                options[0]
-        );
-
-        if (selected == null) {
-            return null;
-        }
-
-        String trailerId = selected.split("\\|")[0].trim();
-        return manager.findTrailerById(trailerId);
+        return trailers.isEmpty() ? "" : String.join(", ", trailers);
     }
 
     private Task getSelectedTask() {
@@ -406,5 +451,26 @@ public class JobBoardUI extends JFrame {
 
     private String safe(String value) {
         return value == null || value.trim().isEmpty() ? "" : value;
+    }
+
+    private static class DriverOption {
+        private final Employee employee;
+
+        private DriverOption(Employee employee) {
+            this.employee = employee;
+        }
+
+        @Override
+        public String toString() {
+            String truck = employee.getAssignedTruckId() == null || employee.getAssignedTruckId().isEmpty()
+                    ? "No Truck"
+                    : employee.getAssignedTruckId();
+
+            String trailer = employee.getAssignedTrailerId() == null || employee.getAssignedTrailerId().isEmpty()
+                    ? "No Trailer"
+                    : employee.getAssignedTrailerId();
+
+            return employee.getFullName() + " | Truck: " + truck + " | Trailer: " + trailer;
+        }
     }
 }

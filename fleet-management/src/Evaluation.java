@@ -1,4 +1,7 @@
-public class Evaluation {
+import java.io.Serializable;
+
+public class Evaluation implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     private int evaluationId;
     private int employeeId;
@@ -33,7 +36,6 @@ public class Evaluation {
         this.evaluationDate = evaluationDate;
         this.evaluatorName = evaluatorName;
 
-        // Validate ratings (1–5)
         this.jobKnowledge = validateRating(jobKnowledge);
         this.workQuality = validateRating(workQuality);
         this.attendance = validateRating(attendance);
@@ -42,14 +44,12 @@ public class Evaluation {
         this.dependability = validateRating(dependability);
     }
 
-    // 🔒 Rating validation
     private int validateRating(int rating) {
         if (rating < 1) return 1;
         if (rating > 5) return 5;
         return rating;
     }
 
-    // SET COMMENTS
     public void setComments(String job, String work, String attend,
                             String prod, String comm, String depend) {
 
@@ -61,7 +61,6 @@ public class Evaluation {
         this.dependabilityComments = depend;
     }
 
-    // GETTERS (important for UI later)
     public int getEvaluationId() { return evaluationId; }
     public int getEmployeeId() { return employeeId; }
     public String getEvaluationType() { return evaluationType; }
@@ -82,7 +81,6 @@ public class Evaluation {
     public String getCommunicationComments() { return communicationComments; }
     public String getDependabilityComments() { return dependabilityComments; }
 
-    // CALCULATE OVERALL SCORE
     public double getOverallScore() {
         int total = jobKnowledge + workQuality + attendance +
                     productivity + communication + dependability;
@@ -90,7 +88,6 @@ public class Evaluation {
         return total / 6.0;
     }
 
-    // DISPLAY
     public void displayEvaluation() {
         System.out.println("Evaluation ID: " + evaluationId);
         System.out.println("Employee ID: " + employeeId);
