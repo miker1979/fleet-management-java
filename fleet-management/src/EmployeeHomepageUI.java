@@ -6,13 +6,16 @@ import java.lang.reflect.Method;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.TextStyle;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
 public class EmployeeHomepageUI extends JFrame {
 
-    private FleetManager manager;
-    private Employee employee;
+    private final FleetManager manager;
+    private final Employee employee;
+
     private JTable scheduleTable;
     private DefaultTableModel tableModel;
     private Timer autoRefreshTimer;
@@ -30,7 +33,7 @@ public class EmployeeHomepageUI extends JFrame {
         this.employee = employee;
 
         setTitle("Employee Portal - " + employee.getFullName());
-        setSize(1125, 760);
+        setSize(1300, 780);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout(5, 5));
@@ -45,9 +48,10 @@ public class EmployeeHomepageUI extends JFrame {
         nameLabel.setForeground(Color.WHITE);
 
         JLabel infoLabel = new JLabel(
-                "Role: " + employee.getPosition() +
+                "Role: " + safeString(employee.getPosition()) +
                 " | Truck: " + getAssignedTruckDisplay() +
-                " | Phone: " + employee.getPhoneNumber()
+                " | Trailer: " + getAssignedTrailerDisplay() +
+                " | Phone: " + safeString(employee.getPhoneNumber())
         );
         infoLabel.setForeground(new Color(200, 210, 230));
         infoLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
@@ -107,7 +111,7 @@ public class EmployeeHomepageUI extends JFrame {
         JPanel gridTopBar = new JPanel(new BorderLayout());
         gridTopBar.setBackground(new Color(240, 242, 245));
 
-        JLabel gridTitle = new JLabel("Upcoming Jobs");
+        JLabel gridTitle = new JLabel("My Dispatches");
         gridTitle.setFont(new Font("SansSerif", Font.BOLD, 16));
 
         selectedDayOnlyToggle = new JToggleButton("Show Selected Day Only");
@@ -117,7 +121,18 @@ public class EmployeeHomepageUI extends JFrame {
         gridTopBar.add(gridTitle, BorderLayout.WEST);
         gridTopBar.add(selectedDayOnlyToggle, BorderLayout.EAST);
 
-        String[] columns = {"Date", "Job Type", "Contractor", "Location", "Status", "Truck"};
+        String[] columns = {
+                "Date",
+                "Time",
+                "Job Type",
+                "Contractor",
+                "Location",
+                "Foreman",
+                "Forklift(s)",
+                "Instructions",
+                "Status"
+        };
+
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -143,7 +158,7 @@ public class EmployeeHomepageUI extends JFrame {
 
         JScrollPane repairScroll = new JScrollPane(repairStatusArea);
         repairScroll.setBorder(BorderFactory.createTitledBorder("Truck Status"));
-        repairScroll.setPreferredSize(new Dimension(0, 130));
+        repairScroll.setPreferredSize(new Dimension(0, 150));
 
         JPanel bottomPanel = new JPanel(new BorderLayout(8, 8));
         bottomPanel.setBackground(new Color(240, 242, 245));
@@ -151,7 +166,6 @@ public class EmployeeHomepageUI extends JFrame {
         bottomPanel.add(repairScroll, BorderLayout.SOUTH);
 
         mainPanel.add(bottomPanel, BorderLayout.CENTER);
-
         add(mainPanel, BorderLayout.CENTER);
 
         JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
@@ -194,7 +208,6 @@ public class EmployeeHomepageUI extends JFrame {
             refreshTableData();
             refreshRepairStatus();
         });
-
         autoRefreshTimer.start();
     }
 
@@ -297,27 +310,21 @@ public class EmployeeHomepageUI extends JFrame {
     private String buildIndicatorHtml(boolean hasJob, boolean hasMaintenance, boolean hasTimeOff) {
         StringBuilder sb = new StringBuilder();
 
-        if (hasJob) {
-            sb.append("<span style='color:#2a9d8f;'>J</span>");
-        } else {
-            sb.append("<span style='color:#d0d7de;'>J</span>");
-        }
+        sb.append(hasJob
+                ? "<span style='color:#2a9d8f;'>J</span>"
+                : "<span style='color:#d0d7de;'>J</span>");
 
         sb.append("&nbsp;");
 
-        if (hasMaintenance) {
-            sb.append("<span style='color:#e76f51;'>M</span>");
-        } else {
-            sb.append("<span style='color:#d0d7de;'>M</span>");
-        }
+        sb.append(hasMaintenance
+                ? "<span style='color:#e76f51;'>M</span>"
+                : "<span style='color:#d0d7de;'>M</span>");
 
         sb.append("&nbsp;");
 
-        if (hasTimeOff) {
-            sb.append("<span style='color:#457b9d;'>T</span>");
-        } else {
-            sb.append("<span style='color:#d0d7de;'>T</span>");
-        }
+        sb.append(hasTimeOff
+                ? "<span style='color:#457b9d;'>T</span>"
+                : "<span style='color:#d0d7de;'>T</span>");
 
         return sb.toString();
     }
@@ -336,46 +343,104 @@ public class EmployeeHomepageUI extends JFrame {
         return employee.getAssignedTruckId();
     }
 
+    private String getAssignedTrailerDisplay() {
+        if (employee.getAssignedTrailerId() == null || employee.getAssignedTrailerId().isEmpty()) {
+            return "None";
+        }
+        return employee.getAssignedTrailerId();
+    }
+
     private void setupTableAesthetics() {
         scheduleTable.setRowHeight(42);
-        scheduleTable.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        scheduleTable.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 14));
+        scheduleTable.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        scheduleTable.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
         scheduleTable.getTableHeader().setBackground(new Color(230, 230, 230));
         scheduleTable.setSelectionBackground(new Color(173, 216, 230));
         scheduleTable.setGridColor(new Color(220, 220, 220));
+        scheduleTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+
+        scheduleTable.getColumnModel().getColumn(0).setPreferredWidth(95);
+        scheduleTable.getColumnModel().getColumn(1).setPreferredWidth(120);
+        scheduleTable.getColumnModel().getColumn(2).setPreferredWidth(140);
+        scheduleTable.getColumnModel().getColumn(3).setPreferredWidth(120);
+        scheduleTable.getColumnModel().getColumn(4).setPreferredWidth(220);
+        scheduleTable.getColumnModel().getColumn(5).setPreferredWidth(120);
+        scheduleTable.getColumnModel().getColumn(6).setPreferredWidth(120);
+        scheduleTable.getColumnModel().getColumn(7).setPreferredWidth(320);
+        scheduleTable.getColumnModel().getColumn(8).setPreferredWidth(120);
     }
 
     private void refreshTableData() {
         tableModel.setRowCount(0);
 
-        List<Task> allTasks = manager.getTasks();
+        List<Task> tasks = getEmployeeTasksSorted();
 
-        for (Task t : allTasks) {
-            if (t.getAssignedEmployeeIds() != null &&
-                    t.getAssignedEmployeeIds().contains(employee.getEmployeeId())) {
+        for (Task task : tasks) {
+            LocalDate taskDate = parseDateSafe(task.getStartDate());
 
-                LocalDate taskDate = parseDateSafe(t.getStartDate());
+            boolean includeRow;
+            if (selectedDayOnlyToggle.isSelected()) {
+                includeRow = taskDate != null && taskDate.equals(selectedDate);
+            } else {
+                includeRow = taskDate == null || !taskDate.isBefore(LocalDate.now());
+            }
 
-                boolean includeRow;
-                if (selectedDayOnlyToggle.isSelected()) {
-                    includeRow = taskDate != null && taskDate.equals(selectedDate);
-                } else {
-                    includeRow = taskDate == null || !taskDate.isBefore(LocalDate.now());
-                }
+            if (!includeRow) {
+                continue;
+            }
 
-                if (includeRow) {
-                    Object[] row = {
-                            t.getStartDate(),
-                            t.getJobType(),
-                            t.getContractor(),
-                            t.getLocation(),
-                            t.getStatus(),
-                            employee.getAssignedTruckId()
-                    };
-                    tableModel.addRow(row);
-                }
+            String forkliftText = buildForkliftText(task);
+            String instructions = safeString(task.getDispatchInstructions()).trim();
+            if (instructions.isEmpty()) {
+                instructions = "-";
+            }
+
+            String timeText = safeString(task.getStartTime()) + " - " + safeString(task.getEndTime());
+
+            tableModel.addRow(new Object[]{
+                    safeString(task.getStartDate()),
+                    timeText.trim().equals("-") ? "" : timeText,
+                    safeString(task.getJobType()),
+                    safeString(task.getContractor()),
+                    safeString(task.getLocation()),
+                    safeString(task.getForeman()),
+                    forkliftText,
+                    instructions,
+                    safeString(task.getStatus())
+            });
+        }
+    }
+
+    private List<Task> getEmployeeTasksSorted() {
+        ArrayList<Task> employeeTasks = new ArrayList<>();
+
+        for (Task task : manager.getTasks()) {
+            if (task.getAssignedEmployeeIds() != null &&
+                    task.getAssignedEmployeeIds().contains(employee.getEmployeeId())) {
+                employeeTasks.add(task);
             }
         }
+
+        employeeTasks.sort(
+                Comparator.comparing(
+                                Task::getStartDate,
+                                Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)
+                        )
+                        .thenComparing(
+                                Task::getStartTime,
+                                Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)
+                        )
+                        .thenComparingInt(Task::getTaskId)
+        );
+
+        return employeeTasks;
+    }
+
+    private String buildForkliftText(Task task) {
+        if (task.getAssignedForklifts() == null || task.getAssignedForklifts().isEmpty()) {
+            return "None";
+        }
+        return String.join(", ", task.getAssignedForklifts());
     }
 
     private LocalDate parseDateSafe(String dateText) {
@@ -387,11 +452,11 @@ public class EmployeeHomepageUI extends JFrame {
     }
 
     private boolean hasJobOnDate(LocalDate date) {
-        for (Task t : manager.getTasks()) {
-            if (t.getAssignedEmployeeIds() != null &&
-                    t.getAssignedEmployeeIds().contains(employee.getEmployeeId())) {
+        for (Task task : manager.getTasks()) {
+            if (task.getAssignedEmployeeIds() != null &&
+                    task.getAssignedEmployeeIds().contains(employee.getEmployeeId())) {
 
-                LocalDate taskDate = parseDateSafe(t.getStartDate());
+                LocalDate taskDate = parseDateSafe(task.getStartDate());
                 if (taskDate != null && taskDate.equals(date)) {
                     return true;
                 }
@@ -521,20 +586,19 @@ public class EmployeeHomepageUI extends JFrame {
 
         repairStatusArea.setText(
                 "Truck: " + latest.getTruckId() + "\n" +
-                        "Status: " + latest.getRepairStatus() + "\n" +
-                        "Assigned Mechanic: " + latest.getAssignedMechanic() + "\n" +
-                        "Priority: " + latest.getPriority() + "\n" +
+                        "Status: " + safeString(latest.getRepairStatus()) + "\n" +
+                        "Assigned Mechanic: " + safeString(latest.getAssignedMechanic()) + "\n" +
+                        "Priority: " + safeString(latest.getPriority()) + "\n" +
                         "Safe To Drive: " + (latest.isSafeToDrive() ? "Yes" : "No") + "\n" +
                         "Out Of Service: " + (latest.isOutOfService() ? "Yes" : "No") + "\n\n" +
-                        "Problem:\n" + latest.getProblemDescription() + "\n\n" +
-                        "Repair Notes:\n" + latest.getRepairNotes()
+                        "Problem:\n" + safeString(latest.getProblemDescription()) + "\n\n" +
+                        "Repair Notes:\n" + safeString(latest.getRepairNotes())
         );
     }
 
     private void openTimeOffRequestForm() {
         try {
             Class<?> uiClass = Class.forName("TimeOffRequestFormUI");
-
             Constructor<?>[] constructors = uiClass.getConstructors();
 
             for (Constructor<?> constructor : constructors) {
@@ -612,19 +676,19 @@ public class EmployeeHomepageUI extends JFrame {
     }
 
     private void checkForUrgentNotifications() {
-        for (Task t : manager.getTasks()) {
-            if (t.getAssignedEmployeeIds() != null &&
-                    t.getAssignedEmployeeIds().contains(employee.getEmployeeId()) &&
-                    t.getStatus().equalsIgnoreCase("Canceled")) {
+        for (Task task : manager.getTasks()) {
+            if (task.getAssignedEmployeeIds() != null &&
+                    task.getAssignedEmployeeIds().contains(employee.getEmployeeId()) &&
+                    safeString(task.getStatus()).equalsIgnoreCase("Canceled")) {
 
                 JOptionPane.showMessageDialog(
                         this,
-                        "Job at " + t.getLocation() + " has been CANCELED.",
+                        "Job at " + safeString(task.getLocation()) + " has been CANCELED.",
                         "Dispatch Update",
                         JOptionPane.WARNING_MESSAGE
                 );
 
-                t.setStatus("Canceled (Acknowledged)");
+                task.setStatus("Canceled (Acknowledged)");
             }
         }
     }

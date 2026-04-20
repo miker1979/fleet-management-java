@@ -1,6 +1,5 @@
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.time.LocalDate;
@@ -25,14 +24,21 @@ public class JobBoardUI extends JFrame {
     private DefaultListModel<DriverOption> assignedDriverListModel;
     private JList<DriverOption> assignedDriverList;
 
+    private DefaultListModel<String> availableForkliftListModel;
+    private JList<String> availableForkliftList;
+
+    private DefaultListModel<String> assignedForkliftListModel;
+    private JList<String> assignedForkliftList;
+
     private JLabel selectedTaskLabel;
     private JTextArea previewArea;
+    private JTextArea instructionsArea;
 
     public JobBoardUI(FleetManager manager) {
         this.manager = manager;
 
         setTitle("Ghostline Logistics Tech - Dispatch Board");
-        setSize(1500, 820);
+        setSize(1600, 900);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
@@ -59,18 +65,18 @@ public class JobBoardUI extends JFrame {
                 new JScrollPane(jobTable),
                 new JScrollPane(taskTable)
         );
-        leftSplit.setResizeWeight(0.35);
+        leftSplit.setResizeWeight(0.32);
 
         JSplitPane mainSplit = new JSplitPane(
                 JSplitPane.HORIZONTAL_SPLIT,
                 leftSplit,
                 createDispatchPanel()
         );
-        mainSplit.setResizeWeight(0.68);
+        mainSplit.setResizeWeight(0.64);
 
         main.add(mainSplit, BorderLayout.CENTER);
 
-        JPanel bottom = new JPanel();
+        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 10));
 
         JButton refreshBtn = new JButton("Refresh");
         JButton ownerBtn = new JButton("Owner Portal");
@@ -95,7 +101,7 @@ public class JobBoardUI extends JFrame {
 
     private JPanel createDispatchPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setPreferredSize(new Dimension(470, 0));
+        panel.setPreferredSize(new Dimension(560, 0));
         panel.setBorder(BorderFactory.createTitledBorder("Dispatch Panel"));
 
         selectedTaskLabel = new JLabel("Select a task");
@@ -110,10 +116,22 @@ public class JobBoardUI extends JFrame {
         assignedDriverList = new JList<>(assignedDriverListModel);
         assignedDriverList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 
-        previewArea = new JTextArea(8, 20);
+        availableForkliftListModel = new DefaultListModel<>();
+        availableForkliftList = new JList<>(availableForkliftListModel);
+        availableForkliftList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+
+        assignedForkliftListModel = new DefaultListModel<>();
+        assignedForkliftList = new JList<>(assignedForkliftListModel);
+        assignedForkliftList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+
+        previewArea = new JTextArea(9, 20);
         previewArea.setEditable(false);
         previewArea.setLineWrap(true);
         previewArea.setWrapStyleWord(true);
+
+        instructionsArea = new JTextArea(5, 20);
+        instructionsArea.setLineWrap(true);
+        instructionsArea.setWrapStyleWord(true);
 
         availableDriverList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -127,38 +145,62 @@ public class JobBoardUI extends JFrame {
             }
         });
 
-        JPanel listsPanel = new JPanel(new GridLayout(3, 1, 8, 8));
+        availableForkliftList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                updatePreview();
+            }
+        });
 
-        JPanel availablePanel = new JPanel(new BorderLayout());
-        availablePanel.setBorder(BorderFactory.createTitledBorder("Available Drivers"));
-        availablePanel.add(new JScrollPane(availableDriverList), BorderLayout.CENTER);
+        JPanel listsPanel = new JPanel(new GridLayout(6, 1, 8, 8));
 
-        JPanel assignedPanel = new JPanel(new BorderLayout());
-        assignedPanel.setBorder(BorderFactory.createTitledBorder("Assigned Crew"));
-        assignedPanel.add(new JScrollPane(assignedDriverList), BorderLayout.CENTER);
+        JPanel availableDriverPanel = new JPanel(new BorderLayout());
+        availableDriverPanel.setBorder(BorderFactory.createTitledBorder("Available Drivers"));
+        availableDriverPanel.add(new JScrollPane(availableDriverList), BorderLayout.CENTER);
+
+        JPanel assignedDriverPanel = new JPanel(new BorderLayout());
+        assignedDriverPanel.setBorder(BorderFactory.createTitledBorder("Assigned Crew"));
+        assignedDriverPanel.add(new JScrollPane(assignedDriverList), BorderLayout.CENTER);
+
+        JPanel availableForkliftPanel = new JPanel(new BorderLayout());
+        availableForkliftPanel.setBorder(BorderFactory.createTitledBorder("Available Forklifts"));
+        availableForkliftPanel.add(new JScrollPane(availableForkliftList), BorderLayout.CENTER);
+
+        JPanel assignedForkliftPanel = new JPanel(new BorderLayout());
+        assignedForkliftPanel.setBorder(BorderFactory.createTitledBorder("Assigned Forklifts"));
+        assignedForkliftPanel.add(new JScrollPane(assignedForkliftList), BorderLayout.CENTER);
+
+        JPanel instructionsPanel = new JPanel(new BorderLayout());
+        instructionsPanel.setBorder(BorderFactory.createTitledBorder("Dispatch Instructions"));
+        instructionsPanel.add(new JScrollPane(instructionsArea), BorderLayout.CENTER);
 
         JPanel previewPanel = new JPanel(new BorderLayout());
-        previewPanel.setBorder(BorderFactory.createTitledBorder("Equipment Preview"));
+        previewPanel.setBorder(BorderFactory.createTitledBorder("Equipment / Assignment Preview"));
         previewPanel.add(new JScrollPane(previewArea), BorderLayout.CENTER);
 
-        listsPanel.add(availablePanel);
-        listsPanel.add(assignedPanel);
+        listsPanel.add(availableDriverPanel);
+        listsPanel.add(assignedDriverPanel);
+        listsPanel.add(availableForkliftPanel);
+        listsPanel.add(assignedForkliftPanel);
+        listsPanel.add(instructionsPanel);
         listsPanel.add(previewPanel);
 
         panel.add(listsPanel, BorderLayout.CENTER);
 
-        JPanel buttonPanel = new JPanel(new GridLayout(1, 3, 8, 8));
+        JPanel buttonPanel = new JPanel(new GridLayout(2, 2, 8, 8));
 
-        JButton assignBtn = new JButton("Assign");
-        JButton removeBtn = new JButton("Remove");
+        JButton assignBtn = new JButton("Assign Selected");
+        JButton removeDriverBtn = new JButton("Remove Driver(s)");
+        JButton removeForkliftBtn = new JButton("Remove Forklift(s)");
         JButton clearBtn = new JButton("Clear Dispatch");
 
-        assignBtn.addActionListener(e -> assignDrivers());
-        removeBtn.addActionListener(e -> removeDrivers());
+        assignBtn.addActionListener(e -> assignSelections());
+        removeDriverBtn.addActionListener(e -> removeDrivers());
+        removeForkliftBtn.addActionListener(e -> removeForklifts());
         clearBtn.addActionListener(e -> clearDispatch());
 
         buttonPanel.add(assignBtn);
-        buttonPanel.add(removeBtn);
+        buttonPanel.add(removeDriverBtn);
+        buttonPanel.add(removeForkliftBtn);
         buttonPanel.add(clearBtn);
 
         panel.add(buttonPanel, BorderLayout.SOUTH);
@@ -178,21 +220,20 @@ public class JobBoardUI extends JFrame {
 
         jobTable = new JTable(jobModel);
         jobTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        jobTable.setRowHeight(28);
 
-        jobTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
-            @Override
-            public void valueChanged(ListSelectionEvent e) {
-                if (!e.getValueIsAdjusting()) {
-                    loadTasks();
-                    clearDispatchPanel();
-                }
+        jobTable.getSelectionModel().addListSelectionListener((ListSelectionEvent e) -> {
+            if (!e.getValueIsAdjusting()) {
+                loadTasks();
+                clearDispatchPanel();
             }
         });
     }
 
     private void setupTaskTable() {
         String[] cols = {
-                "Task #", "Date", "Start", "End", "Type", "Foreman", "Crew", "Truck(s)", "Trailer(s)", "Status"
+                "Task #", "Date", "Start", "End", "Type", "Foreman", "Crew",
+                "Truck(s)", "Trailer(s)", "Forklift(s)", "Status"
         };
 
         taskModel = new DefaultTableModel(cols, 0) {
@@ -204,13 +245,11 @@ public class JobBoardUI extends JFrame {
 
         taskTable = new JTable(taskModel);
         taskTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        taskTable.setRowHeight(28);
 
-        taskTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
-            @Override
-            public void valueChanged(ListSelectionEvent e) {
-                if (!e.getValueIsAdjusting()) {
-                    loadDispatchPanelForSelectedTask();
-                }
+        taskTable.getSelectionModel().addListSelectionListener((ListSelectionEvent e) -> {
+            if (!e.getValueIsAdjusting()) {
+                loadDispatchPanelForSelectedTask();
             }
         });
     }
@@ -221,13 +260,13 @@ public class JobBoardUI extends JFrame {
         List<Job> jobs = new ArrayList<>(manager.getJobs());
         jobs.sort(Comparator.comparingInt(Job::getJobNumber));
 
-        for (Job j : jobs) {
+        for (Job job : jobs) {
             jobModel.addRow(new Object[]{
-                    j.getJobNumber(),
-                    safe(j.getProjectName()),
-                    safe(j.getContractor()),
-                    safe(j.getLocation()),
-                    safe(j.getStatus())
+                    job.getJobNumber(),
+                    safe(job.getProjectName()),
+                    safe(job.getContractor()),
+                    safe(job.getLocation()),
+                    safe(job.getStatus())
             });
         }
 
@@ -246,24 +285,25 @@ public class JobBoardUI extends JFrame {
 
         List<Task> tasks = new ArrayList<>(manager.getTasks());
         tasks.sort(
-                Comparator.comparing(Task::getStartDate, String.CASE_INSENSITIVE_ORDER)
-                        .thenComparing(Task::getStartTime, String.CASE_INSENSITIVE_ORDER)
+                Comparator.comparing(Task::getStartDate, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
+                        .thenComparing(Task::getStartTime, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
                         .thenComparingInt(Task::getTaskId)
         );
 
-        for (Task t : tasks) {
-            if (t.getJobId() == jobId) {
+        for (Task task : tasks) {
+            if (task.getJobId() == jobId) {
                 taskModel.addRow(new Object[]{
-                        t.getTaskId(),
-                        safe(t.getStartDate()),
-                        safe(t.getStartTime()),
-                        safe(t.getEndTime()),
-                        safe(t.getJobType()),
-                        safe(t.getForeman()),
-                        buildCrewDisplay(t),
-                        buildTruckDisplay(t),
-                        buildTrailerDisplay(t),
-                        safe(t.getStatus())
+                        task.getTaskId(),
+                        safe(task.getStartDate()),
+                        safe(task.getStartTime()),
+                        safe(task.getEndTime()),
+                        safe(task.getJobType()),
+                        safe(task.getForeman()),
+                        buildCrewDisplay(task),
+                        buildTruckDisplay(task),
+                        buildTrailerDisplay(task),
+                        buildForkliftDisplay(task),
+                        safe(task.getStatus())
                 });
             }
         }
@@ -274,7 +314,10 @@ public class JobBoardUI extends JFrame {
 
         availableDriverListModel.clear();
         assignedDriverListModel.clear();
+        availableForkliftListModel.clear();
+        assignedForkliftListModel.clear();
         previewArea.setText("");
+        instructionsArea.setText("");
 
         if (task == null) {
             selectedTaskLabel.setText("Select a task");
@@ -282,10 +325,10 @@ public class JobBoardUI extends JFrame {
         }
 
         selectedTaskLabel.setText(
-                "Task #" + task.getTaskId() +
-                " | " + safe(task.getStartDate()) +
-                " | " + safe(task.getStartTime()) + "-" + safe(task.getEndTime()) +
-                " | " + safe(task.getLocation())
+                "Task #" + task.getTaskId()
+                        + " | " + safe(task.getStartDate())
+                        + " | " + safe(task.getStartTime()) + "-" + safe(task.getEndTime())
+                        + " | " + safe(task.getLocation())
         );
 
         ArrayList<Employee> availableDrivers = getAvailableDriversForTask(task);
@@ -302,19 +345,39 @@ public class JobBoardUI extends JFrame {
             }
         }
 
+        ArrayList<String> assignedForklifts = task.getAssignedForklifts() == null
+                ? new ArrayList<>()
+                : new ArrayList<>(task.getAssignedForklifts());
+
+        for (Forklift forklift : manager.getForklifts()) {
+            String unitId = forklift.getUnitId();
+            boolean assignedElsewhere = manager.isForkliftAssigned(unitId) && !assignedForklifts.contains(unitId);
+
+            if (!assignedElsewhere) {
+                if (assignedForklifts.contains(unitId)) {
+                    assignedForkliftListModel.addElement(unitId);
+                } else {
+                    availableForkliftListModel.addElement(unitId);
+                }
+            }
+        }
+
+        instructionsArea.setText(safe(task.getDispatchInstructions()));
         updateAssignedPreviewOnly();
     }
 
-    private void assignDrivers() {
+    private void assignSelections() {
         Task task = getSelectedTask();
         if (task == null) {
             JOptionPane.showMessageDialog(this, "Select a task first.");
             return;
         }
 
-        List<DriverOption> selected = availableDriverList.getSelectedValuesList();
-        if (selected.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Select at least one available driver.");
+        List<DriverOption> selectedDrivers = availableDriverList.getSelectedValuesList();
+        List<String> selectedForklifts = availableForkliftList.getSelectedValuesList();
+
+        if (selectedDrivers.isEmpty() && selectedForklifts.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Select at least one driver or forklift.");
             return;
         }
 
@@ -323,7 +386,7 @@ public class JobBoardUI extends JFrame {
             assignedIds = new ArrayList<>();
         }
 
-        for (DriverOption option : selected) {
+        for (DriverOption option : selectedDrivers) {
             int employeeId = option.employee.getEmployeeId();
             if (!assignedIds.contains(employeeId)) {
                 assignedIds.add(employeeId);
@@ -331,10 +394,17 @@ public class JobBoardUI extends JFrame {
         }
 
         task.setAssignedEmployeeIds(assignedIds);
-        updateTaskCrewNotesAndStatus(task);
+
+        for (String forkliftId : selectedForklifts) {
+            task.addAssignedForklift(forkliftId);
+        }
+
+        task.setDispatchInstructions(instructionsArea.getText().trim());
+        updateTaskStatus(task);
 
         DataStore.save(manager);
         loadTasks();
+        reselectTask(task.getTaskId());
         loadDispatchPanelForSelectedTask();
     }
 
@@ -355,10 +425,38 @@ public class JobBoardUI extends JFrame {
             task.removeAssignedEmployeeId(option.employee.getEmployeeId());
         }
 
-        updateTaskCrewNotesAndStatus(task);
+        task.setDispatchInstructions(instructionsArea.getText().trim());
+        updateTaskStatus(task);
 
         DataStore.save(manager);
         loadTasks();
+        reselectTask(task.getTaskId());
+        loadDispatchPanelForSelectedTask();
+    }
+
+    private void removeForklifts() {
+        Task task = getSelectedTask();
+        if (task == null) {
+            JOptionPane.showMessageDialog(this, "Select a task first.");
+            return;
+        }
+
+        List<String> selected = assignedForkliftList.getSelectedValuesList();
+        if (selected.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Select at least one assigned forklift to remove.");
+            return;
+        }
+
+        for (String forkliftId : selected) {
+            task.removeAssignedForklift(forkliftId);
+        }
+
+        task.setDispatchInstructions(instructionsArea.getText().trim());
+        updateTaskStatus(task);
+
+        DataStore.save(manager);
+        loadTasks();
+        reselectTask(task.getTaskId());
         loadDispatchPanelForSelectedTask();
     }
 
@@ -370,84 +468,174 @@ public class JobBoardUI extends JFrame {
         }
 
         task.clearAssignedEmployees();
-        task.setNotes("");
+        task.clearAssignedForklifts();
+        task.setDispatchInstructions("");
         task.setStatus("Open");
 
         DataStore.save(manager);
         loadTasks();
+        reselectTask(task.getTaskId());
         loadDispatchPanelForSelectedTask();
     }
 
-    private void updateTaskCrewNotesAndStatus(Task task) {
-        ArrayList<String> assignedNames = new ArrayList<>();
+    private void updateTaskStatus(Task task) {
+        boolean hasDrivers = task.getAssignedEmployeeIds() != null && !task.getAssignedEmployeeIds().isEmpty();
+        boolean hasForklifts = task.getAssignedForklifts() != null && !task.getAssignedForklifts().isEmpty();
+        boolean hasInstructions = task.getDispatchInstructions() != null && !task.getDispatchInstructions().trim().isEmpty();
 
-        if (task.getAssignedEmployeeIds() != null) {
-            for (Integer employeeId : task.getAssignedEmployeeIds()) {
-                Employee employee = manager.findEmployeeById(employeeId);
-                if (employee != null) {
-                    assignedNames.add(employee.getFullName());
-                }
-            }
-        }
-
-        if (!assignedNames.isEmpty()) {
-            task.setNotes("Crew: " + String.join(", ", assignedNames));
+        if (hasDrivers || hasForklifts || hasInstructions) {
             task.setStatus("Dispatched");
         } else {
-            task.setNotes("");
             task.setStatus("Open");
         }
     }
 
     private void updatePreview() {
-        List<DriverOption> selectedAvailable = availableDriverList.getSelectedValuesList();
+        Task task = getSelectedTask();
+        if (task == null) {
+            previewArea.setText("");
+            return;
+        }
 
-        if (!selectedAvailable.isEmpty()) {
-            StringBuilder sb = new StringBuilder();
+        List<DriverOption> selectedAvailableDrivers = availableDriverList.getSelectedValuesList();
+        List<String> selectedAvailableForklifts = availableForkliftList.getSelectedValuesList();
 
-            for (DriverOption option : selectedAvailable) {
+        StringBuilder sb = new StringBuilder();
+
+        if (!selectedAvailableDrivers.isEmpty()) {
+            sb.append("Selected Drivers:\n");
+            for (DriverOption option : selectedAvailableDrivers) {
                 Employee employee = option.employee;
-                sb.append(employee.getFullName())
+                sb.append("- ")
+                  .append(employee.getFullName())
                   .append(" | Truck: ")
                   .append(displayValue(employee.getAssignedTruckId()))
                   .append(" | Trailer: ")
                   .append(displayValue(employee.getAssignedTrailerId()))
                   .append("\n");
             }
-
-            previewArea.setText(sb.toString().trim());
-            return;
+            sb.append("\n");
         }
 
-        updateAssignedPreviewOnly();
+        if (!selectedAvailableForklifts.isEmpty()) {
+            sb.append("Selected Forklifts:\n");
+            for (String forkliftId : selectedAvailableForklifts) {
+                sb.append("- ").append(forkliftId).append("\n");
+            }
+            sb.append("\n");
+        }
+
+        sb.append("Currently Assigned Drivers:\n");
+        appendAssignedDrivers(sb);
+
+        sb.append("\nCurrently Assigned Forklifts:\n");
+        appendAssignedForklifts(sb, task);
+
+        previewArea.setText(sb.toString().trim());
     }
 
     private void updateAssignedPreviewOnly() {
-        StringBuilder sb = new StringBuilder();
+        Task task = getSelectedTask();
+        if (task == null) {
+            previewArea.setText("");
+            return;
+        }
 
-        for (int i = 0; i < assignedDriverListModel.getSize(); i++) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Currently Assigned Drivers:\n");
+        appendAssignedDrivers(sb);
+
+        sb.append("\nCurrently Assigned Forklifts:\n");
+        appendAssignedForklifts(sb, task);
+
+        if (task.getDispatchInstructions() != null && !task.getDispatchInstructions().trim().isEmpty()) {
+            sb.append("\nInstructions:\n").append(task.getDispatchInstructions().trim());
+        }
+
+        previewArea.setText(sb.toString().trim());
+    }
+
+    private void appendAssignedDrivers(StringBuilder sb) {
+        if (assignedDriverListModel.isEmpty()) {
+            sb.append("- None\n");
+            return;
+        }
+
+        for (int i = 0; i < assignedDriverListModel.size(); i++) {
             Employee employee = assignedDriverListModel.get(i).employee;
-            sb.append(employee.getFullName())
+            sb.append("- ")
+              .append(employee.getFullName())
               .append(" | Truck: ")
               .append(displayValue(employee.getAssignedTruckId()))
               .append(" | Trailer: ")
               .append(displayValue(employee.getAssignedTrailerId()))
               .append("\n");
         }
+    }
 
-        previewArea.setText(sb.toString().trim());
+    private void appendAssignedForklifts(StringBuilder sb, Task task) {
+        ArrayList<String> forklifts = task.getAssignedForklifts();
+        if (forklifts == null || forklifts.isEmpty()) {
+            sb.append("- None\n");
+            return;
+        }
+
+        for (String forkliftId : forklifts) {
+            sb.append("- ").append(forkliftId).append("\n");
+        }
     }
 
     private void refreshAll() {
+        int selectedJobRow = jobTable.getSelectedRow();
+        Integer selectedJobNumber = null;
+        Integer selectedTaskId = null;
+
+        if (selectedJobRow != -1) {
+            selectedJobNumber = (Integer) jobModel.getValueAt(selectedJobRow, 0);
+        }
+
+        Task selectedTask = getSelectedTask();
+        if (selectedTask != null) {
+            selectedTaskId = selectedTask.getTaskId();
+        }
+
         loadJobs();
-        loadTasks();
-        loadDispatchPanelForSelectedTask();
+
+        if (selectedJobNumber != null) {
+            for (int i = 0; i < jobModel.getRowCount(); i++) {
+                if (((Integer) jobModel.getValueAt(i, 0)).equals(selectedJobNumber)) {
+                    jobTable.setRowSelectionInterval(i, i);
+                    break;
+                }
+            }
+            loadTasks();
+        }
+
+        if (selectedTaskId != null) {
+            reselectTask(selectedTaskId);
+            loadDispatchPanelForSelectedTask();
+        } else {
+            clearDispatchPanel();
+        }
+    }
+
+    private void reselectTask(int taskId) {
+        for (int i = 0; i < taskModel.getRowCount(); i++) {
+            Integer tableTaskId = (Integer) taskModel.getValueAt(i, 0);
+            if (tableTaskId == taskId) {
+                taskTable.setRowSelectionInterval(i, i);
+                return;
+            }
+        }
     }
 
     private void clearDispatchPanel() {
         availableDriverListModel.clear();
         assignedDriverListModel.clear();
+        availableForkliftListModel.clear();
+        assignedForkliftListModel.clear();
         previewArea.setText("");
+        instructionsArea.setText("");
         selectedTaskLabel.setText("Select a task");
     }
 
@@ -457,12 +645,17 @@ public class JobBoardUI extends JFrame {
         for (Employee employee : manager.getEmployees()) {
             String position = safe(employee.getPosition()).toLowerCase();
 
-            if (!employee.isActive()) continue;
-            if (!position.contains("driver")) continue;
+            if (!employee.isActive()) {
+                continue;
+            }
+
+            if (!position.contains("driver")) {
+                continue;
+            }
 
             boolean alreadyAssignedToCurrentTask =
-                    currentTask.getAssignedEmployeeIds() != null &&
-                    currentTask.getAssignedEmployeeIds().contains(employee.getEmployeeId());
+                    currentTask.getAssignedEmployeeIds() != null
+                            && currentTask.getAssignedEmployeeIds().contains(employee.getEmployeeId());
 
             if (alreadyAssignedToCurrentTask) {
                 continue;
@@ -471,10 +664,12 @@ public class JobBoardUI extends JFrame {
             boolean conflict = false;
 
             for (Task task : manager.getTasks()) {
-                if (task == currentTask) continue;
+                if (task == currentTask) {
+                    continue;
+                }
 
-                if (task.getAssignedEmployeeIds() != null &&
-                        task.getAssignedEmployeeIds().contains(employee.getEmployeeId())) {
+                if (task.getAssignedEmployeeIds() != null
+                        && task.getAssignedEmployeeIds().contains(employee.getEmployeeId())) {
 
                     if (isTimeConflict(currentTask, task)) {
                         conflict = true;
@@ -497,15 +692,39 @@ public class JobBoardUI extends JFrame {
             LocalDate dateA = LocalDate.parse(a.getStartDate());
             LocalDate dateB = LocalDate.parse(b.getStartDate());
 
-            if (!dateA.equals(dateB)) return false;
+            if (!dateA.equals(dateB)) {
+                return false;
+            }
 
             LocalTime aStart = LocalTime.parse(a.getStartTime());
             LocalTime aEnd = LocalTime.parse(a.getEndTime());
-
             LocalTime bStart = LocalTime.parse(b.getStartTime());
             LocalTime bEnd = LocalTime.parse(b.getEndTime());
 
-            return aStart.isBefore(bEnd) && aEnd.isAfter(bStart);
+            boolean aCrossesMidnight = !aEnd.isAfter(aStart);
+            boolean bCrossesMidnight = !bEnd.isAfter(bStart);
+
+            if (aCrossesMidnight) {
+                aEnd = aEnd.plusHours(24);
+            }
+            if (bCrossesMidnight) {
+                bEnd = bEnd.plusHours(24);
+            }
+
+            LocalTime compareAStart = aStart;
+            LocalTime compareBStart = bStart;
+
+            if (aCrossesMidnight && bStart.isBefore(aStart)) {
+                compareBStart = bStart.plusHours(24);
+                bEnd = bEnd.plusHours(24);
+            }
+
+            if (bCrossesMidnight && aStart.isBefore(bStart)) {
+                compareAStart = aStart.plusHours(24);
+                aEnd = aEnd.plusHours(24);
+            }
+
+            return compareAStart.isBefore(bEnd) && aEnd.isAfter(compareBStart);
         } catch (Exception e) {
             return true;
         }
@@ -523,16 +742,7 @@ public class JobBoardUI extends JFrame {
             }
         }
 
-        if (!names.isEmpty()) {
-            return String.join(", ", names);
-        }
-
-        String notes = safe(task.getNotes());
-        if (notes.startsWith("Crew:")) {
-            return notes.substring("Crew:".length()).trim();
-        }
-
-        return "";
+        return names.isEmpty() ? "" : String.join(", ", names);
     }
 
     private String buildTruckDisplay(Task task) {
@@ -571,25 +781,23 @@ public class JobBoardUI extends JFrame {
         return trailers.isEmpty() ? "" : String.join(", ", trailers);
     }
 
+    private String buildForkliftDisplay(Task task) {
+        ArrayList<String> forklifts = task.getAssignedForklifts();
+        return (forklifts == null || forklifts.isEmpty()) ? "" : String.join(", ", forklifts);
+    }
+
     private Task getSelectedTask() {
         int row = taskTable.getSelectedRow();
         if (row == -1) {
             return null;
         }
 
-        int id = (int) taskModel.getValueAt(row, 0);
-
-        for (Task task : manager.getTasks()) {
-            if (task.getTaskId() == id) {
-                return task;
-            }
-        }
-
-        return null;
+        int taskId = (int) taskModel.getValueAt(row, 0);
+        return manager.findTaskById(taskId);
     }
 
     private String safe(String value) {
-        return value == null || value.trim().isEmpty() ? "" : value;
+        return value == null || value.trim().isEmpty() ? "" : value.trim();
     }
 
     private String displayValue(String value) {

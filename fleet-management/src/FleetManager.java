@@ -1,5 +1,6 @@
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Comparator;
 
 public class FleetManager implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -50,6 +51,31 @@ public class FleetManager implements Serializable {
         return null;
     }
 
+    public Employee findEmployeeByName(String fullName) {
+        if (fullName == null) {
+            return null;
+        }
+
+        for (Employee e : employees) {
+            if (e.getFullName() != null && e.getFullName().equalsIgnoreCase(fullName.trim())) {
+                return e;
+            }
+        }
+        return null;
+    }
+
+    public ArrayList<Employee> getDriverEmployees() {
+        ArrayList<Employee> drivers = new ArrayList<>();
+
+        for (Employee e : employees) {
+            if (e.getPosition() != null && e.getPosition().toLowerCase().contains("driver")) {
+                drivers.add(e);
+            }
+        }
+
+        return drivers;
+    }
+
     // ================= JOBS =================
     public void addJob(Job job) {
         jobs.add(job);
@@ -86,43 +112,162 @@ public class FleetManager implements Serializable {
         return null;
     }
 
-    public ArrayList<Employee> getAvailableDriversByDate(String date) {
-        ArrayList<Employee> availableDrivers = new ArrayList<>();
+    public void removeTaskById(int taskId) {
+        Task task = findTaskById(taskId);
+        if (task != null) {
+            tasks.remove(task);
+        }
+    }
 
-        for (Employee e : employees) {
-            String position = e.getPosition();
+    public ArrayList<Task> getTasksByDate(String date) {
+        ArrayList<Task> result = new ArrayList<>();
 
-            if (position != null && position.toLowerCase().contains("driver")) {
-                boolean isAssigned = false;
-
-                for (Task t : tasks) {
-                    if (date != null && date.equals(t.getStartDate())) {
-                        String notes = t.getNotes();
-                        if (notes != null && notes.toLowerCase().startsWith("crew:")) {
-                            String crewText = notes.substring("Crew:".length()).trim();
-                            String[] assignedNames = crewText.split(",");
-
-                            for (String assignedName : assignedNames) {
-                                if (assignedName.trim().equalsIgnoreCase(e.getFullName())) {
-                                    isAssigned = true;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    if (isAssigned) {
-                        break;
-                    }
-                }
-
-                if (!isAssigned) {
-                    availableDrivers.add(e);
-                }
+        for (Task t : tasks) {
+            if (t.getStartDate() != null && t.getStartDate().equals(date)) {
+                result.add(t);
             }
         }
 
-        return availableDrivers;
+        return result;
+    }
+
+    public ArrayList<Task> getTasksSortedByTime(String date) {
+        ArrayList<Task> result = getTasksByDate(date);
+
+        result.sort(Comparator.comparing(Task::getStartTime, Comparator.nullsLast(String::compareTo)));
+
+        return result;
+    }
+
+    public ArrayList<Task> getTasksByStatus(String status) {
+        ArrayList<Task> result = new ArrayList<>();
+
+        for (Task t : tasks) {
+            if (t.getStatus() != null && t.getStatus().equalsIgnoreCase(status)) {
+                result.add(t);
+            }
+        }
+
+        return result;
+    }
+
+    public ArrayList<Task> getTasksForEmployee(int employeeId) {
+        ArrayList<Task> result = new ArrayList<>();
+
+        for (Task t : tasks) {
+            if (t.getAssignedEmployeeIds() != null && t.getAssignedEmployeeIds().contains(employeeId)) {
+                result.add(t);
+            }
+        }
+
+        return result;
+    }
+
+    public ArrayList<Task> getTasksForEmployeeSorted(int employeeId) {
+        ArrayList<Task> result = getTasksForEmployee(employeeId);
+
+        result.sort((t1, t2) -> {
+            String d1 = t1.getStartDate() == null ? "" : t1.getStartDate();
+            String d2 = t2.getStartDate() == null ? "" : t2.getStartDate();
+
+            int dateCompare = d1.compareTo(d2);
+            if (dateCompare != 0) {
+                return dateCompare;
+            }
+
+            String s1 = t1.getStartTime() == null ? "" : t1.getStartTime();
+            String s2 = t2.getStartTime() == null ? "" : t2.getStartTime();
+
+            return s1.compareTo(s2);
+        });
+
+        return result;
+    }
+
+    public ArrayList<Task> getTasksForForeman(String foremanName) {
+        ArrayList<Task> result = new ArrayList<>();
+
+        if (foremanName == null) {
+            return result;
+        }
+
+        for (Task t : tasks) {
+            if (t.getForeman() != null && t.getForeman().equalsIgnoreCase(foremanName.trim())) {
+                result.add(t);
+            }
+        }
+
+        return result;
+    }
+
+    public ArrayList<Employee> getAvailableDrivers(String date, String startTime) {
+        ArrayList<Employee> available = new ArrayList<>();
+
+        for (Employee e : employees) {
+            if (e.getPosition() == null || !e.getPosition().toLowerCase().contains("driver")) {
+                continue;
+            }
+
+            boolean assigned = false;
+
+            for (Task t : tasks) {
+                if (t.getStartDate() != null
+                        && t.getStartDate().equals(date)
+                        && t.getAssignedEmployeeIds() != null
+                        && t.getAssignedEmployeeIds().contains(e.getId())) {
+                    assigned = true;
+                    break;
+                }
+            }
+
+            if (!assigned) {
+                available.add(e);
+            }
+        }
+
+        return available;
+    }
+
+    public boolean isEmployeeAssignedToAnyTaskOnDate(int employeeId, String date) {
+        for (Task t : tasks) {
+            if (t.getStartDate() != null
+                    && t.getStartDate().equals(date)
+                    && t.getAssignedEmployeeIds() != null
+                    && t.getAssignedEmployeeIds().contains(employeeId)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public ArrayList<Task> getGlobalLoadBoardTasks() {
+        ArrayList<Task> result = new ArrayList<>(tasks);
+
+        result.sort((t1, t2) -> {
+            String d1 = t1.getStartDate() == null ? "" : t1.getStartDate();
+            String d2 = t2.getStartDate() == null ? "" : t2.getStartDate();
+
+            int dateCompare = d1.compareTo(d2);
+            if (dateCompare != 0) {
+                return dateCompare;
+            }
+
+            String s1 = t1.getStartTime() == null ? "" : t1.getStartTime();
+            String s2 = t2.getStartTime() == null ? "" : t2.getStartTime();
+
+            int timeCompare = s1.compareTo(s2);
+            if (timeCompare != 0) {
+                return timeCompare;
+            }
+
+            String c1 = t1.getContractor() == null ? "" : t1.getContractor();
+            String c2 = t2.getContractor() == null ? "" : t2.getContractor();
+
+            return c1.compareTo(c2);
+        });
+
+        return result;
     }
 
     // ================= TRUCKS =================
@@ -177,6 +322,47 @@ public class FleetManager implements Serializable {
             }
         }
         return null;
+    }
+
+    public ArrayList<Forklift> getAvailableForklifts() {
+        ArrayList<Forklift> available = new ArrayList<>();
+
+        for (Forklift forklift : forklifts) {
+            boolean assigned = false;
+
+            for (Task task : tasks) {
+                if (task.getAssignedForklifts() != null
+                        && task.getAssignedForklifts().contains(forklift.getUnitId())
+                        && task.getStatus() != null
+                        && !task.getStatus().equalsIgnoreCase("Completed")) {
+                    assigned = true;
+                    break;
+                }
+            }
+
+            if (!assigned) {
+                available.add(forklift);
+            }
+        }
+
+        return available;
+    }
+
+    public boolean isForkliftAssigned(String forkliftId) {
+        if (forkliftId == null) {
+            return false;
+        }
+
+        for (Task task : tasks) {
+            if (task.getAssignedForklifts() != null
+                    && task.getAssignedForklifts().contains(forkliftId)
+                    && task.getStatus() != null
+                    && !task.getStatus().equalsIgnoreCase("Completed")) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // ================= GRADALLS =================
