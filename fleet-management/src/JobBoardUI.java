@@ -1,4 +1,6 @@
 import javax.swing.*;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.time.LocalDate;
@@ -17,11 +19,20 @@ public class JobBoardUI extends JFrame {
     private DefaultTableModel jobModel;
     private DefaultTableModel taskModel;
 
+    private DefaultListModel<DriverOption> availableDriverListModel;
+    private JList<DriverOption> availableDriverList;
+
+    private DefaultListModel<DriverOption> assignedDriverListModel;
+    private JList<DriverOption> assignedDriverList;
+
+    private JLabel selectedTaskLabel;
+    private JTextArea previewArea;
+
     public JobBoardUI(FleetManager manager) {
         this.manager = manager;
 
         setTitle("Ghostline Logistics Tech - Dispatch Board");
-        setSize(1350, 760);
+        setSize(1500, 820);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
@@ -40,45 +51,119 @@ public class JobBoardUI extends JFrame {
         title.setFont(new Font("SansSerif", Font.BOLD, 24));
         main.add(title, BorderLayout.NORTH);
 
-        JPanel center = new JPanel(new GridLayout(2, 1, 10, 10));
-
         setupJobTable();
         setupTaskTable();
 
-        center.add(new JScrollPane(jobTable));
-        center.add(new JScrollPane(taskTable));
+        JSplitPane leftSplit = new JSplitPane(
+                JSplitPane.VERTICAL_SPLIT,
+                new JScrollPane(jobTable),
+                new JScrollPane(taskTable)
+        );
+        leftSplit.setResizeWeight(0.35);
 
-        main.add(center, BorderLayout.CENTER);
+        JSplitPane mainSplit = new JSplitPane(
+                JSplitPane.HORIZONTAL_SPLIT,
+                leftSplit,
+                createDispatchPanel()
+        );
+        mainSplit.setResizeWeight(0.68);
+
+        main.add(mainSplit, BorderLayout.CENTER);
 
         JPanel bottom = new JPanel();
 
-        JButton dispatchBtn = new JButton("Dispatch Driver(s)");
-        JButton clearBtn = new JButton("Clear Dispatch");
         JButton refreshBtn = new JButton("Refresh");
         JButton ownerBtn = new JButton("Owner Portal");
         JButton backBtn = new JButton("Back");
 
-        dispatchBtn.addActionListener(e -> dispatchSelectedTask());
-        clearBtn.addActionListener(e -> clearDispatch());
-        refreshBtn.addActionListener(e -> loadJobs());
-
+        refreshBtn.addActionListener(e -> refreshAll());
         ownerBtn.addActionListener(e -> {
             dispose();
             new OwnerPortal(manager).setVisible(true);
         });
-
         backBtn.addActionListener(e -> {
             dispose();
             Main.showLoginScreen();
         });
 
-        bottom.add(dispatchBtn);
-        bottom.add(clearBtn);
         bottom.add(refreshBtn);
         bottom.add(ownerBtn);
         bottom.add(backBtn);
 
         main.add(bottom, BorderLayout.SOUTH);
+    }
+
+    private JPanel createDispatchPanel() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setPreferredSize(new Dimension(470, 0));
+        panel.setBorder(BorderFactory.createTitledBorder("Dispatch Panel"));
+
+        selectedTaskLabel = new JLabel("Select a task");
+        selectedTaskLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+        panel.add(selectedTaskLabel, BorderLayout.NORTH);
+
+        availableDriverListModel = new DefaultListModel<>();
+        availableDriverList = new JList<>(availableDriverListModel);
+        availableDriverList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+
+        assignedDriverListModel = new DefaultListModel<>();
+        assignedDriverList = new JList<>(assignedDriverListModel);
+        assignedDriverList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+
+        previewArea = new JTextArea(8, 20);
+        previewArea.setEditable(false);
+        previewArea.setLineWrap(true);
+        previewArea.setWrapStyleWord(true);
+
+        availableDriverList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                updatePreview();
+            }
+        });
+
+        assignedDriverList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting() && availableDriverList.isSelectionEmpty()) {
+                updateAssignedPreviewOnly();
+            }
+        });
+
+        JPanel listsPanel = new JPanel(new GridLayout(3, 1, 8, 8));
+
+        JPanel availablePanel = new JPanel(new BorderLayout());
+        availablePanel.setBorder(BorderFactory.createTitledBorder("Available Drivers"));
+        availablePanel.add(new JScrollPane(availableDriverList), BorderLayout.CENTER);
+
+        JPanel assignedPanel = new JPanel(new BorderLayout());
+        assignedPanel.setBorder(BorderFactory.createTitledBorder("Assigned Crew"));
+        assignedPanel.add(new JScrollPane(assignedDriverList), BorderLayout.CENTER);
+
+        JPanel previewPanel = new JPanel(new BorderLayout());
+        previewPanel.setBorder(BorderFactory.createTitledBorder("Equipment Preview"));
+        previewPanel.add(new JScrollPane(previewArea), BorderLayout.CENTER);
+
+        listsPanel.add(availablePanel);
+        listsPanel.add(assignedPanel);
+        listsPanel.add(previewPanel);
+
+        panel.add(listsPanel, BorderLayout.CENTER);
+
+        JPanel buttonPanel = new JPanel(new GridLayout(1, 3, 8, 8));
+
+        JButton assignBtn = new JButton("Assign");
+        JButton removeBtn = new JButton("Remove");
+        JButton clearBtn = new JButton("Clear Dispatch");
+
+        assignBtn.addActionListener(e -> assignDrivers());
+        removeBtn.addActionListener(e -> removeDrivers());
+        clearBtn.addActionListener(e -> clearDispatch());
+
+        buttonPanel.add(assignBtn);
+        buttonPanel.add(removeBtn);
+        buttonPanel.add(clearBtn);
+
+        panel.add(buttonPanel, BorderLayout.SOUTH);
+
+        return panel;
     }
 
     private void setupJobTable() {
@@ -94,9 +179,13 @@ public class JobBoardUI extends JFrame {
         jobTable = new JTable(jobModel);
         jobTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-        jobTable.getSelectionModel().addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                loadTasks();
+        jobTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+            @Override
+            public void valueChanged(ListSelectionEvent e) {
+                if (!e.getValueIsAdjusting()) {
+                    loadTasks();
+                    clearDispatchPanel();
+                }
             }
         });
     }
@@ -115,6 +204,15 @@ public class JobBoardUI extends JFrame {
 
         taskTable = new JTable(taskModel);
         taskTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        taskTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+            @Override
+            public void valueChanged(ListSelectionEvent e) {
+                if (!e.getValueIsAdjusting()) {
+                    loadDispatchPanelForSelectedTask();
+                }
+            }
+        });
     }
 
     private void loadJobs() {
@@ -147,7 +245,11 @@ public class JobBoardUI extends JFrame {
         taskModel.setRowCount(0);
 
         List<Task> tasks = new ArrayList<>(manager.getTasks());
-        tasks.sort(Comparator.comparingInt(Task::getTaskId));
+        tasks.sort(
+                Comparator.comparing(Task::getStartDate, String.CASE_INSENSITIVE_ORDER)
+                        .thenComparing(Task::getStartTime, String.CASE_INSENSITIVE_ORDER)
+                        .thenComparingInt(Task::getTaskId)
+        );
 
         for (Task t : tasks) {
             if (t.getJobId() == jobId) {
@@ -167,18 +269,97 @@ public class JobBoardUI extends JFrame {
         }
     }
 
-    private void dispatchSelectedTask() {
+    private void loadDispatchPanelForSelectedTask() {
+        Task task = getSelectedTask();
+
+        availableDriverListModel.clear();
+        assignedDriverListModel.clear();
+        previewArea.setText("");
+
+        if (task == null) {
+            selectedTaskLabel.setText("Select a task");
+            return;
+        }
+
+        selectedTaskLabel.setText(
+                "Task #" + task.getTaskId() +
+                " | " + safe(task.getStartDate()) +
+                " | " + safe(task.getStartTime()) + "-" + safe(task.getEndTime()) +
+                " | " + safe(task.getLocation())
+        );
+
+        ArrayList<Employee> availableDrivers = getAvailableDriversForTask(task);
+        for (Employee employee : availableDrivers) {
+            availableDriverListModel.addElement(new DriverOption(employee));
+        }
+
+        if (task.getAssignedEmployeeIds() != null) {
+            for (Integer employeeId : task.getAssignedEmployeeIds()) {
+                Employee employee = manager.findEmployeeById(employeeId);
+                if (employee != null) {
+                    assignedDriverListModel.addElement(new DriverOption(employee));
+                }
+            }
+        }
+
+        updateAssignedPreviewOnly();
+    }
+
+    private void assignDrivers() {
         Task task = getSelectedTask();
         if (task == null) {
             JOptionPane.showMessageDialog(this, "Select a task first.");
             return;
         }
 
-        if (showDispatchDialog(task)) {
-            DataStore.save(manager);
-            loadTasks();
-            taskTable.clearSelection();
+        List<DriverOption> selected = availableDriverList.getSelectedValuesList();
+        if (selected.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Select at least one available driver.");
+            return;
         }
+
+        ArrayList<Integer> assignedIds = task.getAssignedEmployeeIds();
+        if (assignedIds == null) {
+            assignedIds = new ArrayList<>();
+        }
+
+        for (DriverOption option : selected) {
+            int employeeId = option.employee.getEmployeeId();
+            if (!assignedIds.contains(employeeId)) {
+                assignedIds.add(employeeId);
+            }
+        }
+
+        task.setAssignedEmployeeIds(assignedIds);
+        updateTaskCrewNotesAndStatus(task);
+
+        DataStore.save(manager);
+        loadTasks();
+        loadDispatchPanelForSelectedTask();
+    }
+
+    private void removeDrivers() {
+        Task task = getSelectedTask();
+        if (task == null) {
+            JOptionPane.showMessageDialog(this, "Select a task first.");
+            return;
+        }
+
+        List<DriverOption> selected = assignedDriverList.getSelectedValuesList();
+        if (selected.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Select at least one assigned driver to remove.");
+            return;
+        }
+
+        for (DriverOption option : selected) {
+            task.removeAssignedEmployeeId(option.employee.getEmployeeId());
+        }
+
+        updateTaskCrewNotesAndStatus(task);
+
+        DataStore.save(manager);
+        loadTasks();
+        loadDispatchPanelForSelectedTask();
     }
 
     private void clearDispatch() {
@@ -194,120 +375,20 @@ public class JobBoardUI extends JFrame {
 
         DataStore.save(manager);
         loadTasks();
-        taskTable.clearSelection();
+        loadDispatchPanelForSelectedTask();
     }
 
-    private boolean showDispatchDialog(Task task) {
-        ArrayList<Employee> availableDrivers = getAvailableDriversForTask(task);
-        DefaultListModel<DriverOption> driverListModel = new DefaultListModel<>();
-
-        for (Employee employee : availableDrivers) {
-            driverListModel.addElement(new DriverOption(employee));
-        }
-
-        JList<DriverOption> driverJList = new JList<>(driverListModel);
-        driverJList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-        JScrollPane driverScrollPane = new JScrollPane(driverJList);
-        driverScrollPane.setPreferredSize(new Dimension(320, 240));
-
-        JTextArea previewArea = new JTextArea(12, 38);
-        previewArea.setEditable(false);
-        previewArea.setLineWrap(true);
-        previewArea.setWrapStyleWord(true);
-        JScrollPane previewScrollPane = new JScrollPane(previewArea);
-
-        if (task.getAssignedEmployeeIds() != null && !task.getAssignedEmployeeIds().isEmpty()) {
-            ArrayList<Integer> indexes = new ArrayList<>();
-
-            for (int i = 0; i < driverListModel.size(); i++) {
-                DriverOption option = driverListModel.get(i);
-                if (task.getAssignedEmployeeIds().contains(option.employee.getEmployeeId())) {
-                    indexes.add(i);
-                }
-            }
-
-            int[] selectedIndexes = new int[indexes.size()];
-            for (int i = 0; i < indexes.size(); i++) {
-                selectedIndexes[i] = indexes.get(i);
-            }
-            driverJList.setSelectedIndices(selectedIndexes);
-        }
-
-        Runnable updatePreview = () -> {
-            List<DriverOption> selected = driverJList.getSelectedValuesList();
-            StringBuilder sb = new StringBuilder();
-
-            if (selected.isEmpty()) {
-                sb.append("No drivers selected.");
-            } else {
-                for (DriverOption option : selected) {
-                    Employee employee = option.employee;
-                    sb.append(employee.getFullName())
-                      .append(" | Truck: ")
-                      .append(safe(employee.getAssignedTruckId()).isEmpty() ? "None" : employee.getAssignedTruckId())
-                      .append(" | Trailer: ")
-                      .append(safe(employee.getAssignedTrailerId()).isEmpty() ? "None" : employee.getAssignedTrailerId())
-                      .append("\n");
-                }
-            }
-
-            previewArea.setText(sb.toString());
-        };
-
-        driverJList.addListSelectionListener(e -> updatePreview.run());
-        updatePreview.run();
-
-        JPanel panel = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        gbc.insets = new Insets(6, 6, 6, 6);
-        gbc.fill = GridBagConstraints.BOTH;
-
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.weightx = 0.45;
-        gbc.weighty = 0;
-        panel.add(new JLabel("Available Drivers for " + task.getStartDate() + " " + task.getStartTime() + "-" + task.getEndTime() + ":"), gbc);
-
-        gbc.gridx = 1;
-        gbc.gridy = 0;
-        gbc.weightx = 0.55;
-        gbc.weighty = 0;
-        panel.add(new JLabel("Equipment Preview:"), gbc);
-
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        gbc.weightx = 0.45;
-        gbc.weighty = 1.0;
-        panel.add(driverScrollPane, gbc);
-
-        gbc.gridx = 1;
-        gbc.gridy = 1;
-        gbc.weightx = 0.55;
-        gbc.weighty = 1.0;
-        panel.add(previewScrollPane, gbc);
-
-        int result = JOptionPane.showConfirmDialog(
-                this,
-                panel,
-                "Dispatch Task #" + task.getTaskId(),
-                JOptionPane.OK_CANCEL_OPTION,
-                JOptionPane.PLAIN_MESSAGE
-        );
-
-        if (result != JOptionPane.OK_OPTION) {
-            return false;
-        }
-
-        ArrayList<Integer> assignedIds = new ArrayList<>();
+    private void updateTaskCrewNotesAndStatus(Task task) {
         ArrayList<String> assignedNames = new ArrayList<>();
 
-        for (DriverOption option : driverJList.getSelectedValuesList()) {
-            assignedIds.add(option.employee.getEmployeeId());
-            assignedNames.add(option.employee.getFullName());
+        if (task.getAssignedEmployeeIds() != null) {
+            for (Integer employeeId : task.getAssignedEmployeeIds()) {
+                Employee employee = manager.findEmployeeById(employeeId);
+                if (employee != null) {
+                    assignedNames.add(employee.getFullName());
+                }
+            }
         }
-
-        task.setAssignedEmployeeIds(assignedIds);
 
         if (!assignedNames.isEmpty()) {
             task.setNotes("Crew: " + String.join(", ", assignedNames));
@@ -316,8 +397,58 @@ public class JobBoardUI extends JFrame {
             task.setNotes("");
             task.setStatus("Open");
         }
+    }
 
-        return true;
+    private void updatePreview() {
+        List<DriverOption> selectedAvailable = availableDriverList.getSelectedValuesList();
+
+        if (!selectedAvailable.isEmpty()) {
+            StringBuilder sb = new StringBuilder();
+
+            for (DriverOption option : selectedAvailable) {
+                Employee employee = option.employee;
+                sb.append(employee.getFullName())
+                  .append(" | Truck: ")
+                  .append(displayValue(employee.getAssignedTruckId()))
+                  .append(" | Trailer: ")
+                  .append(displayValue(employee.getAssignedTrailerId()))
+                  .append("\n");
+            }
+
+            previewArea.setText(sb.toString().trim());
+            return;
+        }
+
+        updateAssignedPreviewOnly();
+    }
+
+    private void updateAssignedPreviewOnly() {
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < assignedDriverListModel.getSize(); i++) {
+            Employee employee = assignedDriverListModel.get(i).employee;
+            sb.append(employee.getFullName())
+              .append(" | Truck: ")
+              .append(displayValue(employee.getAssignedTruckId()))
+              .append(" | Trailer: ")
+              .append(displayValue(employee.getAssignedTrailerId()))
+              .append("\n");
+        }
+
+        previewArea.setText(sb.toString().trim());
+    }
+
+    private void refreshAll() {
+        loadJobs();
+        loadTasks();
+        loadDispatchPanelForSelectedTask();
+    }
+
+    private void clearDispatchPanel() {
+        availableDriverListModel.clear();
+        assignedDriverListModel.clear();
+        previewArea.setText("");
+        selectedTaskLabel.setText("Select a task");
     }
 
     private ArrayList<Employee> getAvailableDriversForTask(Task currentTask) {
@@ -328,6 +459,14 @@ public class JobBoardUI extends JFrame {
 
             if (!employee.isActive()) continue;
             if (!position.contains("driver")) continue;
+
+            boolean alreadyAssignedToCurrentTask =
+                    currentTask.getAssignedEmployeeIds() != null &&
+                    currentTask.getAssignedEmployeeIds().contains(employee.getEmployeeId());
+
+            if (alreadyAssignedToCurrentTask) {
+                continue;
+            }
 
             boolean conflict = false;
 
@@ -451,6 +590,11 @@ public class JobBoardUI extends JFrame {
 
     private String safe(String value) {
         return value == null || value.trim().isEmpty() ? "" : value;
+    }
+
+    private String displayValue(String value) {
+        String safeValue = safe(value);
+        return safeValue.isEmpty() ? "None" : safeValue;
     }
 
     private static class DriverOption {
