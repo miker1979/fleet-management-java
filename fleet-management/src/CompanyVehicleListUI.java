@@ -23,29 +23,18 @@ public class CompanyVehicleListUI extends JFrame {
         add(titleLabel, BorderLayout.NORTH);
 
         String[] columns = {
-                "Equipment Type",
-                "Unit ID",
-                "Year",
-                "Make",
-                "Model",
-                "Subtype",
-                "Length",
-                "Status",
-                "Assigned To",
-                "Issue"
+                "Type", "Unit ID", "Year", "Make", "Model",
+                "Subtype", "Length", "Status", "Assigned To", "Issue"
         };
 
         tableModel = new DefaultTableModel(columns, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
+            public boolean isCellEditable(int r, int c) { return false; }
         };
 
         equipmentTable = new JTable(tableModel);
+        equipmentTable.setAutoCreateRowSorter(true);
 
         equipmentTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
-            @Override
             public Component getTableCellRendererComponent(
                     JTable table, Object value, boolean isSelected,
                     boolean hasFocus, int row, int column) {
@@ -53,70 +42,51 @@ public class CompanyVehicleListUI extends JFrame {
                 Component c = super.getTableCellRendererComponent(
                         table, value, isSelected, hasFocus, row, column);
 
-                if (isSelected) {
-                    return c;
+                int modelRow = table.convertRowIndexToModel(row);
+                String status = String.valueOf(tableModel.getValueAt(modelRow, 7));
+
+                if (!isSelected) {
+                    switch (status) {
+                        case "Down" -> c.setForeground(Color.RED);
+                        case "Out of Service" -> c.setForeground(Color.DARK_GRAY);
+                        case "Stored" -> c.setForeground(Color.GRAY);
+                        case "In Use" -> c.setForeground(new Color(0, 140, 0));
+                        default -> c.setForeground(Color.BLACK);
+                    }
                 }
-
-                String status = String.valueOf(table.getValueAt(row, 7));
-
-                switch (status) {
-                    case "Down":
-                        c.setForeground(Color.RED);
-                        break;
-                    case "Out of Service":
-                        c.setForeground(Color.DARK_GRAY);
-                        break;
-                    case "Stored":
-                        c.setForeground(new Color(120, 120, 120));
-                        break;
-                    case "In Use":
-                        c.setForeground(new Color(0, 128, 0));
-                        break;
-                    default:
-                        c.setForeground(Color.BLACK);
-                }
-
                 return c;
             }
         });
 
-        equipmentTable.setRowHeight(30);
-        equipmentTable.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        equipmentTable.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 14));
-
         add(new JScrollPane(equipmentTable), BorderLayout.CENTER);
 
-        JPanel buttonPanel = new JPanel();
+        JPanel buttons = new JPanel();
 
         JButton refreshBtn = new JButton("Refresh");
-        JButton markInUseBtn = new JButton("Mark In Use");
-        JButton markUnusedBtn = new JButton("Mark Unused");
-        JButton markDownBtn = new JButton("Mark Down");
-        JButton markStoredBtn = new JButton("Send to Storage");
+        JButton editBtn = new JButton("Edit Vehicle");
+        JButton inUseBtn = new JButton("Mark In Use");
+        JButton unusedBtn = new JButton("Mark Unused");
+        JButton downBtn = new JButton("Mark Down");
+        JButton storedBtn = new JButton("Store");
         JButton closeBtn = new JButton("Close");
 
         refreshBtn.addActionListener(e -> refreshData());
-        markInUseBtn.addActionListener(e -> markSelectedEquipmentInUse());
-        markUnusedBtn.addActionListener(e -> markSelectedEquipmentUnused());
-        markDownBtn.addActionListener(e -> markSelectedEquipmentDown());
-        markStoredBtn.addActionListener(e -> markSelectedEquipmentStored());
+        editBtn.addActionListener(e -> editVehicle());
+        inUseBtn.addActionListener(e -> markInUse());
+        unusedBtn.addActionListener(e -> markUnused());
+        downBtn.addActionListener(e -> markDown());
+        storedBtn.addActionListener(e -> markStored());
         closeBtn.addActionListener(e -> dispose());
 
-        buttonPanel.add(refreshBtn);
-        buttonPanel.add(markInUseBtn);
-        buttonPanel.add(markUnusedBtn);
-        buttonPanel.add(markDownBtn);
-        buttonPanel.add(markStoredBtn);
-        buttonPanel.add(closeBtn);
+        buttons.add(refreshBtn);
+        buttons.add(editBtn);
+        buttons.add(inUseBtn);
+        buttons.add(unusedBtn);
+        buttons.add(downBtn);
+        buttons.add(storedBtn);
+        buttons.add(closeBtn);
 
-        add(buttonPanel, BorderLayout.SOUTH);
-
-        addWindowListener(new java.awt.event.WindowAdapter() {
-            @Override
-            public void windowActivated(java.awt.event.WindowEvent e) {
-                refreshData();
-            }
-        });
+        add(buttons, BorderLayout.SOUTH);
 
         refreshData();
     }
@@ -125,11 +95,6 @@ public class CompanyVehicleListUI extends JFrame {
         tableModel.setRowCount(0);
 
         for (Truck t : manager.getTrucks()) {
-            String assigned = t.getAssignedEmployeeName();
-            if (assigned == null || assigned.isEmpty()) {
-                assigned = "None";
-            }
-
             tableModel.addRow(new Object[]{
                     "Truck",
                     t.getTruckID(),
@@ -139,17 +104,12 @@ public class CompanyVehicleListUI extends JFrame {
                     "",
                     "",
                     t.getStatus(),
-                    assigned,
+                    safe(t.getAssignedEmployeeName(), "None"),
                     t.getCurrentIssue()
             });
         }
 
         for (Trailer t : manager.getTrailers()) {
-            String assigned = t.getAssignedEmployeeName();
-            if (assigned == null || assigned.isEmpty()) {
-                assigned = "None";
-            }
-
             tableModel.addRow(new Object[]{
                     "Trailer",
                     t.getTrailerId(),
@@ -159,131 +119,127 @@ public class CompanyVehicleListUI extends JFrame {
                     t.getTrailerType(),
                     t.getTrailerLength(),
                     t.getStatus(),
-                    assigned,
+                    safe(t.getAssignedEmployeeName(), "None"),
                     t.getCurrentIssue()
             });
         }
     }
 
-    private String getSelectedEquipmentType() {
-        int row = equipmentTable.getSelectedRow();
-        if (row == -1) {
+    private int getSelectedRow() {
+        int viewRow = equipmentTable.getSelectedRow();
+        if (viewRow == -1) {
             JOptionPane.showMessageDialog(this, "Select equipment first.");
-            return null;
+            return -1;
         }
-
-        return String.valueOf(tableModel.getValueAt(row, 0));
+        return equipmentTable.convertRowIndexToModel(viewRow);
     }
 
-    private String getSelectedEquipmentId() {
-        int row = equipmentTable.getSelectedRow();
-        if (row == -1) {
-            JOptionPane.showMessageDialog(this, "Select equipment first.");
-            return null;
-        }
+    private void markInUse() {
+        int row = getSelectedRow();
+        if (row == -1) return;
 
-        return String.valueOf(tableModel.getValueAt(row, 1));
-    }
+        String type = (String) tableModel.getValueAt(row, 0);
+        String id = (String) tableModel.getValueAt(row, 1);
 
-    private void markSelectedEquipmentInUse() {
-        String type = getSelectedEquipmentType();
-        String id = getSelectedEquipmentId();
-        if (type == null || id == null) {
-            return;
-        }
-
-        String employee = JOptionPane.showInputDialog(
+        Employee emp = (Employee) JOptionPane.showInputDialog(
                 this,
-                "Enter employee name using this equipment:"
+                "Select employee:",
+                "Assign Equipment",
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                manager.getEmployees().toArray(),
+                null
         );
 
-        if (employee == null || employee.trim().isEmpty()) {
-            return;
-        }
+        if (emp == null) return;
 
         if (type.equals("Truck")) {
-            Truck truck = manager.findTruckById(id);
-            if (truck != null) {
-                truck.markInUse(employee.trim());
-            }
+            Truck t = manager.findTruckById(id);
+            if (t != null) t.markInUse(emp.getFullName());
         } else {
-            Trailer trailer = manager.findTrailerById(id);
-            if (trailer != null) {
-                trailer.markInUse(employee.trim());
-            }
+            Trailer t = manager.findTrailerById(id);
+            if (t != null) t.markInUse(emp.getFullName());
         }
 
+        DataStore.save(manager);
         refreshData();
     }
 
-    private void markSelectedEquipmentUnused() {
-        String type = getSelectedEquipmentType();
-        String id = getSelectedEquipmentId();
-        if (type == null || id == null) {
-            return;
-        }
+    private void markUnused() {
+        int row = getSelectedRow();
+        if (row == -1) return;
+
+        String type = (String) tableModel.getValueAt(row, 0);
+        String id = (String) tableModel.getValueAt(row, 1);
 
         if (type.equals("Truck")) {
-            Truck truck = manager.findTruckById(id);
-            if (truck != null) {
-                truck.markUnused();
-            }
+            Truck t = manager.findTruckById(id);
+            if (t != null) t.markUnused();
         } else {
-            Trailer trailer = manager.findTrailerById(id);
-            if (trailer != null) {
-                trailer.markUnused();
-            }
+            Trailer t = manager.findTrailerById(id);
+            if (t != null) t.markUnused();
         }
 
+        DataStore.save(manager);
         refreshData();
     }
 
-    private void markSelectedEquipmentDown() {
-        String type = getSelectedEquipmentType();
-        String id = getSelectedEquipmentId();
-        if (type == null || id == null) {
-            return;
-        }
+    private void markDown() {
+        int row = getSelectedRow();
+        if (row == -1) return;
 
         String issue = JOptionPane.showInputDialog(this, "Enter issue:");
-        if (issue == null) {
-            return;
-        }
+        if (issue == null) return;
+
+        String type = (String) tableModel.getValueAt(row, 0);
+        String id = (String) tableModel.getValueAt(row, 1);
 
         if (type.equals("Truck")) {
-            Truck truck = manager.findTruckById(id);
-            if (truck != null) {
-                truck.setDown(true, issue);
-            }
+            Truck t = manager.findTruckById(id);
+            if (t != null) t.setDown(true, issue);
         } else {
-            Trailer trailer = manager.findTrailerById(id);
-            if (trailer != null) {
-                trailer.setDown(true, issue);
-            }
+            Trailer t = manager.findTrailerById(id);
+            if (t != null) t.setDown(true, issue);
         }
 
+        DataStore.save(manager);
         refreshData();
     }
 
-    private void markSelectedEquipmentStored() {
-        String type = getSelectedEquipmentType();
-        String id = getSelectedEquipmentId();
-        if (type == null || id == null) {
-            return;
-        }
+    private void markStored() {
+        int row = getSelectedRow();
+        if (row == -1) return;
+
+        String type = (String) tableModel.getValueAt(row, 0);
+        String id = (String) tableModel.getValueAt(row, 1);
 
         if (type.equals("Truck")) {
-            Truck truck = manager.findTruckById(id);
-            if (truck != null) {
-                truck.markStored();
-            }
+            Truck t = manager.findTruckById(id);
+            if (t != null) t.markStored();
         } else {
-            Trailer trailer = manager.findTrailerById(id);
-            if (trailer != null) {
-                trailer.markStored();
-            }
+            Trailer t = manager.findTrailerById(id);
+            if (t != null) t.markStored();
         }
 
+        DataStore.save(manager);
         refreshData();
+    }
+
+    // 🔥 NEW (from your change list)
+    private void editVehicle() {
+        int row = getSelectedRow();
+        if (row == -1) return;
+
+        String type = (String) tableModel.getValueAt(row, 0);
+        String id = (String) tableModel.getValueAt(row, 1);
+
+        JOptionPane.showMessageDialog(
+                this,
+                "Edit Vehicle UI coming next (we’ll build this clean)."
+        );
+    }
+
+    private String safe(String v, String fallback) {
+        return (v == null || v.isBlank()) ? fallback : v;
     }
 }

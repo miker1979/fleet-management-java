@@ -7,7 +7,7 @@ public class AssignTruckUI extends JFrame {
     private FleetManager manager;
     private CompanyRosterUI parentUI;
 
-    private JComboBox<String> employeeCombo;
+    private JComboBox<Employee> employeeCombo;
     private JComboBox<String> truckCombo;
     private JLabel currentTruckLabel;
 
@@ -38,15 +38,21 @@ public class AssignTruckUI extends JFrame {
         formPanel.setBackground(Color.WHITE);
         formPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
 
+        // EMPLOYEES
         employeeCombo = new JComboBox<>();
         for (Employee emp : manager.getEmployees()) {
-            employeeCombo.addItem(emp.getEmployeeId() + " - " + emp.getFullName());
+            if (emp != null && emp.isActive()) {
+                employeeCombo.addItem(emp);
+            }
         }
 
+        // TRUCKS
         truckCombo = new JComboBox<>();
         truckCombo.addItem("None");
         for (Truck truck : manager.getTrucks()) {
-            truckCombo.addItem(truck.getTruckID());
+            if (truck != null) {
+                truckCombo.addItem(truck.getTruckID());
+            }
         }
 
         currentTruckLabel = new JLabel("None");
@@ -63,6 +69,7 @@ public class AssignTruckUI extends JFrame {
 
         mainPanel.add(formPanel, BorderLayout.CENTER);
 
+        // BUTTONS
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttonPanel.setBackground(new Color(245, 247, 250));
 
@@ -73,9 +80,6 @@ public class AssignTruckUI extends JFrame {
         assignBtn.setBackground(new Color(60, 90, 160));
         assignBtn.setForeground(Color.WHITE);
         assignBtn.setFocusPainted(false);
-
-        clearBtn.setFocusPainted(false);
-        closeBtn.setFocusPainted(false);
 
         assignBtn.addActionListener(e -> assignTruck());
         clearBtn.addActionListener(e -> clearTruckAssignment());
@@ -96,7 +100,8 @@ public class AssignTruckUI extends JFrame {
     }
 
     private void loadSelectedEmployeeAssignment() {
-        Employee employee = getSelectedEmployee();
+        Employee employee = (Employee) employeeCombo.getSelectedItem();
+
         if (employee == null) {
             currentTruckLabel.setText("None");
             truckCombo.setSelectedItem("None");
@@ -104,7 +109,8 @@ public class AssignTruckUI extends JFrame {
         }
 
         String assignedTruck = employee.getAssignedTruckId();
-        if (assignedTruck == null || assignedTruck.trim().isEmpty()) {
+
+        if (assignedTruck == null || assignedTruck.isBlank()) {
             currentTruckLabel.setText("None");
             truckCombo.setSelectedItem("None");
         } else {
@@ -113,19 +119,8 @@ public class AssignTruckUI extends JFrame {
         }
     }
 
-    private Employee getSelectedEmployee() {
-        String selectedEmployee = (String) employeeCombo.getSelectedItem();
-
-        if (selectedEmployee == null) {
-            return null;
-        }
-
-        int employeeId = Integer.parseInt(selectedEmployee.split(" - ")[0]);
-        return manager.findEmployeeById(employeeId);
-    }
-
     private void assignTruck() {
-        Employee employee = getSelectedEmployee();
+        Employee employee = (Employee) employeeCombo.getSelectedItem();
         String selectedTruck = (String) truckCombo.getSelectedItem();
 
         if (employee == null || selectedTruck == null || selectedTruck.equals("None")) {
@@ -138,7 +133,7 @@ public class AssignTruckUI extends JFrame {
         if (alreadyAssigned != null && alreadyAssigned.getEmployeeId() != employee.getEmployeeId()) {
             JOptionPane.showMessageDialog(
                     this,
-                    "Truck " + selectedTruck + " is already assigned to " + alreadyAssigned.getFullName() + "."
+                    "Truck " + selectedTruck + " is already assigned to " + alreadyAssigned.getFullName()
             );
             return;
         }
@@ -146,17 +141,18 @@ public class AssignTruckUI extends JFrame {
         employee.setAssignedTruckId(selectedTruck);
         currentTruckLabel.setText(selectedTruck);
 
+        DataStore.save(manager);
+
         JOptionPane.showMessageDialog(
                 this,
-                "Truck " + selectedTruck + " assigned to " + employee.getFullName() + "."
+                "Truck " + selectedTruck + " assigned to " + employee.getFullName()
         );
 
         refreshParent();
-        dispose();
     }
 
     private void clearTruckAssignment() {
-        Employee employee = getSelectedEmployee();
+        Employee employee = (Employee) employeeCombo.getSelectedItem();
 
         if (employee == null) {
             JOptionPane.showMessageDialog(this, "Select an employee first.");
@@ -167,19 +163,21 @@ public class AssignTruckUI extends JFrame {
         currentTruckLabel.setText("None");
         truckCombo.setSelectedItem("None");
 
+        DataStore.save(manager);
+
         JOptionPane.showMessageDialog(
                 this,
-                "Truck assignment cleared for " + employee.getFullName() + "."
+                "Truck assignment cleared for " + employee.getFullName()
         );
 
         refreshParent();
-        dispose();
     }
 
     private Employee findEmployeeAssignedToTruck(String truckId) {
         for (Employee employee : manager.getEmployees()) {
-            if (employee.getAssignedTruckId() != null &&
-                    employee.getAssignedTruckId().equalsIgnoreCase(truckId)) {
+            if (employee != null &&
+                employee.getAssignedTruckId() != null &&
+                employee.getAssignedTruckId().equalsIgnoreCase(truckId)) {
                 return employee;
             }
         }

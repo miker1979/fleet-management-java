@@ -68,6 +68,7 @@ public class CreateDVIRUI extends JFrame {
         contentPanel.add(buildStatusPanel());
 
         JScrollPane scrollPane = new JScrollPane(contentPanel);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         mainPanel.add(scrollPane, BorderLayout.CENTER);
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 8));
@@ -94,6 +95,7 @@ public class CreateDVIRUI extends JFrame {
         truckIdField = new JTextField(getAssignedTruckId());
         odometerField = new JTextField();
         trailerIdField = new JTextField(getAssignedTrailerId());
+        remarksArea = new JTextArea(6, 50);
         mechanicSignatureField = new JTextField();
         mechanicDateField = new JTextField();
         driverSignatureField = new JTextField(getDriverName());
@@ -183,7 +185,6 @@ public class CreateDVIRUI extends JFrame {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBorder(BorderFactory.createTitledBorder("Remarks"));
 
-        remarksArea = new JTextArea(6, 50);
         remarksArea.setLineWrap(true);
         remarksArea.setWrapStyleWord(true);
 
@@ -237,6 +238,11 @@ public class CreateDVIRUI extends JFrame {
 
             int odometer = Integer.parseInt(odometerText);
 
+            Truck truck = manager.findTruckById(truckId);
+            if (truck == null) {
+                throw new IllegalArgumentException("Truck ID does not exist in fleet.");
+            }
+
             List<String> truckDefects = getSelectedDefects(truckDefectBoxes);
             List<String> trailerDefects = getSelectedDefects(trailerDefectBoxes);
 
@@ -264,28 +270,27 @@ public class CreateDVIRUI extends JFrame {
 
             manager.getDvirReports().add(report);
 
-            if (!truckDefects.isEmpty() || !trailerDefects.isEmpty()) {
-                JOptionPane.showMessageDialog(
-                        this,
-                        "DVIR saved. Defects were noted and should be reviewed by maintenance.",
-                        "DVIR Saved",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
-            } else {
-                JOptionPane.showMessageDialog(
-                        this,
-                        "DVIR saved successfully.",
-                        "DVIR Saved",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
+            if (!truckDefects.isEmpty()) {
+                truck.setDown(true, "DVIR Report #" + nextId + " - Defects Reported");
             }
+
+            DataStore.save(manager);
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    truckDefects.isEmpty() && trailerDefects.isEmpty()
+                            ? "DVIR saved successfully."
+                            : "DVIR saved. Defects reported -> truck flagged for maintenance.",
+                    "DVIR Saved",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
 
             dispose();
 
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(this, "Odometer must be a valid number.");
         } catch (DateTimeParseException ex) {
-            JOptionPane.showMessageDialog(this, "Date or time format is invalid. Use yyyy-MM-dd and HH:mm.");
+            JOptionPane.showMessageDialog(this, "Date/time format invalid. Use yyyy-MM-dd and HH:mm.");
         } catch (IllegalArgumentException ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage());
         } catch (Exception ex) {
@@ -333,7 +338,10 @@ public class CreateDVIRUI extends JFrame {
     }
 
     private String getAssignedTrailerId() {
-        return "";
+        if (employee == null || employee.getAssignedTrailerId() == null) {
+            return "";
+        }
+        return employee.getAssignedTrailerId();
     }
 
     private void addField(JPanel panel, String labelText, JComponent field) {
@@ -345,7 +353,7 @@ public class CreateDVIRUI extends JFrame {
 
     private static class DigitOnlyFilter extends DocumentFilter {
         @Override
-        public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr)
+        public void insertString(DocumentFilter.FilterBypass fb, int offset, String string, AttributeSet attr)
                 throws BadLocationException {
             if (string != null && string.matches("\\d+")) {
                 super.insertString(fb, offset, string, attr);
@@ -353,11 +361,12 @@ public class CreateDVIRUI extends JFrame {
         }
 
         @Override
-        public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs)
+        public void replace(DocumentFilter.FilterBypass fb, int offset, int length, String text, AttributeSet attrs)
                 throws BadLocationException {
             if (text == null || text.matches("\\d*")) {
                 super.replace(fb, offset, length, text, attrs);
             }
         }
+    
     }
 }

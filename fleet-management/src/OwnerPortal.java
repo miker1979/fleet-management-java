@@ -1,17 +1,24 @@
+
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class OwnerPortal extends JFrame {
 
@@ -146,7 +153,6 @@ public class OwnerPortal extends JFrame {
         actionPanel.add(deleteTaskBtn);
 
         panel.add(actionPanel, BorderLayout.SOUTH);
-
         return panel;
     }
 
@@ -168,17 +174,19 @@ public class OwnerPortal extends JFrame {
         JButton createJobBtn = createStyledButton("Create Job", new Color(0, 255, 150));
         JButton editJobBtn = createStyledButton("Edit Job", new Color(0, 200, 255));
         JButton deleteJobBtn = createStyledButton("Delete Job", new Color(255, 100, 100));
+        JButton jobStatsBtn = createStyledButton("Job Dashboard", new Color(255, 215, 0));
 
         createJobBtn.addActionListener(e -> createJob());
         editJobBtn.addActionListener(e -> editSelectedJob());
         deleteJobBtn.addActionListener(e -> deleteSelectedJob());
+        jobStatsBtn.addActionListener(e -> showSelectedJobDashboard());
 
         actionPanel.add(createJobBtn);
         actionPanel.add(editJobBtn);
         actionPanel.add(deleteJobBtn);
+        actionPanel.add(jobStatsBtn);
 
         panel.add(actionPanel, BorderLayout.SOUTH);
-
         return panel;
     }
 
@@ -198,7 +206,6 @@ public class OwnerPortal extends JFrame {
 
     private void openChildWindow(JFrame window) {
         window.setVisible(true);
-
         window.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosed(java.awt.event.WindowEvent e) {
@@ -255,6 +262,14 @@ public class OwnerPortal extends JFrame {
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
+
+            @Override
+            public Class<?> getColumnClass(int column) {
+                return switch (column) {
+                    case 0, 1, 10 -> Integer.class;
+                    default -> String.class;
+                };
+            }
         };
 
         taskTable = new JTable(taskModel);
@@ -264,7 +279,7 @@ public class OwnerPortal extends JFrame {
     private void setupJobTable() {
         String[] columns = {
                 "Job #", "Project", "Contractor", "Start Date",
-                "End Date", "Location", "Status"
+                "End Date", "Open Time", "Location", "Status"
         };
 
         jobModel = new DefaultTableModel(columns, 0) {
@@ -272,10 +287,23 @@ public class OwnerPortal extends JFrame {
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
+
+            @Override
+            public Class<?> getColumnClass(int column) {
+                return column == 0 ? Integer.class : String.class;
+            }
         };
 
         jobTable = new JTable(jobModel);
         styleTable(jobTable);
+        jobTable.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2 && SwingUtilities.isLeftMouseButton(e)) {
+                    showSelectedJobDashboard();
+                }
+            }
+        });
     }
 
     private void styleTable(JTable table) {
@@ -285,6 +313,7 @@ public class OwnerPortal extends JFrame {
         table.setSelectionForeground(Color.WHITE);
         table.setRowHeight(34);
         table.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        table.setAutoCreateRowSorter(true);
 
         JTableHeader header = table.getTableHeader();
         header.setBackground(new Color(45, 45, 45));
@@ -386,11 +415,47 @@ public class OwnerPortal extends JFrame {
                     j.getJobNumber(),
                     safe(j.getProjectName()),
                     safe(j.getContractor()),
-                    safe(j.getStartDate()),
-                    safe(j.getEndDate()),
+                    formatMonthYearDisplay(safe(j.getStartDate())),
+                    formatMonthYearDisplay(safe(j.getEndDate())),
+                    buildJobOpenTime(j),
                     safe(j.getLocation()),
                     safe(j.getStatus())
             });
+        }
+    }
+
+    private String buildJobOpenTime(Job job) {
+        try {
+            LocalDate start = LocalDate.parse(job.getStartDate());
+            LocalDate end = "Active".equalsIgnoreCase(safe(job.getStatus()))
+                    ? LocalDate.now()
+                    : LocalDate.parse(job.getEndDate());
+
+            if (end.isBefore(start)) {
+                return "Invalid";
+            }
+
+            long totalMonths = ChronoUnit.MONTHS.between(start.withDayOfMonth(1), end.withDayOfMonth(1));
+            long years = totalMonths / 12;
+            long months = totalMonths % 12;
+            long extraDays = ChronoUnit.DAYS.between(end.withDayOfMonth(1), end);
+            long weeks = Math.max(0, extraDays / 7);
+
+            StringBuilder sb = new StringBuilder();
+            if (years > 0) {
+                sb.append(years).append(years == 1 ? " year" : " years");
+            }
+            if (months > 0) {
+                if (sb.length() > 0) sb.append(" ");
+                sb.append(months).append(months == 1 ? " month" : " months");
+            }
+            if (years == 0 && weeks > 0) {
+                if (sb.length() > 0) sb.append(" ");
+                sb.append(weeks).append(weeks == 1 ? " week" : " weeks");
+            }
+            return sb.length() == 0 ? "Less than 1 month" : sb.toString();
+        } catch (Exception e) {
+            return "N/A";
         }
     }
 
@@ -450,32 +515,46 @@ public class OwnerPortal extends JFrame {
         JTextField jobNumberField = new JTextField();
         JTextField contractorField = new JTextField();
         JTextField projectField = new JTextField();
-        JTextField startDateField = new JTextField(LocalDate.now().toString());
-        JTextField endDateField = new JTextField(LocalDate.now().plusDays(30).toString());
+        JComboBox<String> startMonthBox = buildMonthCombo();
+        JComboBox<Integer> startYearBox = buildYearCombo();
+        JComboBox<String> endMonthBox = buildMonthCombo();
+        JComboBox<Integer> endYearBox = buildYearCombo();
         JTextField locationField = new JTextField();
-        JTextField statusField = new JTextField("Active");
+        JComboBox<String> statusField = new JComboBox<>(new String[]{"Active", "Open", "Completed", "Closed", "On Hold"});
         JTextField managerField = new JTextField();
         JTextField dotField = new JTextField();
         JTextField barrierField = new JTextField();
         JTextField linearFeetField = new JTextField("0");
         JTextField notesField = new JTextField();
 
+        LocalDate defaultStart = LocalDate.now().withDayOfMonth(1);
+        LocalDate defaultEnd = defaultStart.plusMonths(1).withDayOfMonth(defaultStart.plusMonths(1).lengthOfMonth());
+
         if (existing != null) {
             jobNumberField.setText(String.valueOf(existing.getJobNumber()));
             jobNumberField.setEditable(false);
             contractorField.setText(safe(existing.getContractor()));
             projectField.setText(safe(existing.getProjectName()));
-            startDateField.setText(safe(existing.getStartDate()));
-            endDateField.setText(safe(existing.getEndDate()));
             locationField.setText(safe(existing.getLocation()));
-            statusField.setText(safe(existing.getStatus()));
+            statusField.setSelectedItem(safe(existing.getStatus()).isEmpty() ? "Active" : safe(existing.getStatus()));
             managerField.setText(safe(existing.getProjectManager()));
             dotField.setText(safe(existing.getDotProjectNumber()));
             barrierField.setText(safe(existing.getBarrierType()));
             linearFeetField.setText(String.valueOf(existing.getTotalLinearFeet()));
             notesField.setText(safe(existing.getNotes()));
+
+            LocalDate start = parseJobDateOrDefault(existing.getStartDate(), defaultStart);
+            LocalDate end = parseJobDateOrDefault(existing.getEndDate(), defaultEnd);
+            startMonthBox.setSelectedIndex(start.getMonthValue() - 1);
+            startYearBox.setSelectedItem(start.getYear());
+            endMonthBox.setSelectedIndex(end.getMonthValue() - 1);
+            endYearBox.setSelectedItem(end.getYear());
         } else {
             jobNumberField.setText(String.valueOf(getNextJobNumber()));
+            startMonthBox.setSelectedIndex(defaultStart.getMonthValue() - 1);
+            startYearBox.setSelectedItem(defaultStart.getYear());
+            endMonthBox.setSelectedIndex(defaultEnd.getMonthValue() - 1);
+            endYearBox.setSelectedItem(defaultEnd.getYear());
         }
 
         JPanel panel = new JPanel(new GridBagLayout());
@@ -488,8 +567,8 @@ public class OwnerPortal extends JFrame {
         addFormRow(panel, gbc, 0, "Job #:", jobNumberField);
         addFormRow(panel, gbc, 1, "Contractor:", contractorField);
         addFormRow(panel, gbc, 2, "Project Name:", projectField);
-        addFormRow(panel, gbc, 3, "Start Date (yyyy-MM-dd):", startDateField);
-        addFormRow(panel, gbc, 4, "End Date (yyyy-MM-dd):", endDateField);
+        addFormRow(panel, gbc, 3, "Start (Month / Year):", buildTwoFieldPanel(startMonthBox, startYearBox));
+        addFormRow(panel, gbc, 4, "End (Month / Year):", buildTwoFieldPanel(endMonthBox, endYearBox));
         addFormRow(panel, gbc, 5, "Location:", locationField);
         addFormRow(panel, gbc, 6, "Status:", statusField);
         addFormRow(panel, gbc, 7, "Project Manager:", managerField);
@@ -499,7 +578,7 @@ public class OwnerPortal extends JFrame {
         addFormRow(panel, gbc, 11, "Notes:", notesField);
 
         JScrollPane scrollPane = new JScrollPane(panel);
-        scrollPane.setPreferredSize(new Dimension(650, 450));
+        scrollPane.setPreferredSize(new Dimension(700, 460));
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
         int result = JOptionPane.showConfirmDialog(
@@ -518,20 +597,34 @@ public class OwnerPortal extends JFrame {
             int jobNumber = Integer.parseInt(jobNumberField.getText().trim());
             int linearFeet = parseIntSafe(linearFeetField.getText().trim(), 0);
 
-            LocalDate.parse(startDateField.getText().trim());
-            LocalDate.parse(endDateField.getText().trim());
+            LocalDate startDate = LocalDate.of(
+                    (Integer) startYearBox.getSelectedItem(),
+                    startMonthBox.getSelectedIndex() + 1,
+                    1
+            );
+
+            YearMonth endYearMonth = YearMonth.of(
+                    (Integer) endYearBox.getSelectedItem(),
+                    endMonthBox.getSelectedIndex() + 1
+            );
+            LocalDate endDate = endYearMonth.atEndOfMonth();
+
+            if (endDate.isBefore(startDate)) {
+                JOptionPane.showMessageDialog(this, "End date cannot be before start date.");
+                return null;
+            }
 
             if (existing == null) {
                 Job job = new Job(
                         jobNumber,
                         contractorField.getText().trim(),
                         projectField.getText().trim(),
-                        startDateField.getText().trim(),
-                        endDateField.getText().trim(),
+                        startDate.toString(),
+                        endDate.toString(),
                         locationField.getText().trim()
                 );
 
-                job.setStatus(statusField.getText().trim());
+                job.setStatus(String.valueOf(statusField.getSelectedItem()).trim());
                 job.setProjectManager(managerField.getText().trim());
                 job.setDotProjectNumber(dotField.getText().trim());
                 job.setBarrierType(barrierField.getText().trim());
@@ -542,10 +635,10 @@ public class OwnerPortal extends JFrame {
             } else {
                 existing.setContractor(contractorField.getText().trim());
                 existing.setProjectName(projectField.getText().trim());
-                existing.setStartDate(startDateField.getText().trim());
-                existing.setEndDate(endDateField.getText().trim());
+                existing.setStartDate(startDate.toString());
+                existing.setEndDate(endDate.toString());
                 existing.setLocation(locationField.getText().trim());
-                existing.setStatus(statusField.getText().trim());
+                existing.setStatus(String.valueOf(statusField.getSelectedItem()).trim());
                 existing.setProjectManager(managerField.getText().trim());
                 existing.setDotProjectNumber(dotField.getText().trim());
                 existing.setBarrierType(barrierField.getText().trim());
@@ -585,12 +678,16 @@ public class OwnerPortal extends JFrame {
 
     private void dispatchSelectedTask() {
         Task selected = getSelectedTask();
+
         if (selected == null) {
             JOptionPane.showMessageDialog(this, "Select a task first.");
             return;
         }
 
-        if (showDispatchDialog(selected)) {
+        DispatchFormUI dialog = new DispatchFormUI(this, manager, selected);
+        dialog.setVisible(true);
+
+        if (dialog.wasSaved()) {
             DataStore.save(manager);
             refreshData();
         }
@@ -941,135 +1038,6 @@ public class OwnerPortal extends JFrame {
         }
     }
 
-    private boolean showDispatchDialog(Task task) {
-        ArrayList<Employee> availableDrivers = getAvailableDriversForTask(task);
-        DefaultListModel<DriverOption> driverListModel = new DefaultListModel<>();
-
-        for (Employee employee : availableDrivers) {
-            driverListModel.addElement(new DriverOption(employee));
-        }
-
-        JList<DriverOption> driverJList = new JList<>(driverListModel);
-        driverJList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-        JScrollPane driverScrollPane = new JScrollPane(driverJList);
-        driverScrollPane.setPreferredSize(new Dimension(280, 220));
-
-        JTextArea assignmentPreview = new JTextArea(12, 35);
-        assignmentPreview.setEditable(false);
-        assignmentPreview.setLineWrap(true);
-        assignmentPreview.setWrapStyleWord(true);
-        JScrollPane previewScrollPane = new JScrollPane(assignmentPreview);
-
-        if (task.getAssignedEmployeeIds() != null && !task.getAssignedEmployeeIds().isEmpty()) {
-            ArrayList<Integer> indexes = new ArrayList<>();
-
-            for (int i = 0; i < driverListModel.size(); i++) {
-                DriverOption option = driverListModel.get(i);
-                if (task.getAssignedEmployeeIds().contains(option.employee.getEmployeeId())) {
-                    indexes.add(i);
-                }
-            }
-
-            int[] selectedIndexes = new int[indexes.size()];
-            for (int i = 0; i < indexes.size(); i++) {
-                selectedIndexes[i] = indexes.get(i);
-            }
-            driverJList.setSelectedIndices(selectedIndexes);
-        }
-
-        Runnable updatePreview = () -> {
-            List<DriverOption> selected = driverJList.getSelectedValuesList();
-            StringBuilder sb = new StringBuilder();
-
-            if (selected.isEmpty()) {
-                sb.append("No drivers assigned yet.");
-            } else {
-                for (DriverOption option : selected) {
-                    Employee employee = option.employee;
-                    sb.append(employee.getFullName())
-                            .append(" | Truck: ")
-                            .append(safe(employee.getAssignedTruckId()).isEmpty() ? "None" : employee.getAssignedTruckId())
-                            .append(" | Trailer: ")
-                            .append(safe(employee.getAssignedTrailerId()).isEmpty() ? "None" : employee.getAssignedTrailerId())
-                            .append("\n");
-                }
-            }
-
-            assignmentPreview.setText(sb.toString());
-        };
-
-        driverJList.addListSelectionListener(e -> updatePreview.run());
-        updatePreview.run();
-
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(6, 6, 6, 6);
-        gbc.fill = GridBagConstraints.BOTH;
-        gbc.anchor = GridBagConstraints.WEST;
-
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.weightx = 0.5;
-        gbc.weighty = 0;
-        panel.add(new JLabel("Available Drivers for " + task.getStartDate() + " " + task.getStartTime() + "-" + task.getEndTime() + ":"), gbc);
-
-        gbc.gridx = 1;
-        gbc.gridy = 0;
-        gbc.weightx = 0.5;
-        panel.add(new JLabel("Assigned Equipment Preview:"), gbc);
-
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        gbc.weightx = 0.5;
-        gbc.weighty = 1.0;
-        panel.add(driverScrollPane, gbc);
-
-        gbc.gridx = 1;
-        gbc.gridy = 1;
-        gbc.weightx = 0.5;
-        gbc.weighty = 1.0;
-        panel.add(previewScrollPane, gbc);
-
-        int result = JOptionPane.showConfirmDialog(
-                this,
-                panel,
-                "Dispatch Task #" + task.getTaskId(),
-                JOptionPane.OK_CANCEL_OPTION,
-                JOptionPane.PLAIN_MESSAGE
-        );
-
-        if (result != JOptionPane.OK_OPTION) {
-            return false;
-        }
-
-        ArrayList<Integer> assignedIds = new ArrayList<>();
-        for (DriverOption option : driverJList.getSelectedValuesList()) {
-            assignedIds.add(option.employee.getEmployeeId());
-        }
-
-        task.setAssignedEmployeeIds(assignedIds);
-
-        if (!assignedIds.isEmpty()) {
-            ArrayList<String> names = new ArrayList<>();
-            for (Integer employeeId : assignedIds) {
-                Employee employee = manager.findEmployeeById(employeeId);
-                if (employee != null) {
-                    String truck = safe(employee.getAssignedTruckId()).isEmpty() ? "No Truck" : employee.getAssignedTruckId();
-                    String trailer = safe(employee.getAssignedTrailerId()).isEmpty() ? "No Trailer" : employee.getAssignedTrailerId();
-                    names.add(employee.getFullName() + " [Truck: " + truck + ", Trailer: " + trailer + "]");
-                }
-            }
-            task.setNotes("Crew: " + String.join(", ", names));
-            task.setStatus("Dispatched");
-        } else {
-            task.setNotes("");
-            task.setStatus("Open");
-        }
-
-        return true;
-    }
-
     private void showAssignDriverVehicleDialog() {
         ArrayList<Employee> drivers = manager.getActiveDriverEmployees();
         ArrayList<Truck> trucks = manager.getAssignableTrucks();
@@ -1221,7 +1189,7 @@ public class OwnerPortal extends JFrame {
                 continue;
             }
 
-            String position = safe(employee.getPosition()).toLowerCase();
+            String position = safe(employee.getPosition()).toLowerCase(Locale.ENGLISH);
 
             if (!employee.isActive()) {
                 continue;
@@ -1302,11 +1270,12 @@ public class OwnerPortal extends JFrame {
     }
 
     private Task getSelectedTask() {
-        int row = taskTable.getSelectedRow();
-        if (row == -1) {
+        int viewRow = taskTable.getSelectedRow();
+        if (viewRow == -1) {
             return null;
         }
 
+        int row = taskTable.convertRowIndexToModel(viewRow);
         int taskId = Integer.parseInt(String.valueOf(taskModel.getValueAt(row, 0)));
 
         for (Task task : manager.getTasks()) {
@@ -1319,11 +1288,12 @@ public class OwnerPortal extends JFrame {
     }
 
     private Job getSelectedJob() {
-        int row = jobTable.getSelectedRow();
-        if (row == -1) {
+        int viewRow = jobTable.getSelectedRow();
+        if (viewRow == -1) {
             return null;
         }
 
+        int row = jobTable.convertRowIndexToModel(viewRow);
         int jobNumber = Integer.parseInt(String.valueOf(jobModel.getValueAt(row, 0)));
 
         for (Job job : manager.getJobs()) {
@@ -1333,6 +1303,17 @@ public class OwnerPortal extends JFrame {
         }
 
         return null;
+    }
+
+    private void showSelectedJobDashboard() {
+        Job selected = getSelectedJob();
+
+        if (selected == null) {
+            JOptionPane.showMessageDialog(this, "Select a job first.");
+            return;
+        }
+
+        new JobDashboardUI(manager, selected).setVisible(true);
     }
 
     private int getNextJobNumber() {
@@ -1379,6 +1360,48 @@ public class OwnerPortal extends JFrame {
         }
     }
 
+    private JComboBox<String> buildMonthCombo() {
+        JComboBox<String> comboBox = new JComboBox<>();
+        for (int month = 1; month <= 12; month++) {
+            comboBox.addItem(java.time.Month.of(month).getDisplayName(TextStyle.FULL, Locale.US));
+        }
+        return comboBox;
+    }
+
+    private JComboBox<Integer> buildYearCombo() {
+        JComboBox<Integer> comboBox = new JComboBox<>();
+        int currentYear = LocalDate.now().getYear();
+        for (int year = currentYear - 2; year <= currentYear + 10; year++) {
+            comboBox.addItem(year);
+        }
+        return comboBox;
+    }
+
+    private JPanel buildTwoFieldPanel(JComponent left, JComponent right) {
+        JPanel panel = new JPanel(new GridLayout(1, 2, 8, 0));
+        panel.setOpaque(false);
+        panel.add(left);
+        panel.add(right);
+        return panel;
+    }
+
+    private LocalDate parseJobDateOrDefault(String value, LocalDate fallback) {
+        try {
+            return LocalDate.parse(value);
+        } catch (Exception e) {
+            return fallback;
+        }
+    }
+
+    private String formatMonthYearDisplay(String isoDate) {
+        try {
+            LocalDate date = LocalDate.parse(isoDate);
+            return date.getMonth().getDisplayName(TextStyle.SHORT, Locale.US) + " " + date.getYear();
+        } catch (Exception e) {
+            return isoDate;
+        }
+    }
+
     private void addFormRow(JPanel panel, GridBagConstraints gbc, int row, String labelText, Component field) {
         gbc.gridx = 0;
         gbc.gridy = row;
@@ -1391,27 +1414,6 @@ public class OwnerPortal extends JFrame {
         gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         panel.add(field, gbc);
-    }
-
-    private static class DriverOption {
-        private final Employee employee;
-
-        private DriverOption(Employee employee) {
-            this.employee = employee;
-        }
-
-        @Override
-        public String toString() {
-            String truck = employee.getAssignedTruckId() == null || employee.getAssignedTruckId().isEmpty()
-                    ? "No Truck"
-                    : employee.getAssignedTruckId();
-
-            String trailer = employee.getAssignedTrailerId() == null || employee.getAssignedTrailerId().isEmpty()
-                    ? "No Trailer"
-                    : employee.getAssignedTrailerId();
-
-            return employee.getFullName() + " | Truck: " + truck + " | Trailer: " + trailer;
-        }
     }
 
     private static class SimpleDocumentListener implements DocumentListener {

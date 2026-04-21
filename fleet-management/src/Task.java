@@ -1,5 +1,6 @@
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class Task implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -22,14 +23,21 @@ public class Task implements Serializable {
     private TCB tcb;
     private TIA tia;
 
-    // Company employees assigned to this task
+    // Core crew
     private ArrayList<Integer> assignedEmployeeIds;
-
-    // Extra dispatch support
     private ArrayList<String> assignedOwnerOperators;
-    private ArrayList<String> requiredEquipment;
-    private ArrayList<String> assignedForklifts;
 
+    // Equipment
+    private ArrayList<String> assignedForklifts;
+    private ArrayList<String> requiredEquipment;
+
+    // Driver -> equipment responsibility map
+    private HashMap<Integer, ArrayList<String>> driverEquipmentMap;
+
+    // Absorber/support assignments
+    private ArrayList<AbsorberAssignment> absorberAssignments;
+
+    // Dispatch details
     private String loadLocation;
     private String stagingLocation;
     private String dispatchInstructions;
@@ -41,29 +49,33 @@ public class Task implements Serializable {
 
         this.taskId = taskId;
         this.jobId = jobId;
-        this.startDate = startDate;
-        this.startTime = startTime;
-        this.endTime = endTime;
-        this.jobType = jobType;
-        this.contractor = contractor;
-        this.location = location;
-        this.foreman = foreman;
-        this.status = status;
+        this.startDate = safe(startDate);
+        this.startTime = safe(startTime);
+        this.endTime = safe(endTime);
+        this.jobType = safe(jobType);
+        this.contractor = safe(contractor);
+        this.location = safe(location);
+        this.foreman = safe(foreman);
+        this.status = safe(status);
         this.linearFeet = linearFeet;
         this.tcb = tcb;
         this.tia = tia;
 
-        this.notes = "No field notes yet.";
+        this.notes = "";
         this.assignedEmployeeIds = new ArrayList<>();
         this.assignedOwnerOperators = new ArrayList<>();
-        this.requiredEquipment = new ArrayList<>();
         this.assignedForklifts = new ArrayList<>();
+        this.requiredEquipment = new ArrayList<>();
+        this.driverEquipmentMap = new HashMap<>();
+        this.absorberAssignments = new ArrayList<>();
 
         this.loadLocation = "";
         this.stagingLocation = "";
         this.dispatchInstructions = "";
         this.requiredEquipmentSummary = "";
     }
+
+    // ================= GETTERS =================
 
     public int getTaskId() {
         return taskId;
@@ -129,12 +141,24 @@ public class Task implements Serializable {
         return assignedOwnerOperators;
     }
 
+    public ArrayList<String> getAssignedForklifts() {
+        return assignedForklifts;
+    }
+
     public ArrayList<String> getRequiredEquipment() {
         return requiredEquipment;
     }
 
-    public ArrayList<String> getAssignedForklifts() {
-        return assignedForklifts;
+    public HashMap<Integer, ArrayList<String>> getDriverEquipmentMap() {
+        return driverEquipmentMap;
+    }
+
+    public ArrayList<String> getEquipmentForDriver(int employeeId) {
+        return driverEquipmentMap.getOrDefault(employeeId, new ArrayList<>());
+    }
+
+    public ArrayList<AbsorberAssignment> getAbsorberAssignments() {
+        return absorberAssignments;
     }
 
     public String getLoadLocation() {
@@ -153,40 +177,42 @@ public class Task implements Serializable {
         return requiredEquipmentSummary;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public void setNotes(String notes) {
-        this.notes = notes;
-    }
-
-    public void setForeman(String foreman) {
-        this.foreman = foreman;
-    }
+    // ================= SETTERS =================
 
     public void setStartDate(String startDate) {
-        this.startDate = startDate;
+        this.startDate = safe(startDate);
     }
 
     public void setStartTime(String startTime) {
-        this.startTime = startTime;
+        this.startTime = safe(startTime);
     }
 
     public void setEndTime(String endTime) {
-        this.endTime = endTime;
+        this.endTime = safe(endTime);
     }
 
     public void setJobType(String jobType) {
-        this.jobType = jobType;
+        this.jobType = safe(jobType);
     }
 
     public void setContractor(String contractor) {
-        this.contractor = contractor;
+        this.contractor = safe(contractor);
     }
 
     public void setLocation(String location) {
-        this.location = location;
+        this.location = safe(location);
+    }
+
+    public void setForeman(String foreman) {
+        this.foreman = safe(foreman);
+    }
+
+    public void setStatus(String status) {
+        this.status = safe(status);
+    }
+
+    public void setNotes(String notes) {
+        this.notes = safe(notes);
     }
 
     public void setLinearFeet(int linearFeet) {
@@ -202,184 +228,328 @@ public class Task implements Serializable {
     }
 
     public void setAssignedEmployeeIds(ArrayList<Integer> assignedEmployeeIds) {
-        if (assignedEmployeeIds == null) {
-            this.assignedEmployeeIds = new ArrayList<>();
-        } else {
-            this.assignedEmployeeIds = assignedEmployeeIds;
-        }
+        this.assignedEmployeeIds = assignedEmployeeIds == null
+                ? new ArrayList<>()
+                : new ArrayList<>(assignedEmployeeIds);
     }
 
     public void setAssignedOwnerOperators(ArrayList<String> assignedOwnerOperators) {
-        if (assignedOwnerOperators == null) {
-            this.assignedOwnerOperators = new ArrayList<>();
-        } else {
-            this.assignedOwnerOperators = assignedOwnerOperators;
-        }
-    }
-
-    public void setRequiredEquipment(ArrayList<String> requiredEquipment) {
-        if (requiredEquipment == null) {
-            this.requiredEquipment = new ArrayList<>();
-        } else {
-            this.requiredEquipment = requiredEquipment;
-        }
+        this.assignedOwnerOperators = assignedOwnerOperators == null
+                ? new ArrayList<>()
+                : new ArrayList<>(assignedOwnerOperators);
     }
 
     public void setAssignedForklifts(ArrayList<String> assignedForklifts) {
-        if (assignedForklifts == null) {
-            this.assignedForklifts = new ArrayList<>();
-        } else {
-            this.assignedForklifts = assignedForklifts;
+        this.assignedForklifts = assignedForklifts == null
+                ? new ArrayList<>()
+                : new ArrayList<>(assignedForklifts);
+    }
+
+    public void setRequiredEquipment(ArrayList<String> requiredEquipment) {
+        this.requiredEquipment = requiredEquipment == null
+                ? new ArrayList<>()
+                : new ArrayList<>(requiredEquipment);
+    }
+
+    public void setDriverEquipmentMap(HashMap<Integer, ArrayList<String>> driverEquipmentMap) {
+        if (driverEquipmentMap == null) {
+            this.driverEquipmentMap = new HashMap<>();
+            return;
         }
+
+        this.driverEquipmentMap = new HashMap<>();
+        for (Integer key : driverEquipmentMap.keySet()) {
+            ArrayList<String> value = driverEquipmentMap.get(key);
+            this.driverEquipmentMap.put(key, value == null ? new ArrayList<>() : new ArrayList<>(value));
+        }
+    }
+
+    public void setAbsorberAssignments(ArrayList<AbsorberAssignment> absorberAssignments) {
+        this.absorberAssignments = absorberAssignments == null
+                ? new ArrayList<>()
+                : new ArrayList<>(absorberAssignments);
     }
 
     public void setLoadLocation(String loadLocation) {
-        this.loadLocation = loadLocation;
+        this.loadLocation = safe(loadLocation);
     }
 
     public void setStagingLocation(String stagingLocation) {
-        this.stagingLocation = stagingLocation;
+        this.stagingLocation = safe(stagingLocation);
     }
 
     public void setDispatchInstructions(String dispatchInstructions) {
-        this.dispatchInstructions = dispatchInstructions;
+        this.dispatchInstructions = safe(dispatchInstructions);
     }
 
     public void setRequiredEquipmentSummary(String requiredEquipmentSummary) {
-        this.requiredEquipmentSummary = requiredEquipmentSummary;
+        this.requiredEquipmentSummary = safe(requiredEquipmentSummary);
     }
 
-    public void addAssignedEmployeeId(int employeeId) {
-        if (assignedEmployeeIds == null) {
-            assignedEmployeeIds = new ArrayList<>();
-        }
+    // ================= CREW HELPERS =================
 
+    public void addAssignedEmployeeId(int employeeId) {
         if (!assignedEmployeeIds.contains(employeeId)) {
             assignedEmployeeIds.add(employeeId);
         }
     }
 
     public void removeAssignedEmployeeId(int employeeId) {
-        if (assignedEmployeeIds != null) {
-            assignedEmployeeIds.remove(Integer.valueOf(employeeId));
-        }
+        assignedEmployeeIds.remove(Integer.valueOf(employeeId));
+        driverEquipmentMap.remove(employeeId);
     }
 
     public void clearAssignedEmployees() {
-        if (assignedEmployeeIds != null) {
-            assignedEmployeeIds.clear();
-        }
+        assignedEmployeeIds.clear();
+        driverEquipmentMap.clear();
     }
 
     public boolean isEmployeeAssigned(int employeeId) {
-        return assignedEmployeeIds != null && assignedEmployeeIds.contains(employeeId);
+        return assignedEmployeeIds.contains(employeeId);
     }
 
     public void addOwnerOperator(String ownerOperatorName) {
-        if (assignedOwnerOperators == null) {
-            assignedOwnerOperators = new ArrayList<>();
-        }
-
-        if (ownerOperatorName != null
-                && !ownerOperatorName.trim().isEmpty()
-                && !assignedOwnerOperators.contains(ownerOperatorName)) {
-            assignedOwnerOperators.add(ownerOperatorName);
+        String value = safe(ownerOperatorName).trim();
+        if (!value.isEmpty() && !assignedOwnerOperators.contains(value)) {
+            assignedOwnerOperators.add(value);
         }
     }
 
     public void removeOwnerOperator(String ownerOperatorName) {
-        if (assignedOwnerOperators != null) {
-            assignedOwnerOperators.remove(ownerOperatorName);
-        }
+        assignedOwnerOperators.remove(ownerOperatorName);
     }
 
     public void clearOwnerOperators() {
-        if (assignedOwnerOperators != null) {
-            assignedOwnerOperators.clear();
-        }
+        assignedOwnerOperators.clear();
     }
 
-    public void addRequiredEquipment(String equipment) {
-        if (requiredEquipment == null) {
-            requiredEquipment = new ArrayList<>();
-        }
+    // ================= EQUIPMENT HELPERS =================
 
-        if (equipment != null
-                && !equipment.trim().isEmpty()
-                && !requiredEquipment.contains(equipment)) {
-            requiredEquipment.add(equipment);
+    public void addRequiredEquipment(String equipment) {
+        String value = safe(equipment).trim();
+        if (!value.isEmpty() && !requiredEquipment.contains(value)) {
+            requiredEquipment.add(value);
         }
     }
 
     public void removeRequiredEquipment(String equipment) {
-        if (requiredEquipment != null) {
-            requiredEquipment.remove(equipment);
-        }
+        requiredEquipment.remove(equipment);
     }
 
     public void clearRequiredEquipment() {
-        if (requiredEquipment != null) {
-            requiredEquipment.clear();
-        }
+        requiredEquipment.clear();
     }
 
     public void addAssignedForklift(String forkliftId) {
-        if (assignedForklifts == null) {
-            assignedForklifts = new ArrayList<>();
-        }
-
-        if (forkliftId != null
-                && !forkliftId.trim().isEmpty()
-                && !assignedForklifts.contains(forkliftId)) {
-            assignedForklifts.add(forkliftId);
+        String value = safe(forkliftId).trim();
+        if (!value.isEmpty() && !assignedForklifts.contains(value)) {
+            assignedForklifts.add(value);
         }
     }
 
     public void removeAssignedForklift(String forkliftId) {
-        if (assignedForklifts != null) {
-            assignedForklifts.remove(forkliftId);
-        }
+        assignedForklifts.remove(forkliftId);
     }
 
     public void clearAssignedForklifts() {
-        if (assignedForklifts != null) {
-            assignedForklifts.clear();
+        assignedForklifts.clear();
+    }
+
+    public void assignEquipmentToDriver(int employeeId, String equipment) {
+        String value = safe(equipment).trim();
+        if (value.isEmpty()) {
+            return;
+        }
+
+        driverEquipmentMap.putIfAbsent(employeeId, new ArrayList<>());
+        ArrayList<String> items = driverEquipmentMap.get(employeeId);
+
+        if (!items.contains(value)) {
+            items.add(value);
         }
     }
 
+    public void removeEquipmentFromDriver(int employeeId, String equipment) {
+        ArrayList<String> items = driverEquipmentMap.get(employeeId);
+        if (items == null) {
+            return;
+        }
+
+        items.remove(equipment);
+
+        if (items.isEmpty()) {
+            driverEquipmentMap.remove(employeeId);
+        }
+    }
+
+    public void clearDriverEquipment() {
+        driverEquipmentMap.clear();
+    }
+
+    public void addAbsorberAssignment(String setName, int employeeId, String origin) {
+        String cleanSetName = safe(setName).trim();
+        String cleanOrigin = safe(origin).trim();
+
+        if (cleanSetName.isEmpty()) {
+            return;
+        }
+
+        absorberAssignments.add(new AbsorberAssignment(cleanSetName, employeeId, cleanOrigin));
+    }
+
+    public void clearAbsorberAssignments() {
+        absorberAssignments.clear();
+    }
+
+    // ================= SUMMARY METHODS =================
+
     public int getTotalAssignedPersonnelCount() {
-        int companyDrivers = assignedEmployeeIds != null ? assignedEmployeeIds.size() : 0;
-        int ownerOperators = assignedOwnerOperators != null ? assignedOwnerOperators.size() : 0;
-        return companyDrivers + ownerOperators;
+        return assignedEmployeeIds.size() + assignedOwnerOperators.size();
     }
 
     public String getDriverSummary() {
-        int companyDrivers = assignedEmployeeIds != null ? assignedEmployeeIds.size() : 0;
-        int ownerOperators = assignedOwnerOperators != null ? assignedOwnerOperators.size() : 0;
-
-        return "Company Drivers: " + companyDrivers + " | Owner Operators: " + ownerOperators;
+        return "Company Drivers: " + assignedEmployeeIds.size()
+                + " | Owner Operators: " + assignedOwnerOperators.size();
     }
 
     public String getEquipmentSummary() {
-        int forkliftCount = assignedForklifts != null ? assignedForklifts.size() : 0;
-        int requiredCount = requiredEquipment != null ? requiredEquipment.size() : 0;
+        return "Assigned Forklifts: " + assignedForklifts.size()
+                + " | Required Equipment Items: " + requiredEquipment.size()
+                + " | Absorber Assignments: " + absorberAssignments.size();
+    }
 
-        return "Assigned Forklifts: " + forkliftCount + " | Required Equipment Items: " + requiredCount;
+    public String getDispatchSummary() {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("Foreman: ").append(safe(foreman).isEmpty() ? "Unassigned" : foreman).append("\n");
+        sb.append("Status: ").append(safe(status)).append("\n");
+
+        if (!safe(loadLocation).isEmpty()) {
+            sb.append("Load From: ").append(loadLocation).append("\n");
+        }
+        if (!safe(stagingLocation).isEmpty()) {
+            sb.append("Stage At: ").append(stagingLocation).append("\n");
+        }
+        if (!safe(dispatchInstructions).isEmpty()) {
+            sb.append("Instructions: ").append(dispatchInstructions).append("\n");
+        }
+
+        sb.append("\nCrew:\n");
+        if (assignedEmployeeIds.isEmpty() && assignedOwnerOperators.isEmpty()) {
+            sb.append("- No crew assigned\n");
+        } else {
+            for (Integer employeeId : assignedEmployeeIds) {
+                sb.append("- Employee ID ").append(employeeId);
+                ArrayList<String> equipment = driverEquipmentMap.get(employeeId);
+                if (equipment != null && !equipment.isEmpty()) {
+                    sb.append(" -> ").append(String.join(", ", equipment));
+                }
+                sb.append("\n");
+            }
+
+            for (String ownerOperator : assignedOwnerOperators) {
+                sb.append("- Owner Operator: ").append(ownerOperator).append("\n");
+            }
+        }
+
+        sb.append("\nForklifts:\n");
+        if (assignedForklifts.isEmpty()) {
+            sb.append("- None\n");
+        } else {
+            for (String forkliftId : assignedForklifts) {
+                sb.append("- ").append(forkliftId).append("\n");
+            }
+        }
+
+        sb.append("\nAbsorber Sets:\n");
+        if (absorberAssignments.isEmpty()) {
+            sb.append("- None\n");
+        } else {
+            for (AbsorberAssignment assignment : absorberAssignments) {
+                sb.append("- ").append(assignment).append("\n");
+            }
+        }
+
+        if (!requiredEquipment.isEmpty()) {
+            sb.append("\nRequired Equipment:\n");
+            for (String item : requiredEquipment) {
+                sb.append("- ").append(item).append("\n");
+            }
+        }
+
+        if (!safe(requiredEquipmentSummary).isEmpty()) {
+            sb.append("\nEquipment Summary: ").append(requiredEquipmentSummary).append("\n");
+        }
+
+        return sb.toString();
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value;
     }
 
     @Override
     public String toString() {
-        return "Task #" + taskId +
-               " | Job #" + jobId +
-               " | " + contractor +
-               " | " + location +
-               " | " + startDate + " " + startTime + "-" + endTime +
-               " | Type: " + jobType +
-               " | LF: " + linearFeet +
-               " | Foreman: " + foreman +
-               " | Status: " + status +
-               " | Company Drivers: " + (assignedEmployeeIds != null ? assignedEmployeeIds.size() : 0) +
-               " | Owner Ops: " + (assignedOwnerOperators != null ? assignedOwnerOperators.size() : 0) +
-               " | Forklifts: " + (assignedForklifts != null ? assignedForklifts.size() : 0);
+        return "Task #" + taskId
+                + " | Job #" + jobId
+                + " | " + contractor
+                + " | " + location
+                + " | " + startDate + " " + startTime + "-" + endTime
+                + " | Type: " + jobType
+                + " | LF: " + linearFeet
+                + " | Foreman: " + foreman
+                + " | Status: " + status
+                + " | Company Drivers: " + assignedEmployeeIds.size()
+                + " | Owner Ops: " + assignedOwnerOperators.size()
+                + " | Forklifts: " + assignedForklifts.size();
+    }
+
+    public static class AbsorberAssignment implements Serializable {
+        private static final long serialVersionUID = 1L;
+
+        private String setName;
+        private int employeeId;
+        private String origin;
+
+        public AbsorberAssignment(String setName, int employeeId, String origin) {
+            this.setName = setName == null ? "" : setName;
+            this.employeeId = employeeId;
+            this.origin = origin == null ? "" : origin;
+        }
+
+        public String getSetName() {
+            return setName;
+        }
+
+        public int getEmployeeId() {
+            return employeeId;
+        }
+
+        public String getOrigin() {
+            return origin;
+        }
+
+        public void setSetName(String setName) {
+            this.setName = setName == null ? "" : setName;
+        }
+
+        public void setEmployeeId(int employeeId) {
+            this.employeeId = employeeId;
+        }
+
+        public void setOrigin(String origin) {
+            this.origin = origin == null ? "" : origin;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder(setName);
+            sb.append(" (Driver ID: ").append(employeeId);
+            if (!origin.isBlank()) {
+                sb.append(", From: ").append(origin);
+            }
+            sb.append(")");
+            return sb.toString();
+        }
     }
 }
