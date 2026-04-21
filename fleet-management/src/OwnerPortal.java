@@ -75,6 +75,7 @@ public class OwnerPortal extends JFrame {
         JButton createEquipmentBtn = createSideButton("Create Equipment");
         JButton vehicleListBtn = createSideButton("Vehicle List");
         JButton rosterBtn = createSideButton("Company Roster");
+        JButton assignDriverVehicleBtn = createSideButton("Assign Driver To Vehicle");
         JButton timeOffBtn = createSideButton("Time Off Manager");
         JButton editCompanyBtn = createSideButton("Edit Company Info");
 
@@ -82,6 +83,7 @@ public class OwnerPortal extends JFrame {
         createEquipmentBtn.addActionListener(e -> openChildWindow(new CreateEquipmentUI(manager)));
         vehicleListBtn.addActionListener(e -> openChildWindow(new CompanyVehicleListUI(manager)));
         rosterBtn.addActionListener(e -> openChildWindow(new CompanyRosterUI(manager)));
+        assignDriverVehicleBtn.addActionListener(e -> showAssignDriverVehicleDialog());
         timeOffBtn.addActionListener(e -> openChildWindow(new ManagerTimeOffDashboardUI(manager)));
         editCompanyBtn.addActionListener(e -> new CompanySetupUI(manager, true).setVisible(true));
 
@@ -92,6 +94,8 @@ public class OwnerPortal extends JFrame {
         sidebar.add(vehicleListBtn);
         sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
         sidebar.add(rosterBtn);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
+        sidebar.add(assignDriverVehicleBtn);
         sidebar.add(Box.createRigidArea(new Dimension(0, 20)));
         sidebar.add(timeOffBtn);
         sidebar.add(Box.createRigidArea(new Dimension(0, 20)));
@@ -348,12 +352,14 @@ public class OwnerPortal extends JFrame {
             for (Integer employeeId : task.getAssignedEmployeeIds()) {
                 Employee employee = manager.findEmployeeById(employeeId);
                 if (employee != null) {
-                    names.add(employee.getFullName());
+                    String truck = safe(employee.getAssignedTruckId()).isEmpty() ? "No Truck" : employee.getAssignedTruckId();
+                    String trailer = safe(employee.getAssignedTrailerId()).isEmpty() ? "No Trailer" : employee.getAssignedTrailerId();
+                    names.add(employee.getFullName() + " [Truck: " + truck + ", Trailer: " + trailer + "]");
                 }
             }
 
             if (!names.isEmpty()) {
-                return String.join(", ", names);
+                return String.join(" | ", names);
             }
         }
 
@@ -981,11 +987,11 @@ public class OwnerPortal extends JFrame {
                 for (DriverOption option : selected) {
                     Employee employee = option.employee;
                     sb.append(employee.getFullName())
-                      .append(" | Truck: ")
-                      .append(safe(employee.getAssignedTruckId()).isEmpty() ? "None" : employee.getAssignedTruckId())
-                      .append(" | Trailer: ")
-                      .append(safe(employee.getAssignedTrailerId()).isEmpty() ? "None" : employee.getAssignedTrailerId())
-                      .append("\n");
+                            .append(" | Truck: ")
+                            .append(safe(employee.getAssignedTruckId()).isEmpty() ? "None" : employee.getAssignedTruckId())
+                            .append(" | Trailer: ")
+                            .append(safe(employee.getAssignedTrailerId()).isEmpty() ? "None" : employee.getAssignedTrailerId())
+                            .append("\n");
                 }
             }
 
@@ -1049,7 +1055,9 @@ public class OwnerPortal extends JFrame {
             for (Integer employeeId : assignedIds) {
                 Employee employee = manager.findEmployeeById(employeeId);
                 if (employee != null) {
-                    names.add(employee.getFullName());
+                    String truck = safe(employee.getAssignedTruckId()).isEmpty() ? "No Truck" : employee.getAssignedTruckId();
+                    String trailer = safe(employee.getAssignedTrailerId()).isEmpty() ? "No Trailer" : employee.getAssignedTrailerId();
+                    names.add(employee.getFullName() + " [Truck: " + truck + ", Trailer: " + trailer + "]");
                 }
             }
             task.setNotes("Crew: " + String.join(", ", names));
@@ -1062,19 +1070,172 @@ public class OwnerPortal extends JFrame {
         return true;
     }
 
+    private void showAssignDriverVehicleDialog() {
+        ArrayList<Employee> drivers = manager.getActiveDriverEmployees();
+        ArrayList<Truck> trucks = manager.getAssignableTrucks();
+        ArrayList<Trailer> trailers = manager.getAssignableTrailers();
+
+        if (drivers.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No active drivers found in the company roster.");
+            return;
+        }
+
+        if (trucks.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No assignable trucks found.");
+            return;
+        }
+
+        JComboBox<Employee> driverCombo = new JComboBox<>(drivers.toArray(new Employee[0]));
+        JComboBox<Truck> truckCombo = new JComboBox<>(trucks.toArray(new Truck[0]));
+
+        ArrayList<Object> trailerOptions = new ArrayList<>();
+        trailerOptions.add("None");
+        trailerOptions.addAll(trailers);
+        JComboBox<Object> trailerCombo = new JComboBox<>(trailerOptions.toArray());
+
+        JTextArea previewArea = new JTextArea(8, 30);
+        previewArea.setEditable(false);
+        previewArea.setLineWrap(true);
+        previewArea.setWrapStyleWord(true);
+
+        Runnable refreshPreview = () -> {
+            Employee selectedDriver = (Employee) driverCombo.getSelectedItem();
+            Truck selectedTruck = (Truck) truckCombo.getSelectedItem();
+            Object trailerSelection = trailerCombo.getSelectedItem();
+
+            StringBuilder sb = new StringBuilder();
+
+            if (selectedDriver != null) {
+                sb.append("Driver: ").append(selectedDriver.getFullName()).append("\n");
+                sb.append("Current Truck: ")
+                        .append(safe(selectedDriver.getAssignedTruckId()).isEmpty() ? "None" : selectedDriver.getAssignedTruckId())
+                        .append("\n");
+                sb.append("Current Trailer: ")
+                        .append(safe(selectedDriver.getAssignedTrailerId()).isEmpty() ? "None" : selectedDriver.getAssignedTrailerId())
+                        .append("\n\n");
+            }
+
+            if (selectedTruck != null) {
+                Employee truckOwner = manager.findEmployeeAssignedToTruck(selectedTruck.getTruckID());
+                sb.append("Selected Truck: ").append(selectedTruck.getTruckID()).append("\n");
+                sb.append("Truck Currently Assigned To: ")
+                        .append(truckOwner == null ? "Nobody" : truckOwner.getFullName())
+                        .append("\n\n");
+            }
+
+            if (trailerSelection instanceof Trailer) {
+                Trailer trailer = (Trailer) trailerSelection;
+                Employee trailerOwner = manager.findEmployeeAssignedToTrailer(trailer.getTrailerId());
+                sb.append("Selected Trailer: ").append(trailer.getTrailerId()).append("\n");
+                sb.append("Trailer Currently Assigned To: ")
+                        .append(trailerOwner == null ? "Nobody" : trailerOwner.getFullName());
+            } else {
+                sb.append("Selected Trailer: None");
+            }
+
+            previewArea.setText(sb.toString());
+        };
+
+        driverCombo.addActionListener(e -> refreshPreview.run());
+        truckCombo.addActionListener(e -> refreshPreview.run());
+        trailerCombo.addActionListener(e -> refreshPreview.run());
+        refreshPreview.run();
+
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(6, 6, 6, 6);
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        addFormRow(panel, gbc, 0, "Driver:", driverCombo);
+        addFormRow(panel, gbc, 1, "Truck:", truckCombo);
+        addFormRow(panel, gbc, 2, "Trailer:", trailerCombo);
+
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.gridwidth = 2;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.BOTH;
+        panel.add(new JScrollPane(previewArea), gbc);
+
+        int result = JOptionPane.showConfirmDialog(
+                this,
+                panel,
+                "Assign Driver To Vehicle",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
+        );
+
+        if (result != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        Employee selectedDriver = (Employee) driverCombo.getSelectedItem();
+        Truck selectedTruck = (Truck) truckCombo.getSelectedItem();
+        Object trailerSelection = trailerCombo.getSelectedItem();
+
+        if (selectedDriver == null || selectedTruck == null) {
+            JOptionPane.showMessageDialog(this, "Please select a driver and truck.");
+            return;
+        }
+
+        boolean truckAssigned = manager.assignDriverToTruck(
+                selectedDriver.getEmployeeId(),
+                selectedTruck.getTruckID()
+        );
+
+        if (!truckAssigned) {
+            JOptionPane.showMessageDialog(this, "Truck assignment failed.");
+            return;
+        }
+
+        if (trailerSelection instanceof Trailer) {
+            Trailer selectedTrailer = (Trailer) trailerSelection;
+            boolean trailerAssigned = manager.assignDriverToTrailer(
+                    selectedDriver.getEmployeeId(),
+                    selectedTrailer.getTrailerId()
+            );
+
+            if (!trailerAssigned) {
+                JOptionPane.showMessageDialog(this, "Truck assigned, but trailer assignment failed.");
+                DataStore.save(manager);
+                refreshData();
+                return;
+            }
+        } else {
+            manager.clearTrailerAssignmentForEmployee(selectedDriver.getEmployeeId());
+        }
+
+        DataStore.save(manager);
+        refreshData();
+        JOptionPane.showMessageDialog(this, "Driver vehicle assignment saved.");
+    }
+
     private ArrayList<Employee> getAvailableDriversForTask(Task currentTask) {
         ArrayList<Employee> availableDrivers = new ArrayList<>();
 
         for (Employee employee : manager.getEmployees()) {
+            if (employee == null) {
+                continue;
+            }
+
             String position = safe(employee.getPosition()).toLowerCase();
 
-            if (!employee.isActive()) continue;
-            if (!position.contains("driver")) continue;
+            if (!employee.isActive()) {
+                continue;
+            }
+            if (!position.contains("driver")) {
+                continue;
+            }
 
             boolean conflict = false;
 
             for (Task task : manager.getTasks()) {
-                if (task == currentTask) continue;
+                if (task == null || task == currentTask) {
+                    continue;
+                }
 
                 if (task.getAssignedEmployeeIds() != null &&
                         task.getAssignedEmployeeIds().contains(employee.getEmployeeId())) {
@@ -1100,7 +1261,9 @@ public class OwnerPortal extends JFrame {
             LocalDate dateA = LocalDate.parse(a.getStartDate());
             LocalDate dateB = LocalDate.parse(b.getStartDate());
 
-            if (!dateA.equals(dateB)) return false;
+            if (!dateA.equals(dateB)) {
+                return false;
+            }
 
             LocalTime aStart = LocalTime.parse(a.getStartTime());
             LocalTime aEnd = LocalTime.parse(a.getEndTime());
@@ -1221,6 +1384,7 @@ public class OwnerPortal extends JFrame {
         gbc.gridy = row;
         gbc.weightx = 0;
         gbc.fill = GridBagConstraints.NONE;
+        gbc.gridwidth = 1;
         panel.add(new JLabel(labelText), gbc);
 
         gbc.gridx = 1;

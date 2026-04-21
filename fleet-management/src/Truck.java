@@ -22,17 +22,31 @@ public class Truck implements Serializable {
     private String status; // Unused, In Use, Stored, Down, Out of Service
     private boolean isDown;
     private String currentIssue;
+
+    // Assignment tracking
+    private int assignedEmployeeId;
     private String assignedEmployeeName;
 
     private String notes;
 
-    // Existing constructor
+    // Existing/simple constructor
     public Truck(String truckID, String model) {
         this.truckID = truckID;
         this.model = model;
+
+        this.year = 0;
+        this.make = "";
+        this.vin = "";
+        this.color = "";
+        this.engineModel = "";
+        this.engineType = "";
+        this.tireSize = "";
+        this.mileage = 0;
+
         this.status = "Unused";
         this.isDown = false;
         this.currentIssue = "Ready";
+        this.assignedEmployeeId = 0;
         this.assignedEmployeeName = "";
         this.notes = "";
     }
@@ -56,43 +70,132 @@ public class Truck implements Serializable {
         this.status = "Unused";
         this.isDown = false;
         this.currentIssue = "Ready";
+        this.assignedEmployeeId = 0;
         this.assignedEmployeeName = "";
         this.notes = "";
     }
 
     // Getters
-    public String getTruckID() { return truckID; }
-    public String getModel() { return model; }
-    public boolean isDown() { return isDown; }
-    public String getCurrentIssue() { return currentIssue; }
-
-    public int getYear() { return year; }
-    public String getMake() { return make; }
-    public String getVin() { return vin; }
-    public String getColor() { return color; }
-    public String getEngineModel() { return engineModel; }
-    public String getEngineType() { return engineType; }
-    public String getTireSize() { return tireSize; }
-    public int getMileage() { return mileage; }
-
-    public String getStatus() { return status; }
-    public String getAssignedEmployeeName() { return assignedEmployeeName; }
-    public String getNotes() { return notes; }
-
-    // Compatibility helper
-    public String getId() { return truckID; }
-
-    // Setters
-    public void setStatus(String status) {
-        this.status = status;
+    public String getTruckID() {
+        return truckID;
     }
 
-    public void setAssignedEmployeeName(String name) {
-        this.assignedEmployeeName = name;
+    public String getModel() {
+        return model;
+    }
+
+    public boolean isDown() {
+        return isDown;
+    }
+
+    public String getCurrentIssue() {
+        return currentIssue;
+    }
+
+    public int getYear() {
+        return year;
+    }
+
+    public String getMake() {
+        return make;
+    }
+
+    public String getVin() {
+        return vin;
+    }
+
+    public String getColor() {
+        return color;
+    }
+
+    public String getEngineModel() {
+        return engineModel;
+    }
+
+    public String getEngineType() {
+        return engineType;
+    }
+
+    public String getTireSize() {
+        return tireSize;
+    }
+
+    public int getMileage() {
+        return mileage;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public int getAssignedEmployeeId() {
+        return assignedEmployeeId;
+    }
+
+    public String getAssignedEmployeeName() {
+        return assignedEmployeeName;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    // Compatibility helper
+    public String getId() {
+        return truckID;
+    }
+
+    // Setters
+    public void setTruckID(String truckID) {
+        this.truckID = truckID;
+    }
+
+    public void setModel(String model) {
+        this.model = model;
+    }
+
+    public void setYear(int year) {
+        this.year = year;
+    }
+
+    public void setMake(String make) {
+        this.make = make;
+    }
+
+    public void setVin(String vin) {
+        this.vin = vin;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
+    }
+
+    public void setEngineModel(String engineModel) {
+        this.engineModel = engineModel;
+    }
+
+    public void setEngineType(String engineType) {
+        this.engineType = engineType;
+    }
+
+    public void setTireSize(String tireSize) {
+        this.tireSize = tireSize;
     }
 
     public void setMileage(int mileage) {
         this.mileage = mileage;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public void setAssignedEmployeeId(int assignedEmployeeId) {
+        this.assignedEmployeeId = assignedEmployeeId;
+    }
+
+    public void setAssignedEmployeeName(String assignedEmployeeName) {
+        this.assignedEmployeeName = assignedEmployeeName == null ? "" : assignedEmployeeName;
     }
 
     public void setNotes(String notes) {
@@ -102,11 +205,32 @@ public class Truck implements Serializable {
     // Maintenance logic
     public void setDown(boolean down, String issue) {
         this.isDown = down;
-        this.currentIssue = issue;
+        this.currentIssue = (issue == null || issue.isBlank()) ? "Ready" : issue;
 
         if (down) {
             this.status = "Down";
+        } else if (assignedEmployeeId > 0 || (assignedEmployeeName != null && !assignedEmployeeName.isBlank())) {
+            this.status = "In Use";
         } else {
+            this.status = "Unused";
+        }
+    }
+
+    // Assignment helpers
+    public void assignDriver(int employeeId, String employeeName) {
+        this.assignedEmployeeId = employeeId;
+        this.assignedEmployeeName = employeeName == null ? "" : employeeName;
+
+        if (!isDown) {
+            this.status = "In Use";
+        }
+    }
+
+    public void clearAssignment() {
+        this.assignedEmployeeId = 0;
+        this.assignedEmployeeName = "";
+
+        if (!isDown) {
             this.status = "Unused";
         }
     }
@@ -114,11 +238,12 @@ public class Truck implements Serializable {
     // Dispatch helpers
     public void markInUse(String employeeName) {
         this.status = "In Use";
-        this.assignedEmployeeName = employeeName;
+        this.assignedEmployeeName = employeeName == null ? "" : employeeName;
     }
 
     public void markUnused() {
         this.status = "Unused";
+        this.assignedEmployeeId = 0;
         this.assignedEmployeeName = "";
     }
 
@@ -133,6 +258,10 @@ public class Truck implements Serializable {
 
     @Override
     public String toString() {
-        return truckID + " (" + model + ") - " + status;
+        String makeModel = ((make == null ? "" : make) + " " + (model == null ? "" : model)).trim();
+        if (makeModel.isEmpty()) {
+            makeModel = model == null ? "" : model;
+        }
+        return truckID + " (" + makeModel + ") - " + status;
     }
 }

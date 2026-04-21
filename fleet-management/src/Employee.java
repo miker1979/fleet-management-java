@@ -15,6 +15,8 @@ public class Employee implements Serializable {
     private String hireDate;
     private boolean active;
     private double payRate;
+
+    // Equipment Assignment
     private String assignedTruckId;
     private String assignedTrailerId;
 
@@ -41,14 +43,14 @@ public class Employee implements Serializable {
                     String email, String hireDate, boolean active, double payRate) {
 
         this.employeeId = employeeId;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.position = position;
-        this.department = department;
-        this.address = address;
-        this.phoneNumber = phoneNumber;
-        this.email = email;
-        this.hireDate = hireDate;
+        this.firstName = safe(firstName);
+        this.lastName = safe(lastName);
+        this.position = safe(position);
+        this.department = safe(department);
+        this.address = safe(address);
+        this.phoneNumber = safe(phoneNumber);
+        this.email = safe(email);
+        this.hireDate = safe(hireDate);
         this.active = active;
         this.payRate = payRate;
 
@@ -74,80 +76,208 @@ public class Employee implements Serializable {
     // =========================
     // GETTERS
     // =========================
-    public int getEmployeeId() { return employeeId; }
-    public int getId() { return employeeId; }
-    public String getFirstName() { return firstName; }
-    public String getLastName() { return lastName; }
-    public String getFullName() { return firstName + " " + lastName; }
-    public String getPosition() { return position; }
-    public String getDepartment() { return department; }
-    public String getAddress() { return address; }
-    public String getPhoneNumber() { return phoneNumber; }
-    public String getEmail() { return email; }
-    public String getHireDate() { return hireDate; }
-    public boolean isActive() { return active; }
-    public double getPayRate() { return payRate; }
-    public String getAssignedTruckId() { return assignedTruckId; }
-    public String getAssignedTrailerId() { return assignedTrailerId; }
+    public int getEmployeeId() {
+        return employeeId;
+    }
 
-    public String getEmergencyContactName() { return emergencyContactName; }
-    public String getEmergencyContactPhone() { return emergencyContactPhone; }
-    public String getEmergencyContactRelationship() { return emergencyContactRelationship; }
+    public int getId() {
+        return employeeId;
+    }
 
-    public String getDriverLicenseNumber() { return driverLicenseNumber; }
-    public String getLicenseClass() { return licenseClass; }
-    public String getLicenseExpirationDate() { return licenseExpirationDate; }
-    public ArrayList<String> getEndorsements() { return endorsements; }
-    public String getDotPhysicalExpirationDate() { return dotPhysicalExpirationDate; }
+    public String getFirstName() {
+        return safe(firstName);
+    }
 
-    public boolean isForkliftCertified() { return forkliftCertified; }
-    public String getForkliftCertificationExpirationDate() { return forkliftCertificationExpirationDate; }
+    public String getLastName() {
+        return safe(lastName);
+    }
 
-    public ArrayList<Evaluation> getEvaluations() { return evaluations; }
+    public String getFullName() {
+        return (safe(firstName) + " " + safe(lastName)).trim();
+    }
+
+    public String getPosition() {
+        return safe(position);
+    }
+
+    public String getDepartment() {
+        return safe(department);
+    }
+
+    public String getAddress() {
+        return safe(address);
+    }
+
+    public String getPhoneNumber() {
+        return safe(phoneNumber);
+    }
+
+    public String getEmail() {
+        return safe(email);
+    }
+
+    public String getHireDate() {
+        return safe(hireDate);
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public double getPayRate() {
+        return payRate;
+    }
+
+    public String getAssignedTruckId() {
+        return safe(assignedTruckId);
+    }
+
+    public String getAssignedTrailerId() {
+        return safe(assignedTrailerId);
+    }
+
+    public String getEmergencyContactName() {
+        return safe(emergencyContactName);
+    }
+
+    public String getEmergencyContactPhone() {
+        return safe(emergencyContactPhone);
+    }
+
+    public String getEmergencyContactRelationship() {
+        return safe(emergencyContactRelationship);
+    }
+
+    public String getDriverLicenseNumber() {
+        return safe(driverLicenseNumber);
+    }
+
+    public String getLicenseClass() {
+        return safe(licenseClass);
+    }
+
+    public String getLicenseExpirationDate() {
+        return safe(licenseExpirationDate);
+    }
+
+    public ArrayList<String> getEndorsements() {
+        return endorsements;
+    }
+
+    public String getDotPhysicalExpirationDate() {
+        return safe(dotPhysicalExpirationDate);
+    }
+
+    public boolean isForkliftCertified() {
+        return forkliftCertified;
+    }
+
+    public String getForkliftCertificationExpirationDate() {
+        return safe(forkliftCertificationExpirationDate);
+    }
+
+    public ArrayList<Evaluation> getEvaluations() {
+        return evaluations;
+    }
 
     // =========================
     // SETTERS
     // =========================
-    public void setPosition(String position) { this.position = position; }
-    public void setDepartment(String department) { this.department = department; }
-    public void setAddress(String address) { this.address = address; }
-    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
-    public void setEmail(String email) { this.email = email; }
-    public void setActive(boolean active) { this.active = active; }
-    public void setPayRate(double payRate) { this.payRate = payRate; }
+    public void setFirstName(String firstName) {
+        this.firstName = safe(firstName);
+    }
 
-    public void setAssignedTruckId(String assignedTruckId) { this.assignedTruckId = assignedTruckId; }
-    public void setAssignedTrailerId(String assignedTrailerId) { this.assignedTrailerId = assignedTrailerId; }
+    public void setLastName(String lastName) {
+        this.lastName = safe(lastName);
+    }
 
-    public void setEmergencyContactName(String name) { this.emergencyContactName = name; }
-    public void setEmergencyContactPhone(String phone) { this.emergencyContactPhone = phone; }
-    public void setEmergencyContactRelationship(String relation) { this.emergencyContactRelationship = relation; }
+    public void setPosition(String position) {
+        this.position = safe(position);
+    }
 
-    public void setDriverLicenseNumber(String driverLicenseNumber) { this.driverLicenseNumber = driverLicenseNumber; }
-    public void setLicenseClass(String licenseClass) { this.licenseClass = licenseClass; }
-    public void setLicenseExpirationDate(String licenseExpirationDate) { this.licenseExpirationDate = licenseExpirationDate; }
+    public void setDepartment(String department) {
+        this.department = safe(department);
+    }
 
-    public void setEndorsements(ArrayList<String> endorsements) { this.endorsements = endorsements; }
+    public void setAddress(String address) {
+        this.address = safe(address);
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = safe(phoneNumber);
+    }
+
+    public void setEmail(String email) {
+        this.email = safe(email);
+    }
+
+    public void setHireDate(String hireDate) {
+        this.hireDate = safe(hireDate);
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    public void setPayRate(double payRate) {
+        this.payRate = payRate;
+    }
+
+    public void setAssignedTruckId(String assignedTruckId) {
+        this.assignedTruckId = safe(assignedTruckId);
+    }
+
+    public void setAssignedTrailerId(String assignedTrailerId) {
+        this.assignedTrailerId = safe(assignedTrailerId);
+    }
+
+    public void setEmergencyContactName(String name) {
+        this.emergencyContactName = safe(name);
+    }
+
+    public void setEmergencyContactPhone(String phone) {
+        this.emergencyContactPhone = safe(phone);
+    }
+
+    public void setEmergencyContactRelationship(String relation) {
+        this.emergencyContactRelationship = safe(relation);
+    }
+
+    public void setDriverLicenseNumber(String driverLicenseNumber) {
+        this.driverLicenseNumber = safe(driverLicenseNumber);
+    }
+
+    public void setLicenseClass(String licenseClass) {
+        this.licenseClass = safe(licenseClass);
+    }
+
+    public void setLicenseExpirationDate(String licenseExpirationDate) {
+        this.licenseExpirationDate = safe(licenseExpirationDate);
+    }
+
+    public void setEndorsements(ArrayList<String> endorsements) {
+        this.endorsements = (endorsements == null) ? new ArrayList<>() : endorsements;
+    }
 
     public void setDotPhysicalExpirationDate(String dotPhysicalExpirationDate) {
-        this.dotPhysicalExpirationDate = dotPhysicalExpirationDate;
+        this.dotPhysicalExpirationDate = safe(dotPhysicalExpirationDate);
     }
 
-    public void setForkliftCertified(boolean forkliftCertified) { this.forkliftCertified = forkliftCertified; }
+    public void setForkliftCertified(boolean forkliftCertified) {
+        this.forkliftCertified = forkliftCertified;
+    }
 
     public void setForkliftCertificationExpirationDate(String date) {
-        this.forkliftCertificationExpirationDate = date;
+        this.forkliftCertificationExpirationDate = safe(date);
     }
-
-    public void setFirstName(String firstName) { this.firstName = firstName; }
-    public void setLastName(String lastName) { this.lastName = lastName; }
-    public void setHireDate(String hireDate) { this.hireDate = hireDate; }
 
     // =========================
     // EVALUATION METHODS
     // =========================
     public void addEvaluation(Evaluation evaluation) {
-        evaluations.add(evaluation);
+        if (evaluation != null) {
+            evaluations.add(evaluation);
+        }
     }
 
     public void displayAllEvaluations() {
@@ -158,65 +288,79 @@ public class Employee implements Serializable {
 
         System.out.println("Evaluations for " + getFullName() + ":");
         for (Evaluation evaluation : evaluations) {
-            evaluation.displayEvaluation();
+            if (evaluation != null) {
+                evaluation.displayEvaluation();
+            }
         }
     }
 
     public double getAverageEvaluationScore() {
-        if (evaluations.isEmpty()) return 0.0;
+        if (evaluations.isEmpty()) {
+            return 0.0;
+        }
 
         double total = 0.0;
+        int count = 0;
+
         for (Evaluation evaluation : evaluations) {
-            total += evaluation.getOverallScore();
+            if (evaluation != null) {
+                total += evaluation.getOverallScore();
+                count++;
+            }
         }
-        return total / evaluations.size();
+
+        return count == 0 ? 0.0 : total / count;
     }
 
     public void displayEmployee() {
         System.out.println("Employee ID: " + employeeId);
         System.out.println("Name: " + getFullName());
-        System.out.println("Position: " + position);
-        System.out.println("Department: " + department);
-        System.out.println("Address: " + address);
-        System.out.println("Phone: " + phoneNumber);
-        System.out.println("Email: " + email);
-        System.out.println("Hire Date: " + hireDate);
+        System.out.println("Position: " + getPosition());
+        System.out.println("Department: " + getDepartment());
+        System.out.println("Address: " + getAddress());
+        System.out.println("Phone: " + getPhoneNumber());
+        System.out.println("Email: " + getEmail());
+        System.out.println("Hire Date: " + getHireDate());
         System.out.println("Status: " + (active ? "Active" : "Inactive"));
         System.out.println("Pay Rate: $" + payRate);
 
         System.out.println("Assigned Truck: " +
-                (assignedTruckId.isEmpty() ? "None" : assignedTruckId));
+                (getAssignedTruckId().isEmpty() ? "None" : getAssignedTruckId()));
         System.out.println("Assigned Trailer: " +
-                (assignedTrailerId.isEmpty() ? "None" : assignedTrailerId));
+                (getAssignedTrailerId().isEmpty() ? "None" : getAssignedTrailerId()));
 
         System.out.println("Emergency Contact: " +
-                (emergencyContactName.isEmpty() ? "None" : emergencyContactName));
+                (getEmergencyContactName().isEmpty() ? "None" : getEmergencyContactName()));
         System.out.println("Emergency Contact Phone: " +
-                (emergencyContactPhone.isEmpty() ? "None" : emergencyContactPhone));
+                (getEmergencyContactPhone().isEmpty() ? "None" : getEmergencyContactPhone()));
         System.out.println("Emergency Contact Relationship: " +
-                (emergencyContactRelationship.isEmpty() ? "None" : emergencyContactRelationship));
+                (getEmergencyContactRelationship().isEmpty() ? "None" : getEmergencyContactRelationship()));
 
         System.out.println("Driver License Number: " +
-                (driverLicenseNumber.isEmpty() ? "N/A" : driverLicenseNumber));
+                (getDriverLicenseNumber().isEmpty() ? "N/A" : getDriverLicenseNumber()));
         System.out.println("License Class: " +
-                (licenseClass.isEmpty() ? "N/A" : licenseClass));
+                (getLicenseClass().isEmpty() ? "N/A" : getLicenseClass()));
         System.out.println("License Expiration: " +
-                (licenseExpirationDate.isEmpty() ? "N/A" : licenseExpirationDate));
+                (getLicenseExpirationDate().isEmpty() ? "N/A" : getLicenseExpirationDate()));
         System.out.println("Endorsements: " +
-                (endorsements.isEmpty() ? "N/A" : String.join(", ", endorsements)));
+                (endorsements == null || endorsements.isEmpty() ? "N/A" : String.join(", ", endorsements)));
         System.out.println("DOT Physical Expiration: " +
-                (dotPhysicalExpirationDate.isEmpty() ? "N/A" : dotPhysicalExpirationDate));
+                (getDotPhysicalExpirationDate().isEmpty() ? "N/A" : getDotPhysicalExpirationDate()));
 
         System.out.println("Forklift Certified: " + (forkliftCertified ? "Yes" : "No"));
         System.out.println("Forklift Certification Expiration: " +
-                (forkliftCertificationExpirationDate.isEmpty() ? "N/A" : forkliftCertificationExpirationDate));
+                (getForkliftCertificationExpirationDate().isEmpty() ? "N/A" : getForkliftCertificationExpirationDate()));
 
         System.out.println("Average Evaluation Score: " + getAverageEvaluationScore());
         System.out.println("-----------------------------");
     }
 
+    private String safe(String value) {
+        return value == null ? "" : value;
+    }
+
     @Override
     public String toString() {
-        return getFullName() + " - " + position;
+        return getFullName() + " - " + getPosition();
     }
 }

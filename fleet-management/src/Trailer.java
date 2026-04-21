@@ -18,6 +18,7 @@ public class Trailer implements Serializable {
     private String status; // Unused, In Use, Stored, Down, Out of Service
     private boolean isDown;
     private String currentIssue;
+    private int assignedEmployeeId;
     private String assignedEmployeeName;
 
     private String notes;
@@ -38,6 +39,7 @@ public class Trailer implements Serializable {
         this.status = "Unused";
         this.isDown = false;
         this.currentIssue = "Ready";
+        this.assignedEmployeeId = 0;
         this.assignedEmployeeName = "";
         this.notes = "";
     }
@@ -86,6 +88,10 @@ public class Trailer implements Serializable {
         return currentIssue;
     }
 
+    public int getAssignedEmployeeId() {
+        return assignedEmployeeId;
+    }
+
     public String getAssignedEmployeeName() {
         return assignedEmployeeName;
     }
@@ -99,7 +105,7 @@ public class Trailer implements Serializable {
     }
 
     public void setAssignedEmployeeName(String name) {
-        this.assignedEmployeeName = name;
+        this.assignedEmployeeName = name == null ? "" : name;
     }
 
     public void setNotes(String notes) {
@@ -108,28 +114,57 @@ public class Trailer implements Serializable {
 
     public void setDown(boolean down, String issue) {
         this.isDown = down;
-        this.currentIssue = issue;
-        this.status = down ? "Down" : "Unused";
+        this.currentIssue = issue == null ? "" : issue;
+
+        if (down) {
+            this.status = "Down";
+            this.assignedEmployeeId = 0;
+            this.assignedEmployeeName = "";
+        } else {
+            this.status = "Unused";
+            if (this.currentIssue.isBlank()) {
+                this.currentIssue = "Ready";
+            }
+        }
+    }
+
+    public void assignDriver(int employeeId, String employeeName) {
+        this.assignedEmployeeId = employeeId;
+        this.assignedEmployeeName = employeeName == null ? "" : employeeName;
+        this.status = "In Use";
+    }
+
+    public void clearAssignment() {
+        this.assignedEmployeeId = 0;
+        this.assignedEmployeeName = "";
+
+        if (!isDown) {
+            this.status = "Unused";
+        }
     }
 
     public void markInUse(String employeeName) {
         this.status = "In Use";
-        this.assignedEmployeeName = employeeName;
+        this.assignedEmployeeName = employeeName == null ? "" : employeeName;
     }
 
     public void markUnused() {
         this.status = "Unused";
+        this.assignedEmployeeId = 0;
         this.assignedEmployeeName = "";
     }
 
     public void markStored() {
         this.status = "Stored";
+        this.assignedEmployeeId = 0;
         this.assignedEmployeeName = "";
     }
 
     public void markOutOfService() {
         this.status = "Out of Service";
         this.isDown = true;
+        this.currentIssue = "Out of Service";
+        this.assignedEmployeeId = 0;
         this.assignedEmployeeName = "";
     }
 
