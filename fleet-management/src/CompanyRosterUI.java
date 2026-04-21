@@ -14,26 +14,33 @@ public class CompanyRosterUI extends JFrame {
         this.manager = manager;
 
         setTitle("Company Roster");
-        setSize(1200, 650);
+        setSize(1250, 700);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout(10, 10));
 
+        // 🔥 BIGGER TITLE
         JLabel titleLabel = new JLabel("Company Roster", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 30));
 
         JPanel topPanel = new JPanel(new BorderLayout());
         topPanel.add(titleLabel, BorderLayout.CENTER);
 
+        // 🔥 BIGGER FILTER
         filterCombo = new JComboBox<>(new String[]{
                 "Show All",
                 "Active Only",
                 "Inactive Only"
         });
+        filterCombo.setFont(new Font("SansSerif", Font.PLAIN, 16));
         filterCombo.addActionListener(e -> refreshData());
 
         JPanel filterPanel = new JPanel();
-        filterPanel.add(new JLabel("Filter: "));
+
+        JLabel filterLabel = new JLabel("Filter: ");
+        filterLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+
+        filterPanel.add(filterLabel);
         filterPanel.add(filterCombo);
 
         topPanel.add(filterPanel, BorderLayout.SOUTH);
@@ -50,7 +57,12 @@ public class CompanyRosterUI extends JFrame {
         };
 
         employeeTable = new JTable(tableModel);
-        employeeTable.setAutoCreateRowSorter(true); // 🔥 sorting enabled
+        employeeTable.setAutoCreateRowSorter(true);
+
+        // 🔥 BIGGER TABLE TEXT
+        employeeTable.setRowHeight(42);
+        employeeTable.setFont(new Font("SansSerif", Font.PLAIN, 18));
+        employeeTable.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 17));
 
         employeeTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             public Component getTableCellRendererComponent(
@@ -80,6 +92,15 @@ public class CompanyRosterUI extends JFrame {
         JButton deleteBtn = new JButton("Delete");
         JButton portalBtn = new JButton("Open Portal");
         JButton closeBtn = new JButton("Close");
+
+        // 🔥 BIGGER BUTTON TEXT
+        Font buttonFont = new Font("SansSerif", Font.BOLD, 15);
+        assignBtn.setFont(buttonFont);
+        clearBtn.setFont(buttonFont);
+        editBtn.setFont(buttonFont);
+        deleteBtn.setFont(buttonFont);
+        portalBtn.setFont(buttonFont);
+        closeBtn.setFont(buttonFont);
 
         assignBtn.addActionListener(e -> openAssignTruckUI());
         clearBtn.addActionListener(e -> clearEquipment());
@@ -139,7 +160,6 @@ public class CompanyRosterUI extends JFrame {
         return manager.findEmployeeById(id);
     }
 
-    // 🔥 NEW: uses your AssignTruckUI
     private void openAssignTruckUI() {
         Employee emp = getSelectedEmployee();
         if (emp == null) return;

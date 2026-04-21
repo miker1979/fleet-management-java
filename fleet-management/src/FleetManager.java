@@ -12,6 +12,7 @@ public class FleetManager implements Serializable {
     private ArrayList<Trailer> trailers;
     private ArrayList<Forklift> forklifts;
     private ArrayList<Gradall> gradalls;
+    private ArrayList<Stockpile> stockpiles;
 
     private ArrayList<DVIRReport> dvirReports;
     private ArrayList<MechanicalWriteUp> mechanicalWriteUps;
@@ -27,6 +28,8 @@ public class FleetManager implements Serializable {
         trailers = new ArrayList<>();
         forklifts = new ArrayList<>();
         gradalls = new ArrayList<>();
+        stockpiles = new ArrayList<>();
+
         dvirReports = new ArrayList<>();
         mechanicalWriteUps = new ArrayList<>();
         timeOffRequests = new ArrayList<>();
@@ -479,6 +482,29 @@ public class FleetManager implements Serializable {
 
     public ArrayList<Gradall> getGradalls() {
         return gradalls;
+    }
+
+    // ================= STOCKPILES =================
+
+    public void addStockpile(Stockpile stockpile) {
+        stockpiles.add(stockpile);
+    }
+
+    public ArrayList<Stockpile> getStockpiles() {
+        return stockpiles;
+    }
+
+    public Stockpile findStockpileByName(String name) {
+        if (name == null) {
+            return null;
+        }
+
+        for (Stockpile s : stockpiles) {
+            if (s != null && s.getName() != null && s.getName().equalsIgnoreCase(name.trim())) {
+                return s;
+            }
+        }
+        return null;
     }
 
     // ================= DVIR =================
