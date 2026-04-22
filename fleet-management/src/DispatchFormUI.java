@@ -31,7 +31,7 @@ public class DispatchFormUI extends JDialog {
     private JTextField absorberNameField;
     private JTextField absorberOriginField;
 
-    private JTextField loadLocationField;
+    private JComboBox<String> loadLocationCombo;
     private JTextField stagingLocationField;
     private JTextArea dispatchInstructionsArea;
     private JTextArea previewArea;
@@ -169,13 +169,19 @@ public class DispatchFormUI extends JDialog {
         JPanel dispatchPanel = createSectionPanel("Dispatch Details");
         GridBagConstraints gbc = baseGbc();
 
-        loadLocationField = new JTextField();
+        loadLocationCombo = new JComboBox<>();
+        populateLoadLocations();
+
         stagingLocationField = new JTextField();
         dispatchInstructionsArea = new JTextArea(5, 20);
         dispatchInstructionsArea.setLineWrap(true);
         dispatchInstructionsArea.setWrapStyleWord(true);
 
-        addFormRow(dispatchPanel, gbc, 0, "Load From:", loadLocationField);
+        loadLocationCombo.addActionListener(e -> refreshPreview());
+        stagingLocationField.getDocument().addDocumentListener(new SimpleDocumentListener(this::refreshPreview));
+        dispatchInstructionsArea.getDocument().addDocumentListener(new SimpleDocumentListener(this::refreshPreview));
+
+        addFormRow(dispatchPanel, gbc, 0, "Load From:", loadLocationCombo);
         addFormRow(dispatchPanel, gbc, 1, "Stage At:", stagingLocationField);
 
         gbc.gridx = 0;
@@ -277,6 +283,20 @@ public class DispatchFormUI extends JDialog {
         return panel;
     }
 
+    private void populateLoadLocations() {
+        loadLocationCombo.removeAllItems();
+        loadLocationCombo.addItem("");
+        loadLocationCombo.addItem("Main Yard");
+        loadLocationCombo.addItem("Shop");
+        loadLocationCombo.addItem("Office");
+
+        for (Stockpile stockpile : manager.getStockpiles()) {
+            if (stockpile != null) {
+                loadLocationCombo.addItem(stockpile.toString());
+            }
+        }
+    }
+
     private void loadExistingTaskValues() {
         if (!safe(task.getForeman()).isBlank()) {
             foremanCombo.setSelectedItem(task.getForeman());
@@ -316,7 +336,7 @@ public class DispatchFormUI extends JDialog {
             }
         }
 
-        loadLocationField.setText(safe(task.getLoadLocation()));
+        loadLocationCombo.setSelectedItem(safe(task.getLoadLocation()));
         stagingLocationField.setText(safe(task.getStagingLocation()));
         dispatchInstructionsArea.setText(safe(task.getDispatchInstructions()));
     }
@@ -443,7 +463,7 @@ public class DispatchFormUI extends JDialog {
         task.setForeman(foreman);
         task.setAssignedEmployeeIds(assignedIds);
         task.setAssignedForklifts(new ArrayList<>(selectedForklifts));
-        task.setLoadLocation(loadLocationField.getText().trim());
+        task.setLoadLocation(safe((String) loadLocationCombo.getSelectedItem()));
         task.setStagingLocation(stagingLocationField.getText().trim());
         task.setDispatchInstructions(dispatchInstructionsArea.getText().trim());
 
@@ -507,9 +527,11 @@ public class DispatchFormUI extends JDialog {
             }
         }
 
+        String loadFrom = safe((String) loadLocationCombo.getSelectedItem());
+
         sb.append("\nDISPATCH LOCATIONS\n");
         sb.append("------------------\n");
-        sb.append("Load From: ").append(blankAsNone(loadLocationField.getText())).append("\n");
+        sb.append("Load From: ").append(blankAsNone(loadFrom)).append("\n");
         sb.append("Stage At : ").append(blankAsNone(stagingLocationField.getText())).append("\n");
 
         sb.append("\nFORKLIFTS\n");
@@ -680,8 +702,9 @@ public class DispatchFormUI extends JDialog {
 
         sb.append(String.join(", ", names));
 
-        if (!safe(loadLocationField.getText()).isBlank()) {
-            sb.append(" | Load From: ").append(loadLocationField.getText().trim());
+        String loadFrom = safe((String) loadLocationCombo.getSelectedItem());
+        if (!loadFrom.isBlank()) {
+            sb.append(" | Load From: ").append(loadFrom);
         }
         if (!safe(stagingLocationField.getText()).isBlank()) {
             sb.append(" | Stage At: ").append(stagingLocationField.getText().trim());
@@ -762,6 +785,29 @@ public class DispatchFormUI extends JDialog {
             this.name = name;
             this.employeeId = employeeId;
             this.origin = origin;
+        }
+    }
+
+    private static class SimpleDocumentListener implements javax.swing.event.DocumentListener {
+        private final Runnable action;
+
+        private SimpleDocumentListener(Runnable action) {
+            this.action = action;
+        }
+
+        @Override
+        public void insertUpdate(javax.swing.event.DocumentEvent e) {
+            action.run();
+        }
+
+        @Override
+        public void removeUpdate(javax.swing.event.DocumentEvent e) {
+            action.run();
+        }
+
+        @Override
+        public void changedUpdate(javax.swing.event.DocumentEvent e) {
+            action.run();
         }
     }
 }
