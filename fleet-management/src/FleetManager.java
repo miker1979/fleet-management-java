@@ -474,6 +474,19 @@ public class FleetManager implements Serializable {
         return available;
     }
 
+    public boolean isForkliftInAnyStockpile(String unitId) {
+        if (unitId == null || unitId.isBlank()) {
+            return false;
+        }
+
+        for (Stockpile s : stockpiles) {
+            if (s != null && s.getForkliftIds().contains(unitId.trim())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // ================= GRADALL =================
 
     public void addGradall(Gradall g) {
@@ -482,6 +495,34 @@ public class FleetManager implements Serializable {
 
     public ArrayList<Gradall> getGradalls() {
         return gradalls;
+    }
+
+    public Gradall findGradallById(String id) {
+        if (id == null) {
+            return null;
+        }
+
+        for (Gradall gradall : gradalls) {
+            if (gradall != null
+                    && gradall.getUnitId() != null
+                    && gradall.getUnitId().equalsIgnoreCase(id)) {
+                return gradall;
+            }
+        }
+        return null;
+    }
+
+    public boolean isGradallInAnyStockpile(String unitId) {
+        if (unitId == null || unitId.isBlank()) {
+            return false;
+        }
+
+        for (Stockpile s : stockpiles) {
+            if (s != null && s.getGradallIds().contains(unitId.trim())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // ================= STOCKPILES =================
@@ -505,6 +546,130 @@ public class FleetManager implements Serializable {
             }
         }
         return null;
+    }
+
+    public boolean addForkliftToStockpile(String stockpileName, String forkliftId, String employeeName, String timestamp) {
+        Stockpile stockpile = findStockpileByName(stockpileName);
+
+        if (stockpile == null || forkliftId == null || forkliftId.isBlank()) {
+            return false;
+        }
+
+        String trimmedId = forkliftId.trim();
+
+        if (findForkliftById(trimmedId) == null) {
+            return false;
+        }
+
+        if (isForkliftInAnyStockpile(trimmedId)) {
+            return false;
+        }
+
+        return stockpile.addForklift(trimmedId, employeeName, timestamp);
+    }
+
+    public boolean removeForkliftFromStockpile(String stockpileName, String forkliftId, String employeeName, String timestamp) {
+        Stockpile stockpile = findStockpileByName(stockpileName);
+
+        if (stockpile == null || forkliftId == null || forkliftId.isBlank()) {
+            return false;
+        }
+
+        return stockpile.removeForklift(forkliftId.trim(), employeeName, timestamp);
+    }
+
+    public boolean addGradallToStockpile(String stockpileName, String gradallId, String employeeName, String timestamp) {
+        Stockpile stockpile = findStockpileByName(stockpileName);
+
+        if (stockpile == null || gradallId == null || gradallId.isBlank()) {
+            return false;
+        }
+
+        String trimmedId = gradallId.trim();
+
+        if (findGradallById(trimmedId) == null) {
+            return false;
+        }
+
+        if (isGradallInAnyStockpile(trimmedId)) {
+            return false;
+        }
+
+        return stockpile.addGradall(trimmedId, employeeName, timestamp);
+    }
+
+    public boolean removeGradallFromStockpile(String stockpileName, String gradallId, String employeeName, String timestamp) {
+        Stockpile stockpile = findStockpileByName(stockpileName);
+
+        if (stockpile == null || gradallId == null || gradallId.isBlank()) {
+            return false;
+        }
+
+        return stockpile.removeGradall(gradallId.trim(), employeeName, timestamp);
+    }
+
+    public boolean dispatchBarriersToJob(String stockpileName,
+                                         int jobNumber,
+                                         int quantity,
+                                         String employeeName,
+                                         String timestamp) {
+
+        if (quantity <= 0) {
+            return false;
+        }
+
+        Stockpile stockpile = findStockpileByName(stockpileName);
+        Job job = findJobByNumber(jobNumber);
+
+        if (stockpile == null || job == null) {
+            return false;
+        }
+
+        if (!stockpile.hasEnoughBarriers(quantity)) {
+            return false;
+        }
+
+        boolean removed = stockpile.removeBarriers(quantity, employeeName, timestamp);
+        if (!removed) {
+            return false;
+        }
+
+        job.addBarriers(quantity, stockpileName);
+        return true;
+    }
+
+    public boolean returnBarriersFromJob(String stockpileName,
+                                         int jobNumber,
+                                         int quantity,
+                                         String employeeName,
+                                         String timestamp) {
+
+        if (quantity <= 0) {
+            return false;
+        }
+
+        Stockpile stockpile = findStockpileByName(stockpileName);
+        Job job = findJobByNumber(jobNumber);
+
+        if (stockpile == null || job == null) {
+            return false;
+        }
+
+        if (!job.removeBarriers(quantity)) {
+            return false;
+        }
+
+        return stockpile.addBarriers(quantity, employeeName, timestamp);
+    }
+
+    public int getRemainingBarriersAtStockpile(String stockpileName) {
+        Stockpile stockpile = findStockpileByName(stockpileName);
+        return stockpile == null ? 0 : stockpile.getBarrierCount();
+    }
+
+    public int getBarriersAssignedToJob(int jobNumber) {
+        Job job = findJobByNumber(jobNumber);
+        return job == null ? 0 : job.getBarriersAssigned();
     }
 
     // ================= DVIR =================

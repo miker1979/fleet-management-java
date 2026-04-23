@@ -23,6 +23,10 @@ public class Job implements Serializable {
     private int totalLinearFeet;
     private String notes;
 
+    // Inventory tracking
+    private int barriersAssigned;
+    private String sourceStockpileName;
+
     public Job(int jobNumber, String contractor, String projectName,
                String startDate, String endDate, String location) {
 
@@ -39,6 +43,9 @@ public class Job implements Serializable {
         this.barrierType = "";
         this.totalLinearFeet = 0;
         this.notes = "";
+
+        this.barriersAssigned = 0;
+        this.sourceStockpileName = "";
     }
 
     public String getOpenDuration() {
@@ -137,7 +144,6 @@ public class Job implements Serializable {
                     total += hours * crewSize;
                 }
             } catch (Exception ignored) {
-                // Keep going if one task has bad time data
             }
         }
 
@@ -155,8 +161,56 @@ public class Job implements Serializable {
                 + "\nInstall: " + getInstallCount(tasks)
                 + "\nRemove: " + getRemoveCount(tasks)
                 + "\nRelocate: " + getRelocateCount(tasks)
-                + "\nMan Hours: " + String.format("%.2f", getTotalManHours(tasks));
+                + "\nMan Hours: " + String.format("%.2f", getTotalManHours(tasks))
+                + "\nBarriers Assigned: " + barriersAssigned
+                + "\nSource Stockpile: " + (sourceStockpileName == null || sourceStockpileName.isBlank() ? "N/A" : sourceStockpileName);
     }
+
+    // ================= INVENTORY METHODS =================
+
+    public int getBarriersAssigned() {
+        return barriersAssigned;
+    }
+
+    public String getSourceStockpileName() {
+        return sourceStockpileName;
+    }
+
+    public void setBarriersAssigned(int barriersAssigned) {
+        this.barriersAssigned = Math.max(0, barriersAssigned);
+    }
+
+    public void setSourceStockpileName(String sourceStockpileName) {
+        this.sourceStockpileName = sourceStockpileName == null ? "" : sourceStockpileName;
+    }
+
+    public void addBarriers(int quantity, String stockpileName) {
+        if (quantity <= 0) {
+            return;
+        }
+
+        this.barriersAssigned += quantity;
+
+        if (this.sourceStockpileName == null || this.sourceStockpileName.isBlank()) {
+            this.sourceStockpileName = stockpileName == null ? "" : stockpileName;
+        }
+    }
+
+    public boolean removeBarriers(int quantity) {
+        if (quantity <= 0 || quantity > this.barriersAssigned) {
+            return false;
+        }
+
+        this.barriersAssigned -= quantity;
+
+        if (this.barriersAssigned == 0) {
+            this.sourceStockpileName = "";
+        }
+
+        return true;
+    }
+
+    // ================= STANDARD GETTERS =================
 
     public int getJobNumber() {
         return jobNumber;
@@ -205,6 +259,8 @@ public class Job implements Serializable {
     public String getNotes() {
         return notes;
     }
+
+    // ================= STANDARD SETTERS =================
 
     public void setContractor(String contractor) {
         this.contractor = contractor == null ? "" : contractor;

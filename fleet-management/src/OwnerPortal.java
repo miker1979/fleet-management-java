@@ -85,6 +85,7 @@ public class OwnerPortal extends JFrame {
         JButton assignDriverVehicleBtn = createSideButton("Assign Driver To Vehicle");
         JButton timeOffBtn = createSideButton("Time Off Manager");
         JButton editCompanyBtn = createSideButton("Edit Company Info");
+        JButton stockpileManagerBtn = createSideButton("Stockpile Manager");
 
         createEmployeeBtn.addActionListener(e -> openChildWindow(new CreateEmployeeUI(manager)));
         createEquipmentBtn.addActionListener(e -> openChildWindow(new CreateEquipmentUI(manager)));
@@ -93,12 +94,24 @@ public class OwnerPortal extends JFrame {
         assignDriverVehicleBtn.addActionListener(e -> showAssignDriverVehicleDialog());
         timeOffBtn.addActionListener(e -> openChildWindow(new ManagerTimeOffDashboardUI(manager)));
         editCompanyBtn.addActionListener(e -> new CompanySetupUI(manager, true).setVisible(true));
+        stockpileManagerBtn.addActionListener(e -> {
+    try {
+        System.out.println("Opening Stockpile Manager...");
+        StockpileManagerUI ui = new StockpileManagerUI(manager);
+        ui.setVisible(true);
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        JOptionPane.showMessageDialog(this, "ERROR: " + ex.getMessage());
+    }
+});
 
         sidebar.add(createEmployeeBtn);
         sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
         sidebar.add(createEquipmentBtn);
         sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
         sidebar.add(vehicleListBtn);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
+        sidebar.add(stockpileManagerBtn);
         sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
         sidebar.add(rosterBtn);
         sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
@@ -163,6 +176,7 @@ public class OwnerPortal extends JFrame {
         JLabel header = new JLabel("JOB MANAGEMENT", SwingConstants.LEFT);
         header.setFont(new Font("SansSerif", Font.BOLD, 24));
         header.setForeground(new Color(255, 215, 0));
+        JButton dispatchBarriersBtn = createStyledButton("Dispatch Barriers", new Color(0, 255, 150));
         panel.add(header, BorderLayout.NORTH);
 
         setupJobTable();
@@ -180,11 +194,13 @@ public class OwnerPortal extends JFrame {
         editJobBtn.addActionListener(e -> editSelectedJob());
         deleteJobBtn.addActionListener(e -> deleteSelectedJob());
         jobStatsBtn.addActionListener(e -> showSelectedJobDashboard());
+        dispatchBarriersBtn.addActionListener(e -> showDispatchBarriersDialog());
 
         actionPanel.add(createJobBtn);
         actionPanel.add(editJobBtn);
         actionPanel.add(deleteJobBtn);
         actionPanel.add(jobStatsBtn);
+        actionPanel.add(dispatchBarriersBtn);
 
         panel.add(actionPanel, BorderLayout.SOUTH);
         return panel;
@@ -1416,6 +1432,72 @@ public class OwnerPortal extends JFrame {
         panel.add(field, gbc);
     }
 
+
+    private void showDispatchBarriersDialog() {
+
+    Job selectedJob = getSelectedJob();
+
+    if (selectedJob == null) {
+       JOptionPane.showMessageDialog(this, "Select a job first.");
+        return;
+    }
+
+    if (manager.getStockpiles().isEmpty()) {
+        JOptionPane.showMessageDialog(this, "No stockpiles available.");
+        return;
+    }
+
+    JComboBox<String> stockpileBox = new JComboBox<>();
+    for (Stockpile s : manager.getStockpiles()) {
+        stockpileBox.addItem(s.getName());
+    }
+
+    JTextField quantityField = new JTextField();
+
+    JPanel panel = new JPanel(new GridLayout(3, 2, 10, 10));
+    panel.add(new JLabel("Stockpile:"));
+    panel.add(stockpileBox);
+    panel.add(new JLabel("Quantity:"));
+    panel.add(quantityField);
+
+    int result = JOptionPane.showConfirmDialog(
+            this,
+            panel,
+            "Dispatch Barriers",
+            JOptionPane.OK_CANCEL_OPTION
+    );
+
+    if (result != JOptionPane.OK_OPTION) {
+        return;
+    }
+
+    try {
+        String stockpileName = (String) stockpileBox.getSelectedItem();
+        int quantity = Integer.parseInt(quantityField.getText().trim());
+
+        boolean success = manager.dispatchBarriersToJob(
+                stockpileName,
+                selectedJob.getJobNumber(),
+                quantity,
+                "Dispatcher",
+                LocalDate.now().toString()
+        );
+
+        if (!success) {
+            JOptionPane.showMessageDialog(this, "Dispatch failed. Check inventory.");
+            return;
+        }
+
+        DataStore.save(manager);
+        refreshData();
+
+        JOptionPane.showMessageDialog(this,
+                "Dispatched " + quantity + " barriers to Job #" + selectedJob.getJobNumber());
+
+    } catch (Exception ex) {
+        JOptionPane.showMessageDialog(this, "Invalid quantity.");
+    }
+}
     private static class SimpleDocumentListener implements DocumentListener {
         private final Runnable action;
 

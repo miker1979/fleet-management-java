@@ -11,6 +11,7 @@ public class Truck implements Serializable {
     private String model;
     private String vin;
     private String color;
+    private String subtype;
 
     // Mechanical Info
     private String engineModel;
@@ -33,6 +34,7 @@ public class Truck implements Serializable {
     public Truck(String truckID, String model) {
         this.truckID = truckID;
         this.model = model;
+        this.subtype = "";
 
         this.year = 0;
         this.make = "";
@@ -145,6 +147,10 @@ public class Truck implements Serializable {
         return truckID;
     }
 
+    public String getSubtype() {
+    return subtype;
+}
+
     // Setters
     public void setTruckID(String truckID) {
         this.truckID = truckID;
@@ -201,6 +207,10 @@ public class Truck implements Serializable {
     public void setNotes(String notes) {
         this.notes = notes;
     }
+
+    public void setSubtype(String subtype) {
+    this.subtype = subtype == null ? "" : subtype;
+}
 
     // Maintenance logic
     public void setDown(boolean down, String issue) {

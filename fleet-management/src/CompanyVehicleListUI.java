@@ -95,19 +95,19 @@ public class CompanyVehicleListUI extends JFrame {
         tableModel.setRowCount(0);
 
         for (Truck t : manager.getTrucks()) {
-            tableModel.addRow(new Object[]{
-                    "Truck",
-                    t.getTruckID(),
-                    t.getYear(),
-                    t.getMake(),
-                    t.getModel(),
-                    "",
-                    "",
-                    t.getStatus(),
-                    safe(t.getAssignedEmployeeName(), "None"),
-                    t.getCurrentIssue()
-            });
-        }
+    tableModel.addRow(new Object[]{
+            "Truck",
+            t.getTruckID(),
+            t.getYear(),
+            t.getMake(),
+            t.getModel(),
+            safe(t.getSubtype(), "N/A"),
+            "N/A",
+            t.getStatus(),
+            safe(t.getAssignedEmployeeName(), "None"),
+            t.getCurrentIssue()
+    });
+}
 
         for (Trailer t : manager.getTrailers()) {
             tableModel.addRow(new Object[]{
