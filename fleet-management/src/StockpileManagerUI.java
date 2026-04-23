@@ -3,6 +3,7 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 
 public class StockpileManagerUI extends JFrame {
 
@@ -14,7 +15,7 @@ public class StockpileManagerUI extends JFrame {
         this.manager = manager;
 
         setTitle("Stockpile Manager");
-        setSize(1550, 600);
+        setSize(1550, 650);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
@@ -56,6 +57,8 @@ public class StockpileManagerUI extends JFrame {
         JButton removeForkliftBtn = new JButton("Remove Forklift");
         JButton addGradallBtn = new JButton("Add Gradall");
         JButton removeGradallBtn = new JButton("Remove Gradall");
+        JButton bulkForkliftBtn = new JButton("Add Multiple Forklifts");
+        JButton bulkGradallBtn = new JButton("Add Multiple Gradalls");
         JButton deleteBtn = new JButton("Delete");
         JButton closeBtn = new JButton("Close");
 
@@ -65,6 +68,8 @@ public class StockpileManagerUI extends JFrame {
         removeForkliftBtn.addActionListener(e -> removeForklift());
         addGradallBtn.addActionListener(e -> addGradall());
         removeGradallBtn.addActionListener(e -> removeGradall());
+        bulkForkliftBtn.addActionListener(e -> addMultipleForklifts());
+        bulkGradallBtn.addActionListener(e -> addMultipleGradalls());
         deleteBtn.addActionListener(e -> deleteStockpile());
         closeBtn.addActionListener(e -> dispose());
 
@@ -74,6 +79,8 @@ public class StockpileManagerUI extends JFrame {
         buttons.add(removeForkliftBtn);
         buttons.add(addGradallBtn);
         buttons.add(removeGradallBtn);
+        buttons.add(bulkForkliftBtn);
+        buttons.add(bulkGradallBtn);
         buttons.add(deleteBtn);
         buttons.add(closeBtn);
 
@@ -382,6 +389,102 @@ public class StockpileManagerUI extends JFrame {
         if (!success) {
             JOptionPane.showMessageDialog(this, "Unable to remove gradall.");
             return;
+        }
+
+        DataStore.save(manager);
+        refresh();
+    }
+
+    private void addMultipleForklifts() {
+        Stockpile selected = getSelectedStockpile();
+        if (selected == null) {
+            return;
+        }
+
+        JList<String> list = new JList<>(
+                manager.getForklifts().stream()
+                        .map(Forklift::getUnitId)
+                        .toArray(String[]::new)
+        );
+        list.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+
+        int result = JOptionPane.showConfirmDialog(
+                this,
+                new JScrollPane(list),
+                "Select Forklifts",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
+        );
+
+        if (result != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        ArrayList<String> selectedIds = new ArrayList<>(list.getSelectedValuesList());
+
+        String updatedBy = JOptionPane.showInputDialog(this, "Updated By:");
+        if (updatedBy == null || updatedBy.isBlank()) {
+            updatedBy = "Unknown";
+        }
+
+        ArrayList<String> failed = manager.addMultipleForkliftsToStockpile(
+                selected.getName(),
+                selectedIds,
+                updatedBy,
+                nowStamp()
+        );
+
+        if (!failed.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "Some forklifts were skipped:\n" + String.join("\n", failed));
+        }
+
+        DataStore.save(manager);
+        refresh();
+    }
+
+    private void addMultipleGradalls() {
+        Stockpile selected = getSelectedStockpile();
+        if (selected == null) {
+            return;
+        }
+
+        JList<String> list = new JList<>(
+                manager.getGradalls().stream()
+                        .map(Gradall::getUnitId)
+                        .toArray(String[]::new)
+        );
+        list.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+
+        int result = JOptionPane.showConfirmDialog(
+                this,
+                new JScrollPane(list),
+                "Select Gradalls",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
+        );
+
+        if (result != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        ArrayList<String> selectedIds = new ArrayList<>(list.getSelectedValuesList());
+
+        String updatedBy = JOptionPane.showInputDialog(this, "Updated By:");
+        if (updatedBy == null || updatedBy.isBlank()) {
+            updatedBy = "Unknown";
+        }
+
+        ArrayList<String> failed = manager.addMultipleGradallsToStockpile(
+                selected.getName(),
+                selectedIds,
+                updatedBy,
+                nowStamp()
+        );
+
+        if (!failed.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "Some gradalls were skipped:\n" + String.join("\n", failed));
         }
 
         DataStore.save(manager);

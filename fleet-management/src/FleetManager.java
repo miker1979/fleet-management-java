@@ -487,6 +487,42 @@ public class FleetManager implements Serializable {
         return false;
     }
 
+    public ArrayList<String> addMultipleForkliftsToStockpile(String stockpileName,
+                                                             ArrayList<String> forkliftIds,
+                                                             String employeeName,
+                                                             String timestamp) {
+
+        ArrayList<String> failed = new ArrayList<>();
+
+        Stockpile stockpile = findStockpileByName(stockpileName);
+        if (stockpile == null) {
+            failed.add("Invalid Stockpile");
+            return failed;
+        }
+
+        for (String id : forkliftIds) {
+            if (id == null || id.isBlank()) {
+                continue;
+            }
+
+            String trimmed = id.trim();
+
+            if (findForkliftById(trimmed) == null) {
+                failed.add(trimmed + " (not found)");
+                continue;
+            }
+
+            if (isForkliftInAnyStockpile(trimmed)) {
+                failed.add(trimmed + " (already assigned)");
+                continue;
+            }
+
+            stockpile.addForklift(trimmed, employeeName, timestamp);
+        }
+
+        return failed;
+    }
+
     // ================= GRADALL =================
 
     public void addGradall(Gradall g) {
@@ -523,6 +559,42 @@ public class FleetManager implements Serializable {
             }
         }
         return false;
+    }
+
+    public ArrayList<String> addMultipleGradallsToStockpile(String stockpileName,
+                                                            ArrayList<String> gradallIds,
+                                                            String employeeName,
+                                                            String timestamp) {
+
+        ArrayList<String> failed = new ArrayList<>();
+
+        Stockpile stockpile = findStockpileByName(stockpileName);
+        if (stockpile == null) {
+            failed.add("Invalid Stockpile");
+            return failed;
+        }
+
+        for (String id : gradallIds) {
+            if (id == null || id.isBlank()) {
+                continue;
+            }
+
+            String trimmed = id.trim();
+
+            if (findGradallById(trimmed) == null) {
+                failed.add(trimmed + " (not found)");
+                continue;
+            }
+
+            if (isGradallInAnyStockpile(trimmed)) {
+                failed.add(trimmed + " (already assigned)");
+                continue;
+            }
+
+            stockpile.addGradall(trimmed, employeeName, timestamp);
+        }
+
+        return failed;
     }
 
     // ================= STOCKPILES =================

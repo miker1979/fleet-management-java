@@ -199,8 +199,9 @@ public class DispatchFormUI extends JDialog {
         GridBagConstraints eg = baseGbc();
 
         forkliftCombo = new JComboBox<>();
+        forkliftCombo.setEditable(false);
         forkliftCombo.addItem("");
-        for (Forklift forklift : manager.getAvailableForklifts()) {
+        for (Forklift forklift : manager.getForklifts()) {
             forkliftCombo.addItem(forklift.getUnitId());
         }
 
@@ -274,7 +275,9 @@ public class DispatchFormUI extends JDialog {
         JButton cancelBtn = new JButton("Cancel");
         cancelBtn.addActionListener(e -> dispose());
 
-        JButton saveBtn = new JButton("Save Dispatch");
+        JButton saveBtn = new JButton(
+                "Dispatched".equalsIgnoreCase(safe(task.getStatus())) ? "Update Dispatch" : "Save Dispatch"
+        );
         saveBtn.addActionListener(e -> saveDispatch());
 
         panel.add(cancelBtn);
@@ -384,8 +387,9 @@ public class DispatchFormUI extends JDialog {
 
         driverEquipmentMap.putIfAbsent(employee.getEmployeeId(), new ArrayList<>());
         ArrayList<String> items = driverEquipmentMap.get(employee.getEmployeeId());
-        if (!items.contains("Forklift " + forkliftId)) {
-            items.add("Forklift " + forkliftId);
+        String label = "Forklift " + forkliftId;
+        if (!items.contains(label)) {
+            items.add(label);
         }
 
         forkliftCombo.setSelectedItem("");
@@ -393,32 +397,68 @@ public class DispatchFormUI extends JDialog {
     }
 
     private void addSupportEquipment() {
-        String name = safe(absorberNameField.getText()).trim();
-        String origin = safe(absorberOriginField.getText()).trim();
-        Employee employee = (Employee) equipmentDriverCombo.getSelectedItem();
+        JComboBox<String> typeBox = new JComboBox<>(new String[]{"Absorber", "Support"});
+        JComboBox<String> styleBox = new JComboBox<>(new String[]{"New Style", "Old Style"});
+        JComboBox<String> lengthBox = new JComboBox<>(new String[]{"20'", "12'"});
+        JTextField qtyField = new JTextField();
 
-        if (name.isBlank()) {
-            JOptionPane.showMessageDialog(this, "Enter the absorber/support item name.");
+        JPanel panel = new JPanel(new GridLayout(0, 2, 8, 8));
+        panel.add(new JLabel("Type:"));
+        panel.add(typeBox);
+        panel.add(new JLabel("Style:"));
+        panel.add(styleBox);
+        panel.add(new JLabel("Length:"));
+        panel.add(lengthBox);
+        panel.add(new JLabel("Quantity / Sets:"));
+        panel.add(qtyField);
+
+        int result = JOptionPane.showConfirmDialog(
+                this,
+                panel,
+                "Add Support / Absorber",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
+        );
+
+        if (result != JOptionPane.OK_OPTION) {
             return;
         }
 
+        int qty;
+        try {
+            qty = Integer.parseInt(qtyField.getText().trim());
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Invalid quantity.");
+            return;
+        }
+
+        if (qty <= 0) {
+            JOptionPane.showMessageDialog(this, "Quantity must be greater than zero.");
+            return;
+        }
+
+        Employee employee = (Employee) equipmentDriverCombo.getSelectedItem();
         if (employee == null) {
             JOptionPane.showMessageDialog(this, "Select which crew member is bringing it.");
             return;
         }
 
+        String itemName = qty + "x "
+                + styleBox.getSelectedItem() + " "
+                + lengthBox.getSelectedItem() + " "
+                + typeBox.getSelectedItem();
+
+        String origin = safe((String) loadLocationCombo.getSelectedItem()).trim();
         if (origin.isBlank()) {
             origin = "Not specified";
         }
 
-        supportAssignments.add(new SupportAssignment(name, employee.getEmployeeId(), origin));
-        supportEquipmentModel.addElement(formatSupportAssignment(name, employee.getEmployeeId(), origin));
+        supportAssignments.add(new SupportAssignment(itemName, employee.getEmployeeId(), origin));
+        supportEquipmentModel.addElement(formatSupportAssignment(itemName, employee.getEmployeeId(), origin));
 
         driverEquipmentMap.putIfAbsent(employee.getEmployeeId(), new ArrayList<>());
-        driverEquipmentMap.get(employee.getEmployeeId()).add(name + " (From: " + origin + ")");
+        driverEquipmentMap.get(employee.getEmployeeId()).add(itemName + " (From: " + origin + ")");
 
-        absorberNameField.setText("");
-        absorberOriginField.setText("");
         refreshPreview();
     }
 
@@ -521,7 +561,12 @@ public class DispatchFormUI extends JDialog {
                 ArrayList<String> items = driverEquipmentMap.get(employee.getEmployeeId());
                 if (items != null && !items.isEmpty()) {
                     for (String item : items) {
-                        sb.append("    • Bringing: ").append(item).append("\n");
+                        sb.append("    • Bringing: ").append(item);
+                        if (item.startsWith("Forklift ")) {
+                            String forkliftId = item.replace("Forklift ", "").trim();
+                            sb.append(" | Pick up at: ").append(findForkliftLocation(forkliftId));
+                        }
+                        sb.append("\n");
                     }
                 }
             }
@@ -540,7 +585,9 @@ public class DispatchFormUI extends JDialog {
             sb.append("No forklifts assigned.\n");
         } else {
             for (String forkliftId : selectedForklifts) {
-                sb.append("- ").append(forkliftId).append("\n");
+                sb.append("- ").append(forkliftId)
+                        .append(" (Pick up at: ").append(findForkliftLocation(forkliftId)).append(")")
+                        .append("\n");
             }
         }
 
@@ -717,7 +764,7 @@ public class DispatchFormUI extends JDialog {
         ArrayList<String> summary = new ArrayList<>();
 
         for (String forklift : selectedForklifts) {
-            summary.add("Forklift " + forklift);
+            summary.add("Forklift " + forklift + " (Pick up at: " + findForkliftLocation(forklift) + ")");
         }
 
         for (SupportAssignment assignment : supportAssignments) {
@@ -731,6 +778,15 @@ public class DispatchFormUI extends JDialog {
         Employee employee = manager.findEmployeeById(employeeId);
         String driverName = employee == null ? "Unknown Driver" : employee.getFullName();
         return name + " | Assigned To: " + driverName + " | From: " + origin;
+    }
+
+    private String findForkliftLocation(String forkliftId) {
+        for (Stockpile s : manager.getStockpiles()) {
+            if (s.getForkliftIds().contains(forkliftId)) {
+                return s.getName();
+            }
+        }
+        return "Unknown Location";
     }
 
     private JPanel createSectionPanel(String title) {
