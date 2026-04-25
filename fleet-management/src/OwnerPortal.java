@@ -86,6 +86,7 @@ public class OwnerPortal extends JFrame {
         JButton timeOffBtn = createSideButton("Time Off Manager");
         JButton editCompanyBtn = createSideButton("Edit Company Info");
         JButton stockpileManagerBtn = createSideButton("Stockpile Manager");
+        JButton summaryBtn = createStyledButton("Complete Summary", new Color(180, 120, 255));
 
         createEmployeeBtn.addActionListener(e -> openChildWindow(new CreateEmployeeUI(manager)));
         createEquipmentBtn.addActionListener(e -> openChildWindow(new CreateEquipmentUI(manager)));
@@ -153,16 +154,20 @@ public class OwnerPortal extends JFrame {
         JButton createTaskBtn = createStyledButton("Create Task", new Color(0, 255, 150));
         JButton editTaskBtn = createStyledButton("Edit Task", new Color(0, 200, 255));
         JButton dispatchTaskBtn = createStyledButton("Dispatch Task", new Color(255, 215, 0));
+        JButton summaryBtn = createStyledButton("Complete Summary", new Color(180, 120, 255));
         JButton deleteTaskBtn = createStyledButton("Delete Task", new Color(255, 100, 100));
 
         createTaskBtn.addActionListener(e -> createTask());
         editTaskBtn.addActionListener(e -> editSelectedTask());
         dispatchTaskBtn.addActionListener(e -> dispatchSelectedTask());
+        summaryBtn.addActionListener(e -> openTaskSummary());
         deleteTaskBtn.addActionListener(e -> deleteSelectedTask());
+        
 
         actionPanel.add(createTaskBtn);
         actionPanel.add(editTaskBtn);
         actionPanel.add(dispatchTaskBtn);
+        actionPanel.add(summaryBtn);
         actionPanel.add(deleteTaskBtn);
 
         panel.add(actionPanel, BorderLayout.SOUTH);
@@ -707,8 +712,23 @@ public class OwnerPortal extends JFrame {
             DataStore.save(manager);
             refreshData();
         }
+
+        
+    }
+private void openTaskSummary() {
+    Task selected = getSelectedTask();
+
+    if (selected == null) {
+        JOptionPane.showMessageDialog(this, "Select a task first.");
+        return;
     }
 
+    TaskSummaryFormUI form = new TaskSummaryFormUI(this, manager, selected);
+    form.setVisible(true);
+
+    DataStore.save(manager);
+    refreshData();
+}
     private void deleteSelectedTask() {
         Task selected = getSelectedTask();
         if (selected == null) {

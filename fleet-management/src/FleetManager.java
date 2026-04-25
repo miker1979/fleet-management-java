@@ -17,6 +17,7 @@ public class FleetManager implements Serializable {
     private ArrayList<DVIRReport> dvirReports;
     private ArrayList<MechanicalWriteUp> mechanicalWriteUps;
     private ArrayList<TimeOffRequest> timeOffRequests;
+    private ArrayList<TaskSummary> taskSummaries;
 
     private Company company;
 
@@ -33,7 +34,93 @@ public class FleetManager implements Serializable {
         dvirReports = new ArrayList<>();
         mechanicalWriteUps = new ArrayList<>();
         timeOffRequests = new ArrayList<>();
+        taskSummaries = new ArrayList<>();
     }
+
+    // ================= TASK SUMMARIES =================
+
+private void ensureTaskSummaries() {
+    if (taskSummaries == null) {
+        taskSummaries = new ArrayList<>();
+    }
+}
+
+public ArrayList<TaskSummary> getTaskSummaries() {
+    ensureTaskSummaries();
+    return taskSummaries;
+}
+
+public void addTaskSummary(TaskSummary summary) {
+    ensureTaskSummaries();
+    if (summary != null) {
+        taskSummaries.add(summary);
+    }
+}
+
+public void saveTaskSummary(TaskSummary summary) {
+    ensureTaskSummaries();
+
+    if (summary == null) {
+        return;
+    }
+
+    TaskSummary existing = findTaskSummaryByTaskId(summary.getTaskId());
+
+    if (existing != null) {
+        taskSummaries.remove(existing);
+    }
+
+    taskSummaries.add(summary);
+}
+
+public TaskSummary findTaskSummaryByTaskId(int taskId) {
+    ensureTaskSummaries();
+
+    for (TaskSummary summary : taskSummaries) {
+        if (summary != null && summary.getTaskId() == taskId) {
+            return summary;
+        }
+    }
+
+    return null;
+}
+
+public ArrayList<TaskSummary> getTaskSummariesByJobId(int jobId) {
+    ensureTaskSummaries();
+
+    ArrayList<TaskSummary> result = new ArrayList<>();
+
+    for (TaskSummary summary : taskSummaries) {
+        if (summary != null && summary.getJobId() == jobId) {
+            result.add(summary);
+        }
+    }
+
+    return result;
+}
+
+public void deleteTaskSummaryByTaskId(int taskId) {
+    ensureTaskSummaries();
+
+    TaskSummary existing = findTaskSummaryByTaskId(taskId);
+    if (existing != null) {
+        taskSummaries.remove(existing);
+    }
+}
+
+public void deleteTaskSummariesByJobId(int jobId) {
+    ensureTaskSummaries();
+
+    ArrayList<TaskSummary> toRemove = new ArrayList<>();
+
+    for (TaskSummary summary : taskSummaries) {
+        if (summary != null && summary.getJobId() == jobId) {
+            toRemove.add(summary);
+        }
+    }
+
+    taskSummaries.removeAll(toRemove);
+}
 
     // ================= EMPLOYEES =================
 

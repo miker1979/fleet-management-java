@@ -1,8 +1,8 @@
 import javax.swing.*;
-import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 import java.awt.*;
-import java.text.DecimalFormat;
+import java.time.LocalDate;
 import java.util.ArrayList;
 
 public class JobDashboardUI extends JFrame {
@@ -10,373 +10,343 @@ public class JobDashboardUI extends JFrame {
     private final FleetManager manager;
     private final Job job;
 
-    private JLabel jobNumberValue;
-    private JLabel projectValue;
-    private JLabel contractorValue;
-    private JLabel locationValue;
-    private JLabel statusValue;
-    private JLabel durationValue;
-    private JLabel startValue;
-    private JLabel endValue;
-
-    private JLabel totalTasksValue;
-    private JLabel installsValue;
-    private JLabel removesValue;
-    private JLabel relocatesValue;
-    private JLabel manHoursValue;
-    private JLabel totalFeetValue;
-
-    private JTextArea notesArea;
-    private JTextArea summaryArea;
-
-    private JTable taskTable;
-    private DefaultTableModel taskTableModel;
+    private DefaultTableModel taskModel;
 
     public JobDashboardUI(FleetManager manager, Job job) {
         this.manager = manager;
         this.job = job;
 
         setTitle("Job Dashboard - Job #" + job.getJobNumber());
-        setSize(1325, 850);
+        setSize(1500, 850);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        getContentPane().setBackground(new Color(15, 15, 15));
         setLayout(new BorderLayout(12, 12));
-        getContentPane().setBackground(new Color(18, 18, 18));
 
-        add(buildHeaderPanel(), BorderLayout.NORTH);
-        add(buildCenterPanel(), BorderLayout.CENTER);
-        add(buildBottomPanel(), BorderLayout.SOUTH);
+        add(buildHeader(), BorderLayout.NORTH);
+        add(buildMainPanel(), BorderLayout.CENTER);
 
-        loadData();
+        refreshDashboard();
     }
 
-    private JPanel buildHeaderPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(new Color(18, 18, 18));
-        panel.setBorder(BorderFactory.createEmptyBorder(12, 12, 0, 12));
+    private JPanel buildHeader() {
+        JPanel header = new JPanel(new GridLayout(2, 1));
+        header.setBackground(new Color(15, 15, 15));
+        header.setBorder(BorderFactory.createEmptyBorder(15, 15, 5, 15));
 
         JLabel title = new JLabel("ACTIVE JOB DASHBOARD");
-        title.setFont(new Font("SansSerif", Font.BOLD, 28));
-        title.setForeground(new Color(255, 215, 0));
+        title.setFont(new Font("SansSerif", Font.BOLD, 32));
+        title.setForeground(Color.YELLOW);
 
         JLabel subtitle = new JLabel("Job #" + job.getJobNumber() + " - " + safe(job.getProjectName()));
-        subtitle.setFont(new Font("SansSerif", Font.PLAIN, 16));
+        subtitle.setFont(new Font("SansSerif", Font.BOLD, 18));
         subtitle.setForeground(Color.WHITE);
 
-        panel.add(title, BorderLayout.NORTH);
-        panel.add(subtitle, BorderLayout.SOUTH);
+        header.add(title);
+        header.add(subtitle);
 
-        return panel;
+        return header;
     }
 
-    private JPanel buildCenterPanel() {
-        JPanel center = new JPanel(new BorderLayout(12, 12));
-        center.setOpaque(false);
-        center.setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 12));
+    private JPanel buildMainPanel() {
+        JPanel main = new JPanel(new BorderLayout(12, 12));
+        main.setBackground(new Color(15, 15, 15));
+        main.setBorder(BorderFactory.createEmptyBorder(0, 15, 15, 15));
 
-        JPanel topGrid = new JPanel(new GridLayout(1, 3, 12, 12));
-        topGrid.setOpaque(false);
-        topGrid.add(buildJobInfoPanel());
-        topGrid.add(buildStatsPanel());
-        topGrid.add(buildSummaryPanel());
+        JPanel top = new JPanel(new GridLayout(1, 3, 12, 12));
+        top.setBackground(new Color(15, 15, 15));
 
-        center.add(topGrid, BorderLayout.NORTH);
-        center.add(buildTasksPanel(), BorderLayout.CENTER);
+        top.add(buildJobInfoPanel());
+        top.add(buildStatsPanel());
+        top.add(buildNotesPanel());
 
-        return center;
+        main.add(top, BorderLayout.NORTH);
+        main.add(buildTaskTablePanel(), BorderLayout.CENTER);
+
+        return main;
     }
 
     private JPanel buildJobInfoPanel() {
-        JPanel panel = createSectionPanel("Job Information");
-        panel.setLayout(new GridBagLayout());
+        JPanel panel = createBoxPanel("Job Information");
 
-        jobNumberValue = createValueLabel();
-        projectValue = createValueLabel();
-        contractorValue = createValueLabel();
-        locationValue = createValueLabel();
-        statusValue = createValueLabel();
-        durationValue = createValueLabel();
-        startValue = createValueLabel();
-        endValue = createValueLabel();
-
-        GridBagConstraints gbc = baseGbc();
-        addRow(panel, gbc, 0, "Job #:", jobNumberValue);
-        addRow(panel, gbc, 1, "Project:", projectValue);
-        addRow(panel, gbc, 2, "Contractor:", contractorValue);
-        addRow(panel, gbc, 3, "Location:", locationValue);
-        addRow(panel, gbc, 4, "Status:", statusValue);
-        addRow(panel, gbc, 5, "Open Time:", durationValue);
-        addRow(panel, gbc, 6, "Start:", startValue);
-        addRow(panel, gbc, 7, "End:", endValue);
+        addInfo(panel, "Job #:", String.valueOf(job.getJobNumber()));
+        addInfo(panel, "Project:", safe(job.getProjectName()));
+        addInfo(panel, "Contractor:", safe(job.getContractor()));
+        addInfo(panel, "Location:", safe(job.getLocation()));
+        addInfo(panel, "Status:", safe(job.getStatus()));
+        addInfo(panel, "Open Time:", job.getOpenDuration());
+        addInfo(panel, "Start:", safe(job.getStartDate()));
+        addInfo(panel, "End:", safe(job.getEndDate()));
 
         return panel;
     }
 
     private JPanel buildStatsPanel() {
-        JPanel panel = createSectionPanel("Job Stats");
-        panel.setLayout(new GridBagLayout());
+        JPanel panel = createBoxPanel("Job Stats");
 
-        totalTasksValue = createHighlightLabel(new Color(0, 255, 255));
-        installsValue = createHighlightLabel(new Color(0, 255, 150));
-        removesValue = createHighlightLabel(new Color(255, 120, 120));
-        relocatesValue = createHighlightLabel(new Color(255, 215, 0));
-        manHoursValue = createHighlightLabel(new Color(255, 255, 255));
-        totalFeetValue = createHighlightLabel(new Color(180, 220, 255));
+        ArrayList<Task> tasks = manager.getTasksByJobId(job.getJobNumber());
+        ArrayList<TaskSummary> summaries = manager.getTaskSummariesByJobId(job.getJobNumber());
 
-        GridBagConstraints gbc = baseGbc();
-        addRow(panel, gbc, 0, "Total Tasks:", totalTasksValue);
-        addRow(panel, gbc, 1, "Installs:", installsValue);
-        addRow(panel, gbc, 2, "Removes:", removesValue);
-        addRow(panel, gbc, 3, "Relocates:", relocatesValue);
-        addRow(panel, gbc, 4, "Man-Hours:", manHoursValue);
-        addRow(panel, gbc, 5, "Linear Feet:", totalFeetValue);
+        int totalTasks = tasks.size();
+        int installs = countTasksByType(tasks, "Install");
+        int removes = countTasksByType(tasks, "Remove");
+        int relocates = countTasksByType(tasks, "Relocate");
+
+        int completedTasks = countTasksByStatus(tasks, "Completed");
+        int dispatchedTasks = countDispatchedOrCompleted(tasks);
+
+        int totalBarrier = 0;
+        int totalAbsorbs = 0;
+        double totalPersonHours = 0.0;
+
+        for (TaskSummary summary : summaries) {
+            totalBarrier += summary.getBarrierCount();
+            totalAbsorbs += summary.getAbsorbSetCount();
+            totalPersonHours += summary.getPersonHours();
+        }
+
+        addInfo(panel, "Total Tasks:", String.valueOf(totalTasks));
+        addInfo(panel, "Installs:", String.valueOf(installs));
+        addInfo(panel, "Removes:", String.valueOf(removes));
+        addInfo(panel, "Relocates:", String.valueOf(relocates));
+        addInfo(panel, "Dispatched Tasks:", String.valueOf(dispatchedTasks));
+        addInfo(panel, "Completed Tasks:", String.valueOf(completedTasks));
+        addInfo(panel, "Barrier Total:", String.valueOf(totalBarrier));
+        addInfo(panel, "Absorb Sets:", String.valueOf(totalAbsorbs));
+        addInfo(panel, "Person-Hours:", String.format("%.2f", totalPersonHours));
 
         return panel;
     }
 
-    private JPanel buildSummaryPanel() {
-        JPanel panel = createSectionPanel("Job Notes / Summary");
-        panel.setLayout(new BorderLayout(8, 8));
+    private JPanel buildNotesPanel() {
+        JPanel panel = new JPanel(new BorderLayout(6, 6));
+        panel.setBackground(new Color(25, 25, 25));
+        panel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(Color.GRAY),
+                "Job Notes / Summary",
+                0,
+                0,
+                new Font("SansSerif", Font.BOLD, 14),
+                Color.WHITE
+        ));
 
-        notesArea = new JTextArea();
+        JTextArea notesArea = new JTextArea();
         notesArea.setEditable(false);
         notesArea.setLineWrap(true);
         notesArea.setWrapStyleWord(true);
-        notesArea.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        notesArea.setBackground(new Color(28, 28, 28));
+        notesArea.setBackground(new Color(20, 20, 20));
         notesArea.setForeground(Color.WHITE);
+        notesArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
 
-        summaryArea = new JTextArea();
-        summaryArea.setEditable(false);
-        summaryArea.setLineWrap(true);
-        summaryArea.setWrapStyleWord(true);
-        summaryArea.setFont(new Font("Monospaced", Font.PLAIN, 13));
-        summaryArea.setBackground(new Color(22, 22, 22));
-        summaryArea.setForeground(new Color(220, 220, 220));
+        StringBuilder sb = new StringBuilder();
 
-        JSplitPane splitPane = new JSplitPane(
-                JSplitPane.VERTICAL_SPLIT,
-                new JScrollPane(notesArea),
-                new JScrollPane(summaryArea)
-        );
-        splitPane.setResizeWeight(0.35);
-        splitPane.setBorder(null);
+        if (safe(job.getNotes()).isBlank()) {
+            sb.append("No notes entered.\n\n");
+        } else {
+            sb.append(job.getNotes()).append("\n\n");
+        }
 
-        panel.add(splitPane, BorderLayout.CENTER);
+        ArrayList<TaskSummary> summaries = manager.getTaskSummariesByJobId(job.getJobNumber());
+
+        sb.append("Completed Summaries: ").append(summaries.size()).append("\n");
+
+        int totalBarrier = 0;
+        int totalAbsorbs = 0;
+        double totalPersonHours = 0.0;
+
+        for (TaskSummary summary : summaries) {
+            totalBarrier += summary.getBarrierCount();
+            totalAbsorbs += summary.getAbsorbSetCount();
+            totalPersonHours += summary.getPersonHours();
+
+            if (!safe(summary.getDelayNotes()).isBlank()) {
+                sb.append("\nDelay: ").append(summary.getDelayNotes());
+            }
+            if (!safe(summary.getBreakdownNotes()).isBlank()) {
+                sb.append("\nBreakdown: ").append(summary.getBreakdownNotes());
+            }
+            if (!safe(summary.getEquipmentIssueNotes()).isBlank()) {
+                sb.append("\nEquipment Issue: ").append(summary.getEquipmentIssueNotes());
+            }
+            if (!safe(summary.getMaterialIssueNotes()).isBlank()) {
+                sb.append("\nMaterial Issue: ").append(summary.getMaterialIssueNotes());
+            }
+            if (!safe(summary.getSafetyNotes()).isBlank()) {
+                sb.append("\nSafety Note: ").append(summary.getSafetyNotes());
+            }
+        }
+
+        sb.append("\n\nBarrier Total: ").append(totalBarrier);
+        sb.append("\nAbsorb Sets: ").append(totalAbsorbs);
+        sb.append("\nPerson-Hours: ").append(String.format("%.2f", totalPersonHours));
+
+        notesArea.setText(sb.toString());
+
+        panel.add(new JScrollPane(notesArea), BorderLayout.CENTER);
+
         return panel;
     }
 
-    private JPanel buildTasksPanel() {
-        JPanel panel = createSectionPanel("Tasks On This Job");
-        panel.setLayout(new BorderLayout(8, 8));
+    private JPanel buildTaskTablePanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(new Color(15, 15, 15));
+        panel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(Color.GRAY),
+                "Tasks On This Job",
+                0,
+                0,
+                new Font("SansSerif", Font.BOLD, 14),
+                Color.WHITE
+        ));
 
         String[] columns = {
-                "Task #", "Date", "Start", "End", "Type", "Foreman", "Crew Count",
-                "Linear Feet", "Status", "Equipment"
-        };
+            "Task #",
+            "Date",
+             "Start",
+            "End",
+             "Type",
+             "Foreman",
+             "Crew Count",
+             "Task Linear Feet",
+            "Summary Barrier",
+            "Absorbs",
+            "Person-Hours",
+             "Status"
+};
 
-        taskTableModel = new DefaultTableModel(columns, 0) {
+        taskModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
         };
 
-        taskTable = new JTable(taskTableModel);
-        taskTable.setAutoCreateRowSorter(true);
-        taskTable.setRowHeight(28);
-        taskTable.setBackground(new Color(30, 30, 30));
-        taskTable.setForeground(Color.WHITE);
-        taskTable.setSelectionBackground(new Color(65, 65, 65));
-        taskTable.setSelectionForeground(Color.WHITE);
-        taskTable.getTableHeader().setBackground(new Color(45, 45, 45));
-        taskTable.getTableHeader().setForeground(new Color(0, 255, 255));
-        taskTable.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
+        JTable table = new JTable(taskModel);
+        styleTable(table);
 
-        panel.add(new JScrollPane(taskTable), BorderLayout.CENTER);
-        return panel;
-    }
-
-    private JPanel buildBottomPanel() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 10));
-        panel.setBackground(new Color(18, 18, 18));
-
-        JButton refreshBtn = new JButton("Refresh");
-        JButton closeBtn = new JButton("Close");
-
-        styleButton(refreshBtn, new Color(0, 200, 255));
-        styleButton(closeBtn, new Color(255, 100, 100));
-
-        refreshBtn.addActionListener(e -> loadData());
-        closeBtn.addActionListener(e -> dispose());
-
-        panel.add(refreshBtn);
-        panel.add(closeBtn);
+        panel.add(new JScrollPane(table), BorderLayout.CENTER);
 
         return panel;
     }
 
-    private void loadData() {
-        ArrayList<Task> jobTasks = manager.getTasksByJobId(job.getJobNumber());
+    private void refreshDashboard() {
+        taskModel.setRowCount(0);
 
-        jobNumberValue.setText(String.valueOf(job.getJobNumber()));
-        projectValue.setText(safe(job.getProjectName()));
-        contractorValue.setText(safe(job.getContractor()));
-        locationValue.setText(safe(job.getLocation()));
-        statusValue.setText(safe(job.getStatus()));
-        durationValue.setText(safe(job.getOpenDuration()));
-        startValue.setText(safe(job.getStartDate()));
-        endValue.setText(safe(job.getEndDate()));
+        ArrayList<Task> tasks = manager.getTasksByJobId(job.getJobNumber());
 
-        totalTasksValue.setText(String.valueOf(manager.getTaskCountForJob(job.getJobNumber())));
-        installsValue.setText(String.valueOf(manager.getTaskCountByType(job.getJobNumber(), "Install")));
-        removesValue.setText(String.valueOf(manager.getTaskCountByType(job.getJobNumber(), "Remove")));
-        relocatesValue.setText(String.valueOf(manager.getTaskCountByType(job.getJobNumber(), "Relocate")));
-        manHoursValue.setText(formatDouble(manager.getTotalManHoursForJob(job.getJobNumber())));
-        totalFeetValue.setText(String.valueOf(job.getTotalLinearFeet()));
+        tasks.sort((a, b) -> safe(a.getStartDate()).compareToIgnoreCase(safe(b.getStartDate())));
 
-        notesArea.setText(safe(job.getNotes()).isBlank() ? "No notes entered." : job.getNotes());
-        summaryArea.setText(buildSummary(jobTasks));
+        for (Task task : tasks) {
+            TaskSummary summary = manager.findTaskSummaryByTaskId(task.getTaskId());
 
-        taskTableModel.setRowCount(0);
-        for (Task task : jobTasks) {
-            taskTableModel.addRow(new Object[]{
+            int summaryBarrier = summary == null ? 0 : summary.getBarrierCount();
+            int absorbs = summary == null ? 0 : summary.getAbsorbSetCount();
+            double personHours = summary == null ? 0.0 : summary.getPersonHours();
+
+            taskModel.addRow(new Object[]{
                     task.getTaskId(),
                     safe(task.getStartDate()),
                     safe(task.getStartTime()),
                     safe(task.getEndTime()),
                     safe(task.getJobType()),
                     safe(task.getForeman()),
-                    getCrewCount(task),
+                    task.getTotalAssignedPersonnelCount(),
                     task.getLinearFeet(),
+                    summaryBarrier,
+                    absorbs,
+                    String.format("%.2f", personHours),
                     safe(task.getStatus()),
-                    buildEquipmentCell(task)
+                    buildEquipmentDisplay(task)
             });
         }
     }
 
-    private String buildSummary(ArrayList<Task> jobTasks) {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append("Open Time: ").append(job.getOpenDuration()).append("\n");
-        sb.append("Tasks: ").append(manager.getTaskCountForJob(job.getJobNumber())).append("\n");
-        sb.append("Installs: ").append(manager.getTaskCountByType(job.getJobNumber(), "Install")).append("\n");
-        sb.append("Removes: ").append(manager.getTaskCountByType(job.getJobNumber(), "Remove")).append("\n");
-        sb.append("Relocates: ").append(manager.getTaskCountByType(job.getJobNumber(), "Relocate")).append("\n");
-        sb.append("Man-Hours: ").append(formatDouble(manager.getTotalManHoursForJob(job.getJobNumber()))).append("\n");
-
-        int dispatchedCount = 0;
-        int completedCount = 0;
-        int forkliftTasks = 0;
-
-        for (Task task : jobTasks) {
-            if ("Dispatched".equalsIgnoreCase(safe(task.getStatus()))) {
-                dispatchedCount++;
-            }
-            if ("Completed".equalsIgnoreCase(safe(task.getStatus()))) {
-                completedCount++;
-            }
-            if (task.getAssignedForklifts() != null && !task.getAssignedForklifts().isEmpty()) {
-                forkliftTasks++;
-            }
-        }
-
-        sb.append("Dispatched Tasks: ").append(dispatchedCount).append("\n");
-        sb.append("Completed Tasks: ").append(completedCount).append("\n");
-        sb.append("Tasks Using Forklifts: ").append(forkliftTasks).append("\n");
-
-        return sb.toString();
-    }
-
-    private int getCrewCount(Task task) {
-        int companyCrew = task.getAssignedEmployeeIds() == null ? 0 : task.getAssignedEmployeeIds().size();
-        int ownerOps = task.getAssignedOwnerOperators() == null ? 0 : task.getAssignedOwnerOperators().size();
-        return companyCrew + ownerOps;
-    }
-
-    private String buildEquipmentCell(Task task) {
-        ArrayList<String> parts = new ArrayList<>();
-
-        if (task.getAssignedForklifts() != null && !task.getAssignedForklifts().isEmpty()) {
-            parts.add("Forklifts: " + task.getAssignedForklifts().size());
-        }
-
-        if (task.getRequiredEquipment() != null && !task.getRequiredEquipment().isEmpty()) {
-            parts.add("Support: " + task.getRequiredEquipment().size());
-        }
-
-        if (parts.isEmpty()) {
-            return "None";
-        }
-
-        return String.join(" | ", parts);
-    }
-
-    private JPanel createSectionPanel(String title) {
-        JPanel panel = new JPanel();
-        panel.setBackground(new Color(24, 24, 24));
+    private JPanel createBoxPanel(String title) {
+        JPanel panel = new JPanel(new GridLayout(0, 2, 10, 8));
+        panel.setBackground(new Color(25, 25, 25));
         panel.setBorder(BorderFactory.createTitledBorder(
-                BorderFactory.createLineBorder(new Color(70, 70, 70)),
+                BorderFactory.createLineBorder(Color.GRAY),
                 title,
-                TitledBorder.LEFT,
-                TitledBorder.TOP,
+                0,
+                0,
                 new Font("SansSerif", Font.BOLD, 14),
                 Color.WHITE
         ));
         return panel;
     }
 
-    private GridBagConstraints baseGbc() {
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(6, 8, 6, 8);
-        gbc.anchor = GridBagConstraints.WEST;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        return gbc;
+    private void addInfo(JPanel panel, String label, String value) {
+        JLabel labelComponent = new JLabel(label);
+        labelComponent.setForeground(Color.LIGHT_GRAY);
+        labelComponent.setFont(new Font("SansSerif", Font.BOLD, 14));
+
+        JLabel valueComponent = new JLabel(value);
+        valueComponent.setForeground(Color.WHITE);
+        valueComponent.setFont(new Font("SansSerif", Font.PLAIN, 14));
+
+        panel.add(labelComponent);
+        panel.add(valueComponent);
     }
 
-    private void addRow(JPanel panel, GridBagConstraints gbc, int row, String labelText, JLabel valueLabel) {
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        gbc.weightx = 0;
-        panel.add(createLabel(labelText), gbc);
+    private void styleTable(JTable table) {
+        table.setBackground(new Color(30, 30, 30));
+        table.setForeground(Color.WHITE);
+        table.setSelectionBackground(new Color(60, 60, 60));
+        table.setSelectionForeground(Color.WHITE);
+        table.setRowHeight(32);
+        table.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        table.setAutoCreateRowSorter(true);
 
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        panel.add(valueLabel, gbc);
+        JTableHeader header = table.getTableHeader();
+        header.setBackground(new Color(45, 45, 45));
+        header.setForeground(Color.CYAN);
+        header.setFont(new Font("SansSerif", Font.BOLD, 13));
     }
 
-    private JLabel createLabel(String text) {
-        JLabel label = new JLabel(text);
-        label.setForeground(new Color(190, 190, 190));
-        label.setFont(new Font("SansSerif", Font.BOLD, 13));
-        return label;
+    private int countTasksByType(ArrayList<Task> tasks, String type) {
+        int count = 0;
+
+        for (Task task : tasks) {
+            if (task != null && safe(task.getJobType()).equalsIgnoreCase(type)) {
+                count++;
+            }
+        }
+
+        return count;
     }
 
-    private JLabel createValueLabel() {
-        JLabel label = new JLabel();
-        label.setForeground(Color.WHITE);
-        label.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        return label;
+    private int countTasksByStatus(ArrayList<Task> tasks, String status) {
+        int count = 0;
+
+        for (Task task : tasks) {
+            if (task != null && safe(task.getStatus()).equalsIgnoreCase(status)) {
+                count++;
+            }
+        }
+
+        return count;
     }
 
-    private JLabel createHighlightLabel(Color color) {
-        JLabel label = new JLabel();
-        label.setForeground(color);
-        label.setFont(new Font("SansSerif", Font.BOLD, 18));
-        return label;
+    private int countDispatchedOrCompleted(ArrayList<Task> tasks) {
+        int count = 0;
+
+        for (Task task : tasks) {
+            String status = safe(task.getStatus());
+
+            if (status.equalsIgnoreCase("Dispatched")
+                    || status.equalsIgnoreCase("Completed")) {
+                count++;
+            }
+        }
+
+        return count;
     }
 
-    private void styleButton(JButton button, Color color) {
-        button.setPreferredSize(new Dimension(140, 40));
-        button.setBackground(new Color(30, 30, 30));
-        button.setForeground(color);
-        button.setBorder(BorderFactory.createLineBorder(color, 2));
-        button.setFocusPainted(false);
-        button.setFont(new Font("SansSerif", Font.BOLD, 14));
-    }
+    private String buildEquipmentDisplay(Task task) {
+        int forkliftCount = task.getAssignedForklifts() == null ? 0 : task.getAssignedForklifts().size();
+        int equipmentCount = task.getRequiredEquipment() == null ? 0 : task.getRequiredEquipment().size();
 
-    private String formatDouble(double value) {
-        return new DecimalFormat("0.##").format(value);
+        return "Forklifts: " + forkliftCount + " | Equipment: " + equipmentCount;
     }
 
     private String safe(String value) {

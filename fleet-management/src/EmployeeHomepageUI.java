@@ -1,8 +1,6 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.TextStyle;
@@ -18,8 +16,6 @@ public class EmployeeHomepageUI extends JFrame {
 
     private JTable scheduleTable;
     private DefaultTableModel tableModel;
-    private Timer autoRefreshTimer;
-    private JTextArea repairStatusArea;
 
     private LocalDate selectedDate = LocalDate.now();
     private YearMonth currentMonth = YearMonth.now();
@@ -37,8 +33,16 @@ public class EmployeeHomepageUI extends JFrame {
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout(5, 5));
-        getContentPane().setBackground(new Color(240, 242, 245));
 
+        buildHeader();
+        buildMainPanel();
+        buildFooter();
+
+        rebuildCalendar();
+        refreshTableData();
+    }
+
+    private void buildHeader() {
         JPanel header = new JPanel(new GridLayout(2, 1));
         header.setBackground(new Color(45, 74, 140));
         header.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
@@ -49,21 +53,31 @@ public class EmployeeHomepageUI extends JFrame {
 
         JLabel infoLabel = new JLabel(
                 "Role: " + safeString(employee.getPosition()) +
-                " | Truck: " + getAssignedTruckDisplay() +
-                " | Trailer: " + getAssignedTrailerDisplay() +
-                " | Phone: " + safeString(employee.getPhoneNumber())
+                        " | Truck: " + getAssignedTruckDisplay() +
+                        " | Trailer: " + getAssignedTrailerDisplay() +
+                        " | Phone: " + safeString(employee.getPhoneNumber())
         );
         infoLabel.setForeground(new Color(200, 210, 230));
         infoLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
 
         header.add(nameLabel);
         header.add(infoLabel);
-        add(header, BorderLayout.NORTH);
 
+        add(header, BorderLayout.NORTH);
+    }
+
+    private void buildMainPanel() {
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
         mainPanel.setBackground(new Color(240, 242, 245));
         mainPanel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
+        mainPanel.add(buildCalendarPanel(), BorderLayout.NORTH);
+        mainPanel.add(buildScheduleTablePanel(), BorderLayout.CENTER);
+
+        add(mainPanel, BorderLayout.CENTER);
+    }
+
+    private JPanel buildCalendarPanel() {
         JPanel calendarWrapper = new JPanel(new BorderLayout(8, 8));
         calendarWrapper.setBackground(Color.WHITE);
         calendarWrapper.setBorder(BorderFactory.createCompoundBorder(
@@ -76,12 +90,12 @@ public class EmployeeHomepageUI extends JFrame {
 
         JButton prevBtn = new JButton("←");
         JButton nextBtn = new JButton("→");
+
         styleFlatButton(prevBtn);
         styleFlatButton(nextBtn);
 
         monthLabel = new JLabel("", SwingConstants.CENTER);
         monthLabel.setFont(new Font("SansSerif", Font.BOLD, 18));
-        monthLabel.setForeground(new Color(60, 60, 60));
 
         prevBtn.addActionListener(e -> {
             currentMonth = currentMonth.minusMonths(1);
@@ -103,15 +117,17 @@ public class EmployeeHomepageUI extends JFrame {
         calendarWrapper.add(calendarTopBar, BorderLayout.NORTH);
         calendarWrapper.add(calendarContentPanel, BorderLayout.CENTER);
 
-        mainPanel.add(calendarWrapper, BorderLayout.NORTH);
+        return calendarWrapper;
+    }
 
+    private JPanel buildScheduleTablePanel() {
         JPanel tablePanel = new JPanel(new BorderLayout(8, 8));
         tablePanel.setBackground(new Color(240, 242, 245));
 
         JPanel gridTopBar = new JPanel(new BorderLayout());
         gridTopBar.setBackground(new Color(240, 242, 245));
 
-        JLabel gridTitle = new JLabel("My Dispatches");
+        JLabel gridTitle = new JLabel("My Assigned Tasks");
         gridTitle.setFont(new Font("SansSerif", Font.BOLD, 16));
 
         selectedDayOnlyToggle = new JToggleButton("Show Selected Day Only");
@@ -149,80 +165,41 @@ public class EmployeeHomepageUI extends JFrame {
         tablePanel.add(gridTopBar, BorderLayout.NORTH);
         tablePanel.add(tableScroll, BorderLayout.CENTER);
 
-        repairStatusArea = new JTextArea(5, 20);
-        repairStatusArea.setEditable(false);
-        repairStatusArea.setLineWrap(true);
-        repairStatusArea.setWrapStyleWord(true);
-        repairStatusArea.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        repairStatusArea.setBackground(Color.WHITE);
+        return tablePanel;
+    }
 
-        JScrollPane repairScroll = new JScrollPane(repairStatusArea);
-        repairScroll.setBorder(BorderFactory.createTitledBorder("Truck Status"));
-        repairScroll.setPreferredSize(new Dimension(0, 150));
-
-        JPanel bottomPanel = new JPanel(new BorderLayout(8, 8));
-        bottomPanel.setBackground(new Color(240, 242, 245));
-        bottomPanel.add(tablePanel, BorderLayout.CENTER);
-        bottomPanel.add(repairScroll, BorderLayout.SOUTH);
-
-        mainPanel.add(bottomPanel, BorderLayout.CENTER);
-        add(mainPanel, BorderLayout.CENTER);
-
+    private void buildFooter() {
         JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
 
-        JButton timeOffBtn = new JButton("Request Time Off");
-        JButton writeUpBtn = new JButton("Report Mechanical Issue");
-        JButton refreshBtn = new JButton("Manual Sync");
-        JButton closeBtn = new JButton("Log Out");
+        JButton refreshBtn = new JButton("Manual Refresh");
+        JButton closeBtn = new JButton("Close");
 
-        timeOffBtn.addActionListener(e -> openTimeOffRequestForm());
-        writeUpBtn.addActionListener(e -> new MechanicalWriteUpFormUI(manager, null, employee).setVisible(true));
         refreshBtn.addActionListener(e -> {
             rebuildCalendar();
             refreshTableData();
-            refreshRepairStatus();
         });
 
-        closeBtn.addActionListener(e -> {
-            if (autoRefreshTimer != null) {
-                autoRefreshTimer.stop();
-            }
-            dispose();
-            Main.showLoginScreen();
-        });
+        closeBtn.addActionListener(e -> dispose());
 
-        footer.add(timeOffBtn);
-        footer.add(writeUpBtn);
         footer.add(refreshBtn);
         footer.add(closeBtn);
 
         add(footer, BorderLayout.SOUTH);
-
-        rebuildCalendar();
-        refreshTableData();
-        refreshRepairStatus();
-
-        autoRefreshTimer = new Timer(3000, e -> {
-            checkForUrgentNotifications();
-            rebuildCalendar();
-            refreshTableData();
-            refreshRepairStatus();
-        });
-        autoRefreshTimer.start();
     }
 
     private void rebuildCalendar() {
         calendarContentPanel.removeAll();
 
         monthLabel.setText(
-                currentMonth.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH) +
-                        " " + currentMonth.getYear()
+                currentMonth.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH)
+                        + " " + currentMonth.getYear()
         );
 
         JPanel calendarGrid = new JPanel(new GridLayout(0, 7, 6, 6));
         calendarGrid.setBackground(Color.WHITE);
 
         String[] dayHeaders = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+
         for (String dayHeader : dayHeaders) {
             JLabel headerLabel = new JLabel(dayHeader, SwingConstants.CENTER);
             headerLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
@@ -245,6 +222,7 @@ public class EmployeeHomepageUI extends JFrame {
 
         int totalCellsUsed = 7 + firstDayColumn + daysInMonth;
         int remainder = totalCellsUsed % 7;
+
         if (remainder != 0) {
             int blanksNeeded = 7 - remainder;
             for (int i = 0; i < blanksNeeded; i++) {
@@ -267,15 +245,15 @@ public class EmployeeHomepageUI extends JFrame {
         boolean isToday = date.equals(LocalDate.now());
         boolean isSelected = date.equals(selectedDate);
         boolean hasJob = hasJobOnDate(date);
-        boolean hasMaintenance = hasMaintenanceOnDate(date);
-        boolean hasTimeOff = hasTimeOffOnDate(date);
 
-        String indicators = buildIndicatorHtml(hasJob, hasMaintenance, hasTimeOff);
+        String jobIndicator = hasJob
+                ? "<span style='color:#2a9d8f;'>J</span>"
+                : "<span style='color:#d0d7de;'>J</span>";
 
         JButton btn = new JButton(
                 "<html><center>" +
                         "<div style='font-size:16px; font-weight:bold;'>" + date.getDayOfMonth() + "</div>" +
-                        "<div style='font-size:10px; margin-top:4px;'>" + indicators + "</div>" +
+                        "<div style='font-size:10px; margin-top:4px;'>" + jobIndicator + "</div>" +
                         "</center></html>"
         );
 
@@ -307,69 +285,6 @@ public class EmployeeHomepageUI extends JFrame {
         return btn;
     }
 
-    private String buildIndicatorHtml(boolean hasJob, boolean hasMaintenance, boolean hasTimeOff) {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append(hasJob
-                ? "<span style='color:#2a9d8f;'>J</span>"
-                : "<span style='color:#d0d7de;'>J</span>");
-
-        sb.append("&nbsp;");
-
-        sb.append(hasMaintenance
-                ? "<span style='color:#e76f51;'>M</span>"
-                : "<span style='color:#d0d7de;'>M</span>");
-
-        sb.append("&nbsp;");
-
-        sb.append(hasTimeOff
-                ? "<span style='color:#457b9d;'>T</span>"
-                : "<span style='color:#d0d7de;'>T</span>");
-
-        return sb.toString();
-    }
-
-    private void styleFlatButton(JButton button) {
-        button.setFocusPainted(false);
-        button.setBackground(Color.WHITE);
-        button.setBorder(BorderFactory.createLineBorder(new Color(210, 215, 220)));
-        button.setFont(new Font("SansSerif", Font.BOLD, 14));
-    }
-
-    private String getAssignedTruckDisplay() {
-        if (employee.getAssignedTruckId() == null || employee.getAssignedTruckId().isEmpty()) {
-            return "None";
-        }
-        return employee.getAssignedTruckId();
-    }
-
-    private String getAssignedTrailerDisplay() {
-        if (employee.getAssignedTrailerId() == null || employee.getAssignedTrailerId().isEmpty()) {
-            return "None";
-        }
-        return employee.getAssignedTrailerId();
-    }
-
-    private void setupTableAesthetics() {
-        scheduleTable.setRowHeight(42);
-        scheduleTable.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        scheduleTable.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
-        scheduleTable.getTableHeader().setBackground(new Color(230, 230, 230));
-        scheduleTable.setSelectionBackground(new Color(173, 216, 230));
-        scheduleTable.setGridColor(new Color(220, 220, 220));
-        scheduleTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-
-        scheduleTable.getColumnModel().getColumn(0).setPreferredWidth(95);
-        scheduleTable.getColumnModel().getColumn(1).setPreferredWidth(120);
-        scheduleTable.getColumnModel().getColumn(2).setPreferredWidth(140);
-        scheduleTable.getColumnModel().getColumn(3).setPreferredWidth(120);
-        scheduleTable.getColumnModel().getColumn(4).setPreferredWidth(220);
-        scheduleTable.getColumnModel().getColumn(5).setPreferredWidth(120);
-        scheduleTable.getColumnModel().getColumn(6).setPreferredWidth(120);
-        scheduleTable.getColumnModel().getColumn(7).setPreferredWidth(320);
-        scheduleTable.getColumnModel().getColumn(8).setPreferredWidth(120);
-    }
-
     private void refreshTableData() {
         tableModel.setRowCount(0);
 
@@ -379,6 +294,7 @@ public class EmployeeHomepageUI extends JFrame {
             LocalDate taskDate = parseDateSafe(task.getStartDate());
 
             boolean includeRow;
+
             if (selectedDayOnlyToggle.isSelected()) {
                 includeRow = taskDate != null && taskDate.equals(selectedDate);
             } else {
@@ -390,16 +306,21 @@ public class EmployeeHomepageUI extends JFrame {
             }
 
             String forkliftText = buildForkliftText(task);
+
             String instructions = safeString(task.getDispatchInstructions()).trim();
             if (instructions.isEmpty()) {
                 instructions = "-";
             }
 
-            String timeText = safeString(task.getStartTime()) + " - " + safeString(task.getEndTime());
+            String timeText = safeString(task.getStartTime());
+
+            if (!safeString(task.getEndTime()).isEmpty()) {
+                timeText += " - " + safeString(task.getEndTime());
+            }
 
             tableModel.addRow(new Object[]{
                     safeString(task.getStartDate()),
-                    timeText.trim().equals("-") ? "" : timeText,
+                    timeText,
                     safeString(task.getJobType()),
                     safeString(task.getContractor()),
                     safeString(task.getLocation()),
@@ -415,8 +336,8 @@ public class EmployeeHomepageUI extends JFrame {
         ArrayList<Task> employeeTasks = new ArrayList<>();
 
         for (Task task : manager.getTasks()) {
-            if (task.getAssignedEmployeeIds() != null &&
-                    task.getAssignedEmployeeIds().contains(employee.getEmployeeId())) {
+            if (task.getAssignedEmployeeIds() != null
+                    && task.getAssignedEmployeeIds().contains(employee.getEmployeeId())) {
                 employeeTasks.add(task);
             }
         }
@@ -436,10 +357,27 @@ public class EmployeeHomepageUI extends JFrame {
         return employeeTasks;
     }
 
+    private boolean hasJobOnDate(LocalDate date) {
+        for (Task task : manager.getTasks()) {
+            if (task.getAssignedEmployeeIds() != null
+                    && task.getAssignedEmployeeIds().contains(employee.getEmployeeId())) {
+
+                LocalDate taskDate = parseDateSafe(task.getStartDate());
+
+                if (taskDate != null && taskDate.equals(date)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     private String buildForkliftText(Task task) {
         if (task.getAssignedForklifts() == null || task.getAssignedForklifts().isEmpty()) {
             return "None";
         }
+
         return String.join(", ", task.getAssignedForklifts());
     }
 
@@ -451,245 +389,50 @@ public class EmployeeHomepageUI extends JFrame {
         }
     }
 
-    private boolean hasJobOnDate(LocalDate date) {
-        for (Task task : manager.getTasks()) {
-            if (task.getAssignedEmployeeIds() != null &&
-                    task.getAssignedEmployeeIds().contains(employee.getEmployeeId())) {
-
-                LocalDate taskDate = parseDateSafe(task.getStartDate());
-                if (taskDate != null && taskDate.equals(date)) {
-                    return true;
-                }
-            }
+    private String getAssignedTruckDisplay() {
+        if (employee.getAssignedTruckId() == null || employee.getAssignedTruckId().isEmpty()) {
+            return "None";
         }
-        return false;
+
+        return employee.getAssignedTruckId();
     }
 
-    private boolean hasMaintenanceOnDate(LocalDate date) {
-        String assignedTruckId = employee.getAssignedTruckId();
-
-        if (assignedTruckId == null || assignedTruckId.isEmpty()) {
-            return false;
+    private String getAssignedTrailerDisplay() {
+        if (employee.getAssignedTrailerId() == null || employee.getAssignedTrailerId().isEmpty()) {
+            return "None";
         }
 
-        for (MechanicalWriteUp writeUp : manager.getMechanicalWriteUps()) {
-            if (assignedTruckId.equalsIgnoreCase(writeUp.getTruckId())) {
-                String status = safeString(writeUp.getRepairStatus()).toLowerCase();
-                if (!status.contains("complete") && !status.contains("closed") && !status.contains("resolved")) {
-                    YearMonth calendarMonth = YearMonth.from(date);
-                    if (calendarMonth.equals(currentMonth)) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
+        return employee.getAssignedTrailerId();
     }
 
-    private boolean hasTimeOffOnDate(LocalDate date) {
-        try {
-            Method getRequestsMethod = manager.getClass().getMethod("getTimeOffRequests");
-            Object requestsObject = getRequestsMethod.invoke(manager);
+    private void setupTableAesthetics() {
+        scheduleTable.setRowHeight(42);
+        scheduleTable.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        scheduleTable.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
+        scheduleTable.getTableHeader().setBackground(new Color(230, 230, 230));
+        scheduleTable.setSelectionBackground(new Color(173, 216, 230));
+        scheduleTable.setGridColor(new Color(220, 220, 220));
+        scheduleTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
-            if (requestsObject instanceof List<?>) {
-                List<?> requests = (List<?>) requestsObject;
-
-                for (Object request : requests) {
-                    String employeeName = invokeStringMethod(request, "getEmployeeName");
-                    if (employeeName == null) {
-                        employeeName = invokeStringMethod(request, "getFullName");
-                    }
-                    if (employeeName == null) {
-                        employeeName = invokeStringMethod(request, "getEmployee");
-                    }
-
-                    if (employeeName != null && employeeName.equalsIgnoreCase(employee.getFullName())) {
-                        String status = invokeStringMethod(request, "getStatus");
-                        if (status == null || status.equalsIgnoreCase("Pending") || status.equalsIgnoreCase("Approved")) {
-                            LocalDate startDate = invokeDateMethod(request, "getStartDate");
-                            LocalDate endDate = invokeDateMethod(request, "getEndDate");
-
-                            if (startDate == null) {
-                                startDate = invokeDateMethod(request, "getRequestDate");
-                            }
-                            if (endDate == null) {
-                                endDate = startDate;
-                            }
-
-                            if (startDate != null && endDate != null) {
-                                if ((!date.isBefore(startDate)) && (!date.isAfter(endDate))) {
-                                    return true;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (Exception ignored) {
-        }
-
-        return false;
+        scheduleTable.getColumnModel().getColumn(0).setPreferredWidth(95);
+        scheduleTable.getColumnModel().getColumn(1).setPreferredWidth(120);
+        scheduleTable.getColumnModel().getColumn(2).setPreferredWidth(140);
+        scheduleTable.getColumnModel().getColumn(3).setPreferredWidth(140);
+        scheduleTable.getColumnModel().getColumn(4).setPreferredWidth(220);
+        scheduleTable.getColumnModel().getColumn(5).setPreferredWidth(140);
+        scheduleTable.getColumnModel().getColumn(6).setPreferredWidth(120);
+        scheduleTable.getColumnModel().getColumn(7).setPreferredWidth(320);
+        scheduleTable.getColumnModel().getColumn(8).setPreferredWidth(120);
     }
 
-    private String invokeStringMethod(Object target, String methodName) {
-        try {
-            Method method = target.getClass().getMethod(methodName);
-            Object result = method.invoke(target);
-            return result == null ? null : result.toString();
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private LocalDate invokeDateMethod(Object target, String methodName) {
-        try {
-            Method method = target.getClass().getMethod(methodName);
-            Object result = method.invoke(target);
-
-            if (result instanceof LocalDate) {
-                return (LocalDate) result;
-            }
-
-            if (result != null) {
-                return LocalDate.parse(result.toString());
-            }
-        } catch (Exception ignored) {
-        }
-
-        return null;
+    private void styleFlatButton(JButton button) {
+        button.setFocusPainted(false);
+        button.setBackground(Color.WHITE);
+        button.setBorder(BorderFactory.createLineBorder(new Color(210, 215, 220)));
+        button.setFont(new Font("SansSerif", Font.BOLD, 14));
     }
 
     private String safeString(String value) {
         return value == null ? "" : value;
-    }
-
-    private void refreshRepairStatus() {
-        String assignedTruckId = employee.getAssignedTruckId();
-
-        if (assignedTruckId == null || assignedTruckId.isEmpty()) {
-            repairStatusArea.setText("No truck assigned.");
-            return;
-        }
-
-        MechanicalWriteUp latest = null;
-
-        for (MechanicalWriteUp writeUp : manager.getMechanicalWriteUps()) {
-            if (assignedTruckId.equalsIgnoreCase(writeUp.getTruckId())) {
-                latest = writeUp;
-            }
-        }
-
-        if (latest == null) {
-            repairStatusArea.setText("Truck " + assignedTruckId + " is clear. No active issues.");
-            return;
-        }
-
-        repairStatusArea.setText(
-                "Truck: " + latest.getTruckId() + "\n" +
-                        "Status: " + safeString(latest.getRepairStatus()) + "\n" +
-                        "Assigned Mechanic: " + safeString(latest.getAssignedMechanic()) + "\n" +
-                        "Priority: " + safeString(latest.getPriority()) + "\n" +
-                        "Safe To Drive: " + (latest.isSafeToDrive() ? "Yes" : "No") + "\n" +
-                        "Out Of Service: " + (latest.isOutOfService() ? "Yes" : "No") + "\n\n" +
-                        "Problem:\n" + safeString(latest.getProblemDescription()) + "\n\n" +
-                        "Repair Notes:\n" + safeString(latest.getRepairNotes())
-        );
-    }
-
-    private void openTimeOffRequestForm() {
-        try {
-            Class<?> uiClass = Class.forName("TimeOffRequestFormUI");
-            Constructor<?>[] constructors = uiClass.getConstructors();
-
-            for (Constructor<?> constructor : constructors) {
-                Class<?>[] params = constructor.getParameterTypes();
-
-                if (params.length == 3 &&
-                        params[0].isAssignableFrom(FleetManager.class) &&
-                        params[1].isAssignableFrom(Employee.class) &&
-                        params[2].isAssignableFrom(LocalDate.class)) {
-
-                    Object ui = constructor.newInstance(manager, employee, selectedDate);
-                    if (ui instanceof JFrame) {
-                        ((JFrame) ui).setVisible(true);
-                        return;
-                    }
-                }
-
-                if (params.length == 2 &&
-                        params[0].isAssignableFrom(FleetManager.class) &&
-                        params[1].isAssignableFrom(Employee.class)) {
-
-                    Object ui = constructor.newInstance(manager, employee);
-                    if (ui instanceof JFrame) {
-                        ((JFrame) ui).setVisible(true);
-                        return;
-                    }
-                }
-
-                if (params.length == 1 && params[0].isAssignableFrom(Employee.class)) {
-                    Object ui = constructor.newInstance(employee);
-                    if (ui instanceof JFrame) {
-                        ((JFrame) ui).setVisible(true);
-                        return;
-                    }
-                }
-
-                if (params.length == 1 && params[0].isAssignableFrom(FleetManager.class)) {
-                    Object ui = constructor.newInstance(manager);
-                    if (ui instanceof JFrame) {
-                        ((JFrame) ui).setVisible(true);
-                        return;
-                    }
-                }
-
-                if (params.length == 0) {
-                    Object ui = constructor.newInstance();
-                    if (ui instanceof JFrame) {
-                        ((JFrame) ui).setVisible(true);
-                        return;
-                    }
-                }
-            }
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Time-off form exists but could not be opened with the current constructor setup.",
-                    "Time Off Request",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-        } catch (ClassNotFoundException e) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "TimeOffRequestFormUI was not found in the project.",
-                    "Time Off Request",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Unable to open the time-off request form.",
-                    "Time Off Request",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-        }
-    }
-
-    private void checkForUrgentNotifications() {
-        for (Task task : manager.getTasks()) {
-            if (task.getAssignedEmployeeIds() != null &&
-                    task.getAssignedEmployeeIds().contains(employee.getEmployeeId()) &&
-                    safeString(task.getStatus()).equalsIgnoreCase("Canceled")) {
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Job at " + safeString(task.getLocation()) + " has been CANCELED.",
-                        "Dispatch Update",
-                        JOptionPane.WARNING_MESSAGE
-                );
-
-                task.setStatus("Canceled (Acknowledged)");
-            }
-        }
     }
 }

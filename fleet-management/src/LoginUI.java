@@ -68,7 +68,7 @@ public class LoginUI extends JFrame {
         cardPanel.setBorder(new EmptyBorder(24, 20, 18, 20));
         cardPanel.setMaximumSize(new Dimension(920, 220));
 
-        cardPanel.add(createCard("Driver Portal", this::openDriverPortal));
+        cardPanel.add(createCard("Employee Portal", this::openDriverPortal));
         cardPanel.add(createCard("Owner Portal", this::openOwnerPortal));
         cardPanel.add(createCard("Mechanic Portal", this::openMechanicPortal));
         cardPanel.add(createCard("Global Dashboard", this::openGlobalDashboard));
