@@ -16,7 +16,7 @@ public class DispatchFormUI extends JDialog {
     private final Task task;
 
     private boolean saved = false;
-
+a
     private JComboBox<String> foremanCombo;
     private JList<Employee> availableDriversList;
     private DefaultListModel<Employee> assignedCrewModel;

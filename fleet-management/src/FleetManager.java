@@ -39,88 +39,90 @@ public class FleetManager implements Serializable {
 
     // ================= TASK SUMMARIES =================
 
-private void ensureTaskSummaries() {
-    if (taskSummaries == null) {
-        taskSummaries = new ArrayList<>();
+    private void ensureTaskSummaries() {
+        if (taskSummaries == null) {
+            taskSummaries = new ArrayList<>();
+        }
     }
-}
 
-public ArrayList<TaskSummary> getTaskSummaries() {
-    ensureTaskSummaries();
-    return taskSummaries;
-}
+    public ArrayList<TaskSummary> getTaskSummaries() {
+        ensureTaskSummaries();
+        return taskSummaries;
+    }
 
-public void addTaskSummary(TaskSummary summary) {
-    ensureTaskSummaries();
-    if (summary != null) {
+    public void addTaskSummary(TaskSummary summary) {
+        ensureTaskSummaries();
+
+        if (summary != null) {
+            taskSummaries.add(summary);
+        }
+    }
+
+    public void saveTaskSummary(TaskSummary summary) {
+        ensureTaskSummaries();
+
+        if (summary == null) {
+            return;
+        }
+
+        TaskSummary existing = findTaskSummaryByTaskId(summary.getTaskId());
+
+        if (existing != null) {
+            taskSummaries.remove(existing);
+        }
+
         taskSummaries.add(summary);
     }
-}
 
-public void saveTaskSummary(TaskSummary summary) {
-    ensureTaskSummaries();
+    public TaskSummary findTaskSummaryByTaskId(int taskId) {
+        ensureTaskSummaries();
 
-    if (summary == null) {
-        return;
+        for (TaskSummary summary : taskSummaries) {
+            if (summary != null && summary.getTaskId() == taskId) {
+                return summary;
+            }
+        }
+
+        return null;
     }
 
-    TaskSummary existing = findTaskSummaryByTaskId(summary.getTaskId());
+    public ArrayList<TaskSummary> getTaskSummariesByJobId(int jobId) {
+        ensureTaskSummaries();
 
-    if (existing != null) {
-        taskSummaries.remove(existing);
+        ArrayList<TaskSummary> result = new ArrayList<>();
+
+        for (TaskSummary summary : taskSummaries) {
+            if (summary != null && summary.getJobId() == jobId) {
+                result.add(summary);
+            }
+        }
+
+        return result;
     }
 
-    taskSummaries.add(summary);
-}
+    public void deleteTaskSummaryByTaskId(int taskId) {
+        ensureTaskSummaries();
 
-public TaskSummary findTaskSummaryByTaskId(int taskId) {
-    ensureTaskSummaries();
+        TaskSummary existing = findTaskSummaryByTaskId(taskId);
 
-    for (TaskSummary summary : taskSummaries) {
-        if (summary != null && summary.getTaskId() == taskId) {
-            return summary;
+        if (existing != null) {
+            taskSummaries.remove(existing);
         }
     }
 
-    return null;
-}
+    public void deleteTaskSummariesByJobId(int jobId) {
+        ensureTaskSummaries();
 
-public ArrayList<TaskSummary> getTaskSummariesByJobId(int jobId) {
-    ensureTaskSummaries();
+        ArrayList<TaskSummary> toRemove = new ArrayList<>();
 
-    ArrayList<TaskSummary> result = new ArrayList<>();
-
-    for (TaskSummary summary : taskSummaries) {
-        if (summary != null && summary.getJobId() == jobId) {
-            result.add(summary);
+        for (TaskSummary summary : taskSummaries) {
+            if (summary != null && summary.getJobId() == jobId) {
+                toRemove.add(summary);
+            }
         }
+
+        taskSummaries.removeAll(toRemove);
     }
-
-    return result;
-}
-
-public void deleteTaskSummaryByTaskId(int taskId) {
-    ensureTaskSummaries();
-
-    TaskSummary existing = findTaskSummaryByTaskId(taskId);
-    if (existing != null) {
-        taskSummaries.remove(existing);
-    }
-}
-
-public void deleteTaskSummariesByJobId(int jobId) {
-    ensureTaskSummaries();
-
-    ArrayList<TaskSummary> toRemove = new ArrayList<>();
-
-    for (TaskSummary summary : taskSummaries) {
-        if (summary != null && summary.getJobId() == jobId) {
-            toRemove.add(summary);
-        }
-    }
-
-    taskSummaries.removeAll(toRemove);
-}
 
     // ================= EMPLOYEES =================
 
@@ -138,6 +140,7 @@ public void deleteTaskSummariesByJobId(int jobId) {
                 return e;
             }
         }
+
         return null;
     }
 
@@ -153,6 +156,7 @@ public void deleteTaskSummariesByJobId(int jobId) {
                 return e;
             }
         }
+
         return null;
     }
 
@@ -177,8 +181,9 @@ public void deleteTaskSummariesByJobId(int jobId) {
                 continue;
             }
 
-            String pos = safe(e.getPosition()).toLowerCase();
-            if (pos.contains("driver")) {
+            String position = safe(e.getPosition()).toLowerCase();
+
+            if (position.contains("driver")) {
                 result.add(e);
             }
         }
@@ -192,8 +197,9 @@ public void deleteTaskSummariesByJobId(int jobId) {
 
         for (Employee e : employees) {
             if (e != null) {
-                String pos = safe(e.getPosition()).toLowerCase();
-                if (pos.contains("foreman") || pos.contains("supervisor")) {
+                String position = safe(e.getPosition()).toLowerCase();
+
+                if (position.contains("foreman") || position.contains("supervisor")) {
                     result.add(e);
                 }
             }
@@ -213,6 +219,7 @@ public void deleteTaskSummariesByJobId(int jobId) {
                 return e;
             }
         }
+
         return null;
     }
 
@@ -226,6 +233,7 @@ public void deleteTaskSummariesByJobId(int jobId) {
                 return e;
             }
         }
+
         return null;
     }
 
@@ -240,11 +248,12 @@ public void deleteTaskSummariesByJobId(int jobId) {
     }
 
     public Job findJobByNumber(int jobNumber) {
-        for (Job j : jobs) {
-            if (j != null && j.getJobNumber() == jobNumber) {
-                return j;
+        for (Job job : jobs) {
+            if (job != null && job.getJobNumber() == jobNumber) {
+                return job;
             }
         }
+
         return null;
     }
 
@@ -259,21 +268,24 @@ public void deleteTaskSummariesByJobId(int jobId) {
     }
 
     public Task findTaskById(int id) {
-        for (Task t : tasks) {
-            if (t != null && t.getTaskId() == id) {
-                return t;
+        for (Task task : tasks) {
+            if (task != null && task.getTaskId() == id) {
+                return task;
             }
         }
+
         return null;
     }
 
     public ArrayList<Task> getTasksByJobId(int jobId) {
         ArrayList<Task> result = new ArrayList<>();
-        for (Task t : tasks) {
-            if (t != null && t.getJobId() == jobId) {
-                result.add(t);
+
+        for (Task task : tasks) {
+            if (task != null && task.getJobId() == jobId) {
+                result.add(task);
             }
         }
+
         return result;
     }
 
@@ -283,32 +295,24 @@ public void deleteTaskSummariesByJobId(int jobId) {
 
     public int getTaskCountByType(int jobId, String type) {
         int count = 0;
-        for (Task t : tasks) {
-            if (t != null
-                    && t.getJobId() == jobId
-                    && safe(t.getJobType()).equalsIgnoreCase(type)) {
+
+        for (Task task : tasks) {
+            if (task != null
+                    && task.getJobId() == jobId
+                    && safe(task.getJobType()).equalsIgnoreCase(type)) {
                 count++;
             }
         }
+
         return count;
     }
 
     public double getTotalManHoursForJob(int jobId) {
-        double total = 0;
+        double total = 0.0;
 
-        for (Task t : tasks) {
-            if (t == null || t.getJobId() != jobId) {
-                continue;
-            }
-
-            int crew = t.getAssignedEmployeeIds() == null ? 0 : t.getAssignedEmployeeIds().size();
-
-            try {
-                int start = Integer.parseInt(t.getStartTime().replace(":", ""));
-                int end = Integer.parseInt(t.getEndTime().replace(":", ""));
-                double hours = (end - start) / 100.0;
-                total += hours * crew;
-            } catch (Exception ignored) {
+        for (TaskSummary summary : getTaskSummariesByJobId(jobId)) {
+            if (summary != null) {
+                total += summary.getPersonHours();
             }
         }
 
@@ -317,8 +321,8 @@ public void deleteTaskSummariesByJobId(int jobId) {
 
     // ================= TRUCKS =================
 
-    public void addTruck(Truck t) {
-        trucks.add(t);
+    public void addTruck(Truck truck) {
+        trucks.add(truck);
     }
 
     public ArrayList<Truck> getTrucks() {
@@ -330,11 +334,12 @@ public void deleteTaskSummariesByJobId(int jobId) {
             return null;
         }
 
-        for (Truck t : trucks) {
-            if (t != null && safe(t.getTruckID()).equalsIgnoreCase(id)) {
-                return t;
+        for (Truck truck : trucks) {
+            if (truck != null && safe(truck.getTruckID()).equalsIgnoreCase(id)) {
+                return truck;
             }
         }
+
         return null;
     }
 
@@ -364,13 +369,16 @@ public void deleteTaskSummariesByJobId(int jobId) {
         }
 
         String position = safe(employee.getPosition()).toLowerCase();
+
         if (!position.contains("driver")) {
             return false;
         }
 
         String previousTruckId = safe(employee.getAssignedTruckId());
+
         if (!previousTruckId.isBlank()) {
             Truck previousTruck = findTruckById(previousTruckId);
+
             if (previousTruck != null) {
                 previousTruck.clearAssignment();
             }
@@ -378,11 +386,13 @@ public void deleteTaskSummariesByJobId(int jobId) {
 
         if (truck.getAssignedEmployeeId() > 0) {
             Employee previousEmployee = findEmployeeById(truck.getAssignedEmployeeId());
+
             if (previousEmployee != null) {
                 previousEmployee.setAssignedTruckId("");
             }
         } else if (!safe(truck.getAssignedEmployeeName()).isBlank()) {
             Employee previousEmployee = findEmployeeByName(truck.getAssignedEmployeeName());
+
             if (previousEmployee != null) {
                 previousEmployee.setAssignedTruckId("");
             }
@@ -403,13 +413,14 @@ public void deleteTaskSummariesByJobId(int jobId) {
 
         employee.setAssignedTruckId(truckId);
         truck.assignDriver(employee.getEmployeeId(), employee.getFullName());
+
         return true;
     }
 
     // ================= TRAILERS =================
 
-    public void addTrailer(Trailer t) {
-        trailers.add(t);
+    public void addTrailer(Trailer trailer) {
+        trailers.add(trailer);
     }
 
     public ArrayList<Trailer> getTrailers() {
@@ -421,11 +432,12 @@ public void deleteTaskSummariesByJobId(int jobId) {
             return null;
         }
 
-        for (Trailer t : trailers) {
-            if (t != null && safe(t.getTrailerId()).equalsIgnoreCase(id)) {
-                return t;
+        for (Trailer trailer : trailers) {
+            if (trailer != null && safe(trailer.getTrailerId()).equalsIgnoreCase(id)) {
+                return trailer;
             }
         }
+
         return null;
     }
 
@@ -455,13 +467,16 @@ public void deleteTaskSummariesByJobId(int jobId) {
         }
 
         String position = safe(employee.getPosition()).toLowerCase();
+
         if (!position.contains("driver")) {
             return false;
         }
 
         String previousTrailerId = safe(employee.getAssignedTrailerId());
+
         if (!previousTrailerId.isBlank()) {
             Trailer previousTrailer = findTrailerById(previousTrailerId);
+
             if (previousTrailer != null) {
                 previousTrailer.clearAssignment();
             }
@@ -469,11 +484,13 @@ public void deleteTaskSummariesByJobId(int jobId) {
 
         if (trailer.getAssignedEmployeeId() > 0) {
             Employee previousEmployee = findEmployeeById(trailer.getAssignedEmployeeId());
+
             if (previousEmployee != null) {
                 previousEmployee.setAssignedTrailerId("");
             }
         } else if (!safe(trailer.getAssignedEmployeeName()).isBlank()) {
             Employee previousEmployee = findEmployeeByName(trailer.getAssignedEmployeeName());
+
             if (previousEmployee != null) {
                 previousEmployee.setAssignedTrailerId("");
             }
@@ -494,18 +511,22 @@ public void deleteTaskSummariesByJobId(int jobId) {
 
         employee.setAssignedTrailerId(trailerId);
         trailer.assignDriver(employee.getEmployeeId(), employee.getFullName());
+
         return true;
     }
 
     public void clearTrailerAssignmentForEmployee(int employeeId) {
         Employee employee = findEmployeeById(employeeId);
+
         if (employee == null) {
             return;
         }
 
         String trailerId = safe(employee.getAssignedTrailerId());
+
         if (!trailerId.isBlank()) {
             Trailer trailer = findTrailerById(trailerId);
+
             if (trailer != null) {
                 trailer.clearAssignment();
             }
@@ -516,8 +537,8 @@ public void deleteTaskSummariesByJobId(int jobId) {
 
     // ================= FORKLIFTS =================
 
-    public void addForklift(Forklift f) {
-        forklifts.add(f);
+    public void addForklift(Forklift forklift) {
+        forklifts.add(forklift);
     }
 
     public ArrayList<Forklift> getForklifts() {
@@ -536,28 +557,32 @@ public void deleteTaskSummariesByJobId(int jobId) {
                 return forklift;
             }
         }
+
         return null;
     }
 
     public boolean isForkliftAssigned(String id) {
-        for (Task t : tasks) {
-            if (t != null
-                    && t.getAssignedForklifts() != null
-                    && t.getAssignedForklifts().contains(id)
-                    && !safe(t.getStatus()).equalsIgnoreCase("Completed")) {
+        for (Task task : tasks) {
+            if (task != null
+                    && task.getAssignedForklifts() != null
+                    && task.getAssignedForklifts().contains(id)
+                    && !safe(task.getStatus()).equalsIgnoreCase("Completed")) {
                 return true;
             }
         }
+
         return false;
     }
 
     public ArrayList<Forklift> getAvailableForklifts() {
         ArrayList<Forklift> available = new ArrayList<>();
-        for (Forklift f : forklifts) {
-            if (f != null && !isForkliftAssigned(f.getUnitId())) {
-                available.add(f);
+
+        for (Forklift forklift : forklifts) {
+            if (forklift != null && !isForkliftAssigned(forklift.getUnitId())) {
+                available.add(forklift);
             }
         }
+
         return available;
     }
 
@@ -566,22 +591,25 @@ public void deleteTaskSummariesByJobId(int jobId) {
             return false;
         }
 
-        for (Stockpile s : stockpiles) {
-            if (s != null && s.getForkliftIds().contains(unitId.trim())) {
+        for (Stockpile stockpile : stockpiles) {
+            if (stockpile != null && stockpile.getForkliftIds().contains(unitId.trim())) {
                 return true;
             }
         }
+
         return false;
     }
 
-    public ArrayList<String> addMultipleForkliftsToStockpile(String stockpileName,
-                                                             ArrayList<String> forkliftIds,
-                                                             String employeeName,
-                                                             String timestamp) {
-
+    public ArrayList<String> addMultipleForkliftsToStockpile(
+            String stockpileName,
+            ArrayList<String> forkliftIds,
+            String employeeName,
+            String timestamp
+    ) {
         ArrayList<String> failed = new ArrayList<>();
 
         Stockpile stockpile = findStockpileByName(stockpileName);
+
         if (stockpile == null) {
             failed.add("Invalid Stockpile");
             return failed;
@@ -612,8 +640,8 @@ public void deleteTaskSummariesByJobId(int jobId) {
 
     // ================= GRADALL =================
 
-    public void addGradall(Gradall g) {
-        gradalls.add(g);
+    public void addGradall(Gradall gradall) {
+        gradalls.add(gradall);
     }
 
     public ArrayList<Gradall> getGradalls() {
@@ -632,6 +660,7 @@ public void deleteTaskSummariesByJobId(int jobId) {
                 return gradall;
             }
         }
+
         return null;
     }
 
@@ -640,22 +669,25 @@ public void deleteTaskSummariesByJobId(int jobId) {
             return false;
         }
 
-        for (Stockpile s : stockpiles) {
-            if (s != null && s.getGradallIds().contains(unitId.trim())) {
+        for (Stockpile stockpile : stockpiles) {
+            if (stockpile != null && stockpile.getGradallIds().contains(unitId.trim())) {
                 return true;
             }
         }
+
         return false;
     }
 
-    public ArrayList<String> addMultipleGradallsToStockpile(String stockpileName,
-                                                            ArrayList<String> gradallIds,
-                                                            String employeeName,
-                                                            String timestamp) {
-
+    public ArrayList<String> addMultipleGradallsToStockpile(
+            String stockpileName,
+            ArrayList<String> gradallIds,
+            String employeeName,
+            String timestamp
+    ) {
         ArrayList<String> failed = new ArrayList<>();
 
         Stockpile stockpile = findStockpileByName(stockpileName);
+
         if (stockpile == null) {
             failed.add("Invalid Stockpile");
             return failed;
@@ -699,15 +731,23 @@ public void deleteTaskSummariesByJobId(int jobId) {
             return null;
         }
 
-        for (Stockpile s : stockpiles) {
-            if (s != null && s.getName() != null && s.getName().equalsIgnoreCase(name.trim())) {
-                return s;
+        for (Stockpile stockpile : stockpiles) {
+            if (stockpile != null
+                    && stockpile.getName() != null
+                    && stockpile.getName().equalsIgnoreCase(name.trim())) {
+                return stockpile;
             }
         }
+
         return null;
     }
 
-    public boolean addForkliftToStockpile(String stockpileName, String forkliftId, String employeeName, String timestamp) {
+    public boolean addForkliftToStockpile(
+            String stockpileName,
+            String forkliftId,
+            String employeeName,
+            String timestamp
+    ) {
         Stockpile stockpile = findStockpileByName(stockpileName);
 
         if (stockpile == null || forkliftId == null || forkliftId.isBlank()) {
@@ -727,7 +767,12 @@ public void deleteTaskSummariesByJobId(int jobId) {
         return stockpile.addForklift(trimmedId, employeeName, timestamp);
     }
 
-    public boolean removeForkliftFromStockpile(String stockpileName, String forkliftId, String employeeName, String timestamp) {
+    public boolean removeForkliftFromStockpile(
+            String stockpileName,
+            String forkliftId,
+            String employeeName,
+            String timestamp
+    ) {
         Stockpile stockpile = findStockpileByName(stockpileName);
 
         if (stockpile == null || forkliftId == null || forkliftId.isBlank()) {
@@ -737,7 +782,12 @@ public void deleteTaskSummariesByJobId(int jobId) {
         return stockpile.removeForklift(forkliftId.trim(), employeeName, timestamp);
     }
 
-    public boolean addGradallToStockpile(String stockpileName, String gradallId, String employeeName, String timestamp) {
+    public boolean addGradallToStockpile(
+            String stockpileName,
+            String gradallId,
+            String employeeName,
+            String timestamp
+    ) {
         Stockpile stockpile = findStockpileByName(stockpileName);
 
         if (stockpile == null || gradallId == null || gradallId.isBlank()) {
@@ -757,7 +807,12 @@ public void deleteTaskSummariesByJobId(int jobId) {
         return stockpile.addGradall(trimmedId, employeeName, timestamp);
     }
 
-    public boolean removeGradallFromStockpile(String stockpileName, String gradallId, String employeeName, String timestamp) {
+    public boolean removeGradallFromStockpile(
+            String stockpileName,
+            String gradallId,
+            String employeeName,
+            String timestamp
+    ) {
         Stockpile stockpile = findStockpileByName(stockpileName);
 
         if (stockpile == null || gradallId == null || gradallId.isBlank()) {
@@ -767,12 +822,13 @@ public void deleteTaskSummariesByJobId(int jobId) {
         return stockpile.removeGradall(gradallId.trim(), employeeName, timestamp);
     }
 
-    public boolean dispatchBarriersToJob(String stockpileName,
-                                         int jobNumber,
-                                         int quantity,
-                                         String employeeName,
-                                         String timestamp) {
-
+    public boolean dispatchBarriersToJob(
+            String stockpileName,
+            int jobNumber,
+            int quantity,
+            String employeeName,
+            String timestamp
+    ) {
         if (quantity <= 0) {
             return false;
         }
@@ -789,6 +845,7 @@ public void deleteTaskSummariesByJobId(int jobId) {
         }
 
         boolean removed = stockpile.removeBarriers(quantity, employeeName, timestamp);
+
         if (!removed) {
             return false;
         }
@@ -797,12 +854,13 @@ public void deleteTaskSummariesByJobId(int jobId) {
         return true;
     }
 
-    public boolean returnBarriersFromJob(String stockpileName,
-                                         int jobNumber,
-                                         int quantity,
-                                         String employeeName,
-                                         String timestamp) {
-
+    public boolean returnBarriersFromJob(
+            String stockpileName,
+            int jobNumber,
+            int quantity,
+            String employeeName,
+            String timestamp
+    ) {
         if (quantity <= 0) {
             return false;
         }
@@ -845,11 +903,13 @@ public void deleteTaskSummariesByJobId(int jobId) {
 
     public int getNextWriteUpId() {
         int max = 0;
+
         for (MechanicalWriteUp writeUp : mechanicalWriteUps) {
             if (writeUp != null) {
                 max = Math.max(max, writeUp.getWriteUpId());
             }
         }
+
         return max + 1;
     }
 
@@ -865,11 +925,13 @@ public void deleteTaskSummariesByJobId(int jobId) {
 
     public int getNextTimeOffRequestId() {
         int max = 0;
+
         for (TimeOffRequest request : timeOffRequests) {
             if (request != null) {
                 max = Math.max(max, request.getRequestId());
             }
         }
+
         return max + 1;
     }
 
@@ -879,8 +941,8 @@ public void deleteTaskSummariesByJobId(int jobId) {
 
     // ================= COMPANY =================
 
-    public void setCompany(Company c) {
-        this.company = c;
+    public void setCompany(Company company) {
+        this.company = company;
     }
 
     public Company getCompany() {
@@ -889,7 +951,7 @@ public void deleteTaskSummariesByJobId(int jobId) {
 
     // ================= UTIL =================
 
-    private String safe(String v) {
-        return v == null ? "" : v;
+    private String safe(String value) {
+        return value == null ? "" : value;
     }
 }
