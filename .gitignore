@@ -1,2 +1,8 @@
+# Java compiler output
 *.class
+
+# Existing FleetTrack file
 fleet.txt
+
+# Maven build output
+target/
